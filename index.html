@@ -183,6 +183,30 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .kv code{font:500 12.5px var(--font-data);overflow-wrap:anywhere}
 .kv code em{font-style:normal;color:var(--muted)}
 .ok-text{color:var(--ok);font-weight:600}
+/* Busca de endereço */
+.places{display:grid;gap:10px;position:relative}
+.places::before{content:"";position:absolute;left:15px;top:22px;bottom:22px;border-left:2px dotted var(--line)}
+.place{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;position:relative}
+.place .tag{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 12px var(--font-display);z-index:1}
+.combo{position:relative;min-width:0}
+.combo input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:10px 34px 10px 12px;color:var(--ink);font-size:15px}
+.combo input:focus{border-color:var(--accent);background:var(--surface);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.combo .clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.combo .clear svg{width:16px;height:16px}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:10;list-style:none;margin:0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);max-height:300px;overflow:auto}
+.sugg li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;padding:8px 10px;border-radius:8px;cursor:pointer}
+.sugg li[aria-selected="true"],.sugg li:hover{background:var(--surface-2)}
+.sugg li svg{width:18px;height:18px;margin-top:2px;color:var(--muted)}
+.sugg b{display:block;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg small{display:block;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg .empty{display:block;color:var(--muted);font-size:13px;cursor:default}
+.sugg .empty:hover{background:transparent}
+.place .mapbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.place .mapbtn svg{width:18px;height:18px}
+.trip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:var(--surface-2);border:0;border-radius:12px;padding:10px 12px;margin-bottom:14px;width:100%;text-align:left;cursor:pointer;color:var(--ink)}
+.trip .lb{font:600 11px var(--font-data);color:var(--muted)}
+.trip .nm{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trip .ed{grid-row:1 / span 2;grid-column:3;color:var(--accent);font-size:13px;font-weight:600}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -248,6 +272,11 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 
     <section class="card">
       <h2>Seu trajeto, minuto a minuto <span class="aside num" id="tl-dist"></span></h2>
+      <button class="trip" type="button" id="trip">
+        <span class="lb">DE</span><span class="nm" id="trip-a">Casa</span>
+        <span class="lb">PARA</span><span class="nm" id="trip-b">Trabalho</span>
+        <span class="ed">Editar</span>
+      </button>
       <div class="routebar" id="routebar" aria-hidden="true"></div>
       <div class="routebar-lbl"><span id="rb-a">Casa</span><span id="rb-b">Trabalho</span></div>
       <ol class="tl" id="timeline"></ol>
@@ -284,13 +313,9 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
   <div class="dlg-body">
     <div class="sec">
       <h3>Pontos do trajeto</h3>
-      <div class="row">
-        <button class="btn" type="button" data-pick="home">Marcar casa</button>
-        <button class="btn" type="button" data-pick="via">Marcar ponto P</button>
-        <button class="btn" type="button" data-pick="work">Marcar trabalho</button>
-        <button class="btn" type="button" id="gps">Estou em casa agora</button>
-      </div>
-      <p class="note">Você também pode arrastar os marcadores <b>C</b>, <b>P</b> e <b>T</b> direto no mapa. Tudo fica salvo só neste aparelho.</p>
+      <div class="places" id="places"></div>
+      <div class="row" style="margin-top:10px"><button class="btn" type="button" id="gps">Estou em casa agora</button></div>
+      <p class="note">Digite um endereço, um lugar ou cole um link do Google Maps. Se não achar, toque no ícone de alvo e marque no mapa. Tudo fica salvo só neste aparelho.</p>
     </div>
     <div class="sec">
       <h3>Rotina</h3>
@@ -346,12 +371,13 @@ const icon = (n, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hid
 /* ---------- Estado ---------- */
 const DEFAULTS = {
   home: [-15.8760, -48.0930], via: [-15.8395, -48.0265], work: [-15.8030, -47.9560],
-  speed: 22, customized: false, tIda: "", tVolta: "", topic: ""
+  speed: 22, customized: false, tIda: "", tVolta: "", topic: "", names: { home: "", via: "", work: "" }
 };
 const STORE_KEY = "pedalclima.v1";
 function load(){ try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); }catch(e){ return Object.assign({}, DEFAULTS); } }
 function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(cfg)); }catch(e){} }
 const cfg = load();
+cfg.names = Object.assign({ home: "", via: "", work: "" }, cfg.names || {});
 if(!cfg.topic){ const a = new Uint8Array(12); crypto.getRandomValues(a); cfg.topic = "pedal-" + Array.from(a, b => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join(""); save(); }
 const st = { dir: "ida", dep: null, route: null, samples: [], total: 0, wx: null, wxAt: 0, radarFrames: [], radarHost: "", radarIdx: 0, radarOn: true, playTimer: null, pickMode: null, routeNote: "", viaKm: null, fitKey: "" };
 
@@ -400,10 +426,18 @@ function pinIcon(letter, color){ return L.divIcon({ className: "", iconSize: [30
   html: `<div class="pin" style="background:${color}"><b>${letter}</b></div>` }); }
 const markers = {
   home: L.marker(cfg.home, { draggable: true, icon: pinIcon("C", "#0b7a70"), title: "Casa" }).addTo(map),
-  via:  L.marker(cfg.via,  { draggable: true, icon: pinIcon("P", "#6f8285"), title: "Passar por" }).addTo(map),
+  via:  L.marker(cfg.via || cfg.home, { draggable: true, icon: pinIcon("P", "#6f8285"), title: "Passar por" }),
   work: L.marker(cfg.work, { draggable: true, icon: pinIcon("T", "#b5562b"), title: "Trabalho" }).addTo(map)
 };
-const setPoint = (k, ll) => { cfg[k] = [+ll[0].toFixed(5), +ll[1].toFixed(5)]; if(k !== "via") cfg.customized = true; markers[k].setLatLng(cfg[k]); save(); renderSettings(); rebuild(); };
+if(cfg.via) markers.via.addTo(map);
+const PIN_COLOR = { home: "#0b7a70", via: "#6f8285", work: "#b5562b" }, PIN_LETTER = { home: "C", via: "P", work: "T" };
+function setPoint(k, ll, name){
+  cfg[k] = [+ll[0].toFixed(5), +ll[1].toFixed(5)]; if(k !== "via") cfg.customized = true;
+  markers[k].setLatLng(cfg[k]); if(k === "via" && !map.hasLayer(markers.via)) markers.via.addTo(map);
+  if(name){ cfg.names[k] = name; } else { cfg.names[k] = ""; reverseName(k); }
+  save(); renderSettings(); rebuild();
+}
+function clearVia(){ cfg.via = null; cfg.names.via = ""; map.removeLayer(markers.via); save(); renderSettings(); rebuild(); }
 Object.entries(markers).forEach(([k, m]) => m.on("dragend", () => { const p = m.getLatLng(); setPoint(k, [p.lat, p.lng]); }));
 const PICK_LABEL = { home: "Toque no mapa onde fica a sua casa", via: "Toque num ponto por onde você passa", work: "Toque no mapa onde fica o trabalho" };
 function startPick(k){ st.pickMode = k; $("settings").close(); const p = $("picking"); p.textContent = PICK_LABEL[k]; p.hidden = false; map.getContainer().style.cursor = "crosshair"; $("mapcard").scrollIntoView({ behavior: "smooth", block: "start" }); }
@@ -412,7 +446,7 @@ const routeLayer = L.layerGroup().addTo(map); let radarLayer = null;
 
 /* ---------- Rota ---------- */
 async function fetchRoute(){
-  const pts = [cfg.home, cfg.via, cfg.work], key = "route:" + pts.flat().join(",");
+  const pts = [cfg.home, cfg.via, cfg.work].filter(Boolean), key = "route:" + pts.flat().join(",");
   try{ const c = localStorage.getItem(key); if(c){ st.routeNote = ""; return JSON.parse(c); } }catch(e){}
   const coords = pts.map(p => p[1] + "," + p[0]).join(";");
   for(const u of [`https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coords}?overview=full&geometries=geojson`,
@@ -493,7 +527,7 @@ const isRainy = ev => ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= 
 function render(){
   if(!st.wx) return;
   const ev = evaluate(depTime());
-  renderMap(ev); renderHero(ev); renderTimeline(ev); renderSlots(); renderChecklist(ev);
+  renderMap(ev); renderHero(ev); renderTimeline(ev); renderSlots(); renderChecklist(ev); renderTrip();
   $("setup-banner").hidden = !!cfg.customized;
   $("updated").textContent = "previsão " + hhmm(st.wxAt);
 }
@@ -636,10 +670,11 @@ $("dep").onchange = e => { const [H, M] = e.target.value.split(":").map(Number);
   const d = new Date(); d.setHours(H, M, 0, 0); if(d.getTime() < Date.now() - 30 * 60e3) d.setDate(d.getDate() + 1); st.dep = d.getTime(); render(); };
 $("refresh").onclick = () => refreshAll();
 $("open-settings").onclick = () => { renderSettings(); $("settings").showModal(); };
-$("banner-fix").onclick = () => { renderSettings(); $("settings").showModal(); };
+$("banner-fix").onclick = () => openPlaces("home");
+$("trip").onclick = () => openPlaces(st.dir === "ida" ? "work" : "home");
+function openPlaces(k){ renderSettings(); $("settings").showModal(); setTimeout(() => { const i = $("addr-" + k); if(i){ i.focus(); i.select(); } }, 60); }
 $("close-settings").onclick = () => $("settings").close();
 $("settings").addEventListener("click", e => { if(e.target === $("settings")) $("settings").close(); });
-document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => startPick(b.dataset.pick));
 $("gps").onclick = () => { if(!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(p => { $("settings").close(); setPoint("home", [p.coords.latitude, p.coords.longitude]); },
     () => { $("gps").textContent = "Localização negada"; }); };
@@ -647,15 +682,100 @@ $("speed").onchange = e => { cfg.speed = Math.min(45, Math.max(8, +e.target.valu
 $("t-ida").onchange = e => { cfg.tIda = e.target.value; save(); renderSettings(); };
 $("t-volta").onchange = e => { cfg.tVolta = e.target.value; save(); renderSettings(); };
 
+/* ---------- Busca de endereço (Photon, sem chave) ---------- */
+const PLACE_DEF = [
+  { k: "home", label: "Casa", ph: "Endereço de casa" },
+  { k: "via", label: "Passar por", ph: "Passar por (opcional)" },
+  { k: "work", label: "Trabalho", ph: "Endereço do trabalho" }
+];
+const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const TARGET_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
+const BIAS = { lat: -15.82, lon: -48.0 }, BBOX = "-48.6,-16.3,-47.2,-15.3";
+function featLabel(f){
+  const p = f.properties || {};
+  const street = [p.street, p.housenumber].filter(Boolean).join(", ");
+  const main = p.name || street || p.district || p.city || "Local sem nome";
+  const rest = [p.name && street ? street : "", p.district || p.locality, p.city, p.state].filter(x => x && x !== main);
+  return { main, sub: [...new Set(rest)].join(" · ") };
+}
+function shortName(f){ const l = featLabel(f); return l.sub ? l.main + ", " + l.sub.split(" · ")[0] : l.main; }
+function parseCoords(q){
+  const m = q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || q.match(/[?&](?:q|ll|query)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/) || q.match(/^\s*(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)\s*$/);
+  if(!m) return null; const lat = +m[1], lon = +m[2];
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? [lat, lon] : null;
+}
+async function photon(q){
+  const u = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lat=${BIAS.lat}&lon=${BIAS.lon}&bbox=${BBOX}`;
+  const r = await fetch(u); if(!r.ok) throw new Error("HTTP " + r.status); return (await r.json()).features || [];
+}
+async function reverseName(k){
+  const p = cfg[k]; if(!p) return;
+  try{ const r = await fetch(`https://photon.komoot.io/reverse?lat=${p[0]}&lon=${p[1]}&limit=1`); const j = await r.json();
+    const f = (j.features || [])[0]; if(f && !cfg.names[k]){ cfg.names[k] = shortName(f); save(); renderSettings(); renderTrip(); } }catch(e){}
+}
+function buildPlaces(){
+  const box = $("places"); box.innerHTML = "";
+  PLACE_DEF.forEach(({ k, label, ph }) => {
+    const row = document.createElement("div"); row.className = "place";
+    row.innerHTML = `<span class="tag" style="background:${PIN_COLOR[k]}" aria-hidden="true">${PIN_LETTER[k]}</span>
+      <div class="combo"><input id="addr-${k}" type="text" autocomplete="off" spellcheck="false" placeholder="${ph}" aria-label="${label}"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugg-${k}">
+        <button class="clear" type="button" aria-label="Limpar ${label}">${X_SVG}</button>
+        <ul class="sugg" id="sugg-${k}" role="listbox" hidden></ul></div>
+      <button class="mapbtn" type="button" aria-label="Marcar ${label.toLowerCase()} no mapa" title="Marcar no mapa">${TARGET_SVG}</button>`;
+    box.appendChild(row);
+    const input = row.querySelector("input"), list = row.querySelector(".sugg");
+    let items = [], sel = -1, timer = null, seq = 0;
+    const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); sel = -1; };
+    const paint = () => {
+      list.innerHTML = items.length ? items.map((f, i) => { const l = featLabel(f);
+        return `<li role="option" id="opt-${k}-${i}" aria-selected="${i === sel}" data-i="${i}">${PIN_SVG}<div><b>${l.main}</b>${l.sub ? `<small>${l.sub}</small>` : ""}</div></li>`; }).join("")
+        : `<li class="empty">Nada encontrado. Tente outro termo ou marque no mapa.</li>`;
+      list.hidden = false; input.setAttribute("aria-expanded", "true");
+      if(sel >= 0) input.setAttribute("aria-activedescendant", `opt-${k}-${sel}`); else input.removeAttribute("aria-activedescendant");
+    };
+    const choose = i => { const f = items[i]; if(!f) return; const c = f.geometry.coordinates;
+      input.value = shortName(f); close(); setPoint(k, [c[1], c[0]], shortName(f)); map.setView([c[1], c[0]], Math.max(map.getZoom(), 14)); };
+    input.addEventListener("input", () => {
+      clearTimeout(timer); const q = input.value.trim();
+      const co = parseCoords(q); if(co){ items = []; close(); setPoint(k, co); input.value = "Ponto colado"; return; }
+      if(q.length < 3){ close(); return; }
+      timer = setTimeout(async () => { const my = ++seq;
+        try{ const res = await photon(q); if(my !== seq) return; items = res; sel = -1; paint(); }
+        catch(e){ items = []; list.innerHTML = `<li class="empty">Busca indisponível agora. Marque no mapa.</li>`; list.hidden = false; } }, 280);
+    });
+    input.addEventListener("keydown", e => {
+      if(list.hidden || !items.length){ if(e.key === "Escape" && !list.hidden){ e.preventDefault(); close(); } return; }
+      if(e.key === "ArrowDown"){ e.preventDefault(); sel = (sel + 1) % items.length; paint(); }
+      else if(e.key === "ArrowUp"){ e.preventDefault(); sel = (sel - 1 + items.length) % items.length; paint(); }
+      else if(e.key === "Enter"){ e.preventDefault(); choose(sel < 0 ? 0 : sel); }
+      else if(e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); close(); }
+    });
+    input.addEventListener("focus", () => input.select());
+    input.addEventListener("blur", () => setTimeout(() => { close(); input.value = cfg.names[k] || ""; }, 150));
+    list.addEventListener("mousedown", e => e.preventDefault());
+    list.addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if(li) choose(+li.dataset.i); });
+    row.querySelector(".clear").onclick = () => { if(k === "via"){ clearVia(); input.value = ""; } else { input.value = ""; input.focus(); } };
+    row.querySelector(".mapbtn").onclick = () => startPick(k);
+  });
+}
+function renderTrip(){
+  const nm = k => cfg.names[k] || (k === "home" ? "Casa" : "Trabalho");
+  $("trip-a").textContent = st.dir === "ida" ? nm("home") : nm("work");
+  $("trip-b").textContent = st.dir === "ida" ? nm("work") : nm("home");
+}
+
 /* Ajustes + avisos */
 function repoInfo(){ const h = location.hostname, seg = location.pathname.split("/").filter(Boolean)[0];
   if(h.endsWith(".github.io")) return { owner: h.split(".")[0], repo: seg || h }; return { owner: "joaorvp", repo: "pedal-clima" }; }
 const ll = p => p[0].toFixed(5) + "," + p[1].toFixed(5);
-function kvRow(name, value, id){ return `<div><code><em>${name}</em><br><span id="${id}">${value || "(vazio: preencha acima)"}</span></code><button class="btn" type="button" data-copy="${id}">Copiar</button></div>`; }
+function kvRow(name, value, id){ return `<div><code><em>${name}</em><br><span id="${id}">${value || "(vazio)"}</span></code><button class="btn" type="button" data-copy="${id}">Copiar</button></div>`; }
 function renderSettings(){
+  PLACE_DEF.forEach(({ k }) => { const i = $("addr-" + k); if(i && document.activeElement !== i) i.value = cfg[k] ? (cfg.names[k] || "") : ""; });
   $("speed").value = cfg.speed; $("t-ida").value = cfg.tIda; $("t-volta").value = cfg.tVolta; $("topic").textContent = cfg.topic;
   const r = repoInfo(); $("gh-secrets").href = `https://github.com/${r.owner}/${r.repo}/settings/secrets/actions`;
-  $("kv-secrets").innerHTML = kvRow("PEDAL_TOPIC", cfg.topic, "v-topic") + kvRow("PEDAL_CASA", ll(cfg.home), "v-casa") + kvRow("PEDAL_PASSAR", ll(cfg.via), "v-passar") + kvRow("PEDAL_TRABALHO", ll(cfg.work), "v-trab");
+  $("kv-secrets").innerHTML = kvRow("PEDAL_TOPIC", cfg.topic, "v-topic") + kvRow("PEDAL_CASA", ll(cfg.home), "v-casa") + kvRow("PEDAL_PASSAR", cfg.via ? ll(cfg.via) : "", "v-passar") + kvRow("PEDAL_TRABALHO", ll(cfg.work), "v-trab");
   $("kv-vars").innerHTML = kvRow("PEDAL_IDA", cfg.tIda, "v-ida") + kvRow("PEDAL_VOLTA", cfg.tVolta, "v-volta") + kvRow("PEDAL_VELOCIDADE", String(cfg.speed), "v-vel");
 }
 document.addEventListener("click", async e => {
@@ -678,7 +798,7 @@ async function rebuild(){
   try{
     st.route = await fetchRoute();
     const b = buildSamples(st.route); st.samples = b.samples; st.total = b.total;
-    let best = 0, bd = Infinity; st.samples.forEach(s => { const d = hav([s.lat, s.lon], cfg.via); if(d < bd){ bd = d; best = s.km; } }); st.viaKm = bd < 3 ? best : null;
+    let best = 0, bd = Infinity; if(cfg.via) st.samples.forEach(s => { const d = hav([s.lat, s.lon], cfg.via); if(d < bd){ bd = d; best = s.km; } }); st.viaKm = bd < 3 ? best : null;
     const rk = st.route.length + ":" + st.route[0] + st.route[st.route.length - 1];
     if(rk !== st.fitKey){ st.fitKey = rk; map.fitBounds(L.latLngBounds(st.route).pad(0.08)); }
     await fetchWeather(); showError(st.routeNote); render();
@@ -686,7 +806,9 @@ async function rebuild(){
 }
 async function refreshAll(){ $("refresh").classList.add("spin"); $("updated").textContent = "atualizando…";
   await Promise.all([rebuild(), fetchRadar()]); $("refresh").classList.remove("spin"); }
+buildPlaces();
 renderSettings();
+["home", "via", "work"].forEach(k => { if(cfg[k] && !cfg.names[k]) reverseName(k); });
 refreshAll();
 setInterval(refreshAll, 10 * 60e3);
 setInterval(() => { if(st.dep == null) render(); }, 60e3);
