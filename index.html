@@ -91,6 +91,8 @@ svg text{fill:var(--muted);font:11px var(--font-data)}
 .links a{color:var(--accent)}
 .err{background:color-mix(in srgb,var(--bad) 14%,var(--surface));border:1px solid var(--bad);color:var(--ink);border-radius:10px;padding:10px 14px;margin-bottom:14px}
 .leaflet-container{background:var(--bg);font-family:var(--font-body)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}}
+:root[data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
 .pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:grid;place-items:center}
 .pin b{transform:rotate(45deg);color:#fff;font:700 11px var(--font-display)}
 .tip b{font-family:var(--font-data)}
@@ -211,11 +213,21 @@ function bearing(a, b){ const y=Math.sin(toRad(b[1]-a[1]))*Math.cos(toRad(b[0]))
   const x=Math.cos(toRad(a[0]))*Math.sin(toRad(b[0]))-Math.sin(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.cos(toRad(b[1]-a[1])); return (toDeg(Math.atan2(y,x))+360)%360; }
 
 /* ---------- Mapa ---------- */
-const dark = matchMedia("(prefers-color-scheme: dark)").matches;
 const map = L.map("map", { zoomControl: true, attributionControl: true }).setView([-15.84, -48.02], 12);
-L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`, {
-  maxZoom: 18, subdomains: "abcd", attribution: '&copy; OpenStreetMap &copy; CARTO'
-}).addTo(map);
+// Mapa de fundo sem chave de API: OpenStreetMap; se falhar, troca sozinho para Esri.
+const BASES = [
+  { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", opt: { maxZoom: 19, attribution: "&copy; OpenStreetMap" } },
+  { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", opt: { maxZoom: 19, attribution: "Esri, &copy; OpenStreetMap" } }
+];
+let baseLayer = null, baseIdx = 0, baseErrors = 0;
+function setBase(i){
+  if(baseLayer) map.removeLayer(baseLayer);
+  baseIdx = i; baseErrors = 0;
+  baseLayer = L.tileLayer(BASES[i].url, BASES[i].opt).addTo(map);
+  baseLayer.on("tileerror", () => { if(++baseErrors >= 4 && baseIdx < BASES.length - 1) setBase(baseIdx + 1); });
+  baseLayer.on("tileload", () => { baseErrors = 0; });
+}
+setBase(0);
 map.createPane("radar"); map.getPane("radar").style.zIndex = 350; map.getPane("radar").style.pointerEvents = "none";
 
 function pinIcon(letter, color){ return L.divIcon({ className: "", iconSize: [26,26], iconAnchor: [13,26],
