@@ -22,7 +22,7 @@
   --bg:#eef3f2; --surface:#ffffff; --surface-2:#f5f8f7; --ink:#102326; --muted:#5a6e71; --line:#dbe4e2;
   --accent:#0b7a70; --accent-ink:#ffffff; --head:#0e2b2f; --head-ink:#e6f2f0;
   --ok:#2c8a4c; --warn:#c07a0c; --bad:#c3362e; --lvl:var(--ok);
-  --r0:#b7c7c4; --r1:#79c2e6; --r2:#2e84d4; --r3:#5a3ec2; --r4:#c42c8b;
+  --r0:#3a9e88; --r1:#79c2e6; --r2:#2e84d4; --r3:#5a3ec2; --r4:#c42c8b;
   --shadow:0 1px 2px rgba(16,35,38,.06),0 8px 24px rgba(16,35,38,.06);
   --font-display:"Archivo",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif; --font-data:"JetBrains Mono",ui-monospace,monospace;
   --radius:16px; color-scheme:light;
@@ -31,13 +31,13 @@
   --bg:#091315; --surface:#11201f; --surface-2:#172a2a; --ink:#e2eeec; --muted:#91a7a4; --line:#223836;
   --accent:#3cc4b1; --accent-ink:#04201b; --head:#060e10; --head-ink:#e2eeec;
   --ok:#5cc47c; --warn:#e9a83b; --bad:#ef6b60;
-  --r0:#3a5052; --r1:#5db5e0; --r2:#3c90f0; --r3:#8b6df0; --r4:#ef50ae;
+  --r0:#3cc4a0; --r1:#5db5e0; --r2:#3c90f0; --r3:#8b6df0; --r4:#ef50ae;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#091315; --surface:#11201f; --surface-2:#172a2a; --ink:#e2eeec; --muted:#91a7a4; --line:#223836;
   --accent:#3cc4b1; --accent-ink:#04201b; --head:#060e10; --head-ink:#e2eeec;
   --ok:#5cc47c; --warn:#e9a83b; --bad:#ef6b60;
-  --r0:#3a5052; --r1:#5db5e0; --r2:#3c90f0; --r3:#8b6df0; --r4:#ef50ae;
+  --r0:#3cc4a0; --r1:#5db5e0; --r2:#3c90f0; --r3:#8b6df0; --r4:#ef50ae;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -324,6 +324,12 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
         <label class="fld" for="t-volta">Saída do trabalho<input type="time" id="t-volta"></label>
         <label class="fld" for="speed">Média (km/h)<input type="number" id="speed" min="8" max="45" step="1"></label>
       </div>
+      <div class="fld" style="margin-top:12px">Tipo de rota
+        <div class="dirs" role="group" aria-label="Tipo de rota" style="margin:2px 0 0">
+          <button type="button" id="prof-bike" aria-pressed="true">Bike: ruas calmas</button>
+          <button type="button" id="prof-main" aria-pressed="false">Vias principais</button>
+        </div>
+      </div>
       <p class="note">Com os horários preenchidos, o app abre no sentido certo e já mostra a previsão para a sua próxima saída.</p>
     </div>
     <div class="sec">
@@ -371,7 +377,7 @@ const icon = (n, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hid
 /* ---------- Estado ---------- */
 const DEFAULTS = {
   home: [-15.8760, -48.0930], via: [-15.8395, -48.0265], work: [-15.8030, -47.9560],
-  speed: 22, customized: false, tIda: "", tVolta: "", topic: "", names: { home: "", via: "", work: "" }
+  speed: 22, profile: "bike", customized: false, tIda: "", tVolta: "", topic: "", names: { home: "", via: "", work: "" }
 };
 const STORE_KEY = "pedalclima.v1";
 function load(){ try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); }catch(e){ return Object.assign({}, DEFAULTS); } }
@@ -446,16 +452,35 @@ const routeLayer = L.layerGroup().addTo(map); let radarLayer = null;
 
 /* ---------- Rota ---------- */
 async function fetchRoute(){
-  const pts = [cfg.home, cfg.via, cfg.work].filter(Boolean), key = "route:" + pts.flat().join(",");
+  const pts = [cfg.home, cfg.via, cfg.work].filter(Boolean), main = cfg.profile === "main";
+  const key = "route3:" + (main ? "main" : "bike") + ":" + pts.flat().join(",");
   try{ const c = localStorage.getItem(key); if(c){ st.routeNote = ""; return JSON.parse(c); } }catch(e){}
   const coords = pts.map(p => p[1] + "," + p[0]).join(";");
-  for(const u of [`https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coords}?overview=full&geometries=geojson`,
-                  `https://router.project-osrm.org/route/v1/bike/${coords}?overview=full&geometries=geojson`]){
+  const q = "?overview=full&geometries=geojson&continue_straight=true";
+  const urls = main
+    ? [`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}${q}`, `https://router.project-osrm.org/route/v1/driving/${coords}${q}`]
+    : [`https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coords}${q}`, `https://router.project-osrm.org/route/v1/bike/${coords}${q}`];
+  for(const u of urls){
     try{ const r = await fetch(u); if(!r.ok) continue; const j = await r.json();
-      if(j.routes && j.routes[0]){ const line = j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      if(j.routes && j.routes[0]){ const line = removeSpurs(j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]));
         try{ localStorage.setItem(key, JSON.stringify(line)); }catch(e){} st.routeNote = ""; return line; } }catch(e){}
   }
-  st.routeNote = "Não consegui calcular a rota de bike agora; usando linha reta entre os pontos."; return pts;
+  st.routeNote = "Não consegui calcular a rota agora; usando linha reta entre os pontos."; return pts;
+}
+/* Remove "bicos" de ida e volta (o roteador vai até um ponto fora da via e volta pelo mesmo caminho) */
+function removeSpurs(line){
+  let out = line.slice();
+  for(let guard = 0; guard < 80; guard++){
+    const cum = [0]; for(let i = 1; i < out.length; i++) cum.push(cum[i-1] + hav(out[i-1], out[i]));
+    let done = true;
+    for(let i = 0; i < out.length && done; i++){
+      let cut = -1;
+      for(let j = i + 2; j < out.length && cum[j] - cum[i] < 3; j++) if(hav(out[i], out[j]) < 0.03) cut = j;
+      if(cut > 0 && cum[cut] - cum[i] > 0.06){ out.splice(i + 1, cut - i); done = false; }
+    }
+    if(done) break;
+  }
+  return out;
 }
 function buildSamples(line){
   const cum = [0]; for(let i = 1; i < line.length; i++) cum.push(cum[i-1] + hav(line[i-1], line[i]));
@@ -533,13 +558,20 @@ function render(){
 }
 function renderMap(ev){
   routeLayer.clearLayers(); const line = st.route;
+  const base = { lineJoin: "round", lineCap: "round", smoothFactor: 1.2, interactive: false };
+  // contorno contínuo: uma sombra escura e uma faixa clara por baixo de tudo
+  L.polyline(line, { ...base, color: "#0b1a1c", weight: 13, opacity: .28 }).addTo(routeLayer);
+  L.polyline(line, { ...base, color: "#ffffff", weight: 10, opacity: 1 }).addTo(routeLayer);
   ev.segs.forEach(sg => {
     const i0 = Math.min(sg.a.ri, sg.b.ri), i1 = Math.max(sg.a.ri, sg.b.ri) + 1;
     const pts = [[sg.a.lat, sg.a.lon], ...line.slice(i0 + 1, i1), [sg.b.lat, sg.b.lon]];
-    L.polyline(pts, { color: "#fff", weight: 10, opacity: .9 }).addTo(routeLayer);
-    L.polyline(pts, { color: rateColor(sg.rate), weight: 6, opacity: 1 })
+    L.polyline(pts, { ...base, interactive: true, color: rateColor(sg.rate), weight: 6, opacity: 1 })
       .bindTooltip(`<div class="tip">${placeName(sg.from)} · você passa às <b>${hhmm(sg.t)}</b><br>${CATS[cat(sg.rate)][0]} · ${fmt1(sg.rate)} mm/h · ${sg.prob}%</div>`, { sticky: true }).addTo(routeLayer);
   });
+  // setas discretas indicando o sentido
+  const pts = ordered(); for(let k = 3; k < pts.length - 1; k += 4){ const a = pts[k];
+    L.marker([a.lat, a.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+      html: `<svg width="14" height="14" viewBox="0 0 14 14" style="transform:rotate(${a.brg}deg)"><path d="M3 10l4-6 4 6" fill="none" stroke="#0b1a1c" stroke-opacity=".55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 10l4-6 4 6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` }) }).addTo(routeLayer); }
 }
 function wetInfo(){
   let best = null; st.samples.forEach((s, i) => { const v = pastRain(i); if(!best || v > best.v) best = { s, v }; });
@@ -678,6 +710,8 @@ $("settings").addEventListener("click", e => { if(e.target === $("settings")) $(
 $("gps").onclick = () => { if(!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(p => { $("settings").close(); setPoint("home", [p.coords.latitude, p.coords.longitude]); },
     () => { $("gps").textContent = "Localização negada"; }); };
+function setProfile(pf){ cfg.profile = pf; save(); renderSettings(); rebuild(); }
+$("prof-bike").onclick = () => setProfile("bike"); $("prof-main").onclick = () => setProfile("main");
 $("speed").onchange = e => { cfg.speed = Math.min(45, Math.max(8, +e.target.value || 22)); save(); renderSettings(); render(); };
 $("t-ida").onchange = e => { cfg.tIda = e.target.value; save(); renderSettings(); };
 $("t-volta").onchange = e => { cfg.tVolta = e.target.value; save(); renderSettings(); };
@@ -773,7 +807,8 @@ const ll = p => p[0].toFixed(5) + "," + p[1].toFixed(5);
 function kvRow(name, value, id){ return `<div><code><em>${name}</em><br><span id="${id}">${value || "(vazio)"}</span></code><button class="btn" type="button" data-copy="${id}">Copiar</button></div>`; }
 function renderSettings(){
   PLACE_DEF.forEach(({ k }) => { const i = $("addr-" + k); if(i && document.activeElement !== i) i.value = cfg[k] ? (cfg.names[k] || "") : ""; });
-  $("speed").value = cfg.speed; $("t-ida").value = cfg.tIda; $("t-volta").value = cfg.tVolta; $("topic").textContent = cfg.topic;
+  $("speed").value = cfg.speed;
+  $("prof-bike").setAttribute("aria-pressed", cfg.profile !== "main"); $("prof-main").setAttribute("aria-pressed", cfg.profile === "main"); $("t-ida").value = cfg.tIda; $("t-volta").value = cfg.tVolta; $("topic").textContent = cfg.topic;
   const r = repoInfo(); $("gh-secrets").href = `https://github.com/${r.owner}/${r.repo}/settings/secrets/actions`;
   $("kv-secrets").innerHTML = kvRow("PEDAL_TOPIC", cfg.topic, "v-topic") + kvRow("PEDAL_CASA", ll(cfg.home), "v-casa") + kvRow("PEDAL_PASSAR", cfg.via ? ll(cfg.via) : "", "v-passar") + kvRow("PEDAL_TRABALHO", ll(cfg.work), "v-trab");
   $("kv-vars").innerHTML = kvRow("PEDAL_IDA", cfg.tIda, "v-ida") + kvRow("PEDAL_VOLTA", cfg.tVolta, "v-volta") + kvRow("PEDAL_VELOCIDADE", String(cfg.speed), "v-vel");
