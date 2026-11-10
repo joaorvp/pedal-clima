@@ -183,6 +183,20 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .kv code{font:500 12.5px var(--font-data);overflow-wrap:anywhere}
 .kv code em{font-style:normal;color:var(--muted)}
 .ok-text{color:var(--ok);font-weight:600}
+/* Modo pedal */
+.ride-btn{margin-left:auto;padding:9px 16px;border-radius:999px;font-size:14px}
+.ride-btn svg{width:18px;height:18px}
+.hero.riding .dirs,.hero.riding .when > :not(.ride-btn){display:none}
+.hero.riding .ride-btn{background:var(--bad);border-color:var(--bad);color:#fff;margin-left:0;width:100%;justify-content:center}
+.livebadge{display:none;align-items:center;gap:6px;font:600 12px var(--font-data);color:var(--accent);margin-bottom:12px}
+.livebadge i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.6s ease-out infinite}
+.hero.riding .livebadge{display:flex}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.tl li.past{opacity:.42}
+.tl li.here .dot{background:#2b7fff;border-color:#2b7fff;box-shadow:0 0 0 4px rgba(43,127,255,.25)}
+.open-in{display:flex;gap:8px;margin:-6px 0 14px}
+.open-in .btn{flex:1;justify-content:center;text-decoration:none}
+.me-dot{width:18px;height:18px;border-radius:50%;background:#2b7fff;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2),0 2px 6px rgba(0,0,0,.35)}
 /* Busca de endereço */
 .places{display:grid;gap:10px;position:relative}
 .places::before{content:"";position:absolute;left:15px;top:40px;bottom:20px;border-left:2px dotted var(--line)}
@@ -251,6 +265,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
     </div>
 
     <section class="card hero" id="hero" data-level="ok" aria-live="polite">
+      <div class="livebadge"><i></i><span id="live-txt">AO VIVO</span></div>
       <div class="dirs" role="group" aria-label="Sentido">
         <button type="button" id="dir-ida" aria-pressed="true">Ida</button>
         <button type="button" id="dir-volta" aria-pressed="false">Volta</button>
@@ -260,15 +275,16 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
         <div><h1 id="v-title">Carregando previsão…</h1><p class="sub" id="v-sub">Buscando rota, previsão e radar.</p></div>
       </div>
       <div class="meta">
-        <div><b id="s-time">–</b><span>de viagem</span></div>
+        <div><b id="s-time">–</b><span id="m-l1">de viagem</span></div>
         <div><b id="s-arr">–</b><span>chegada</span></div>
-        <div><b id="s-rain">–</b><span>chuva no trajeto</span></div>
+        <div><b id="s-rain">–</b><span id="m-l3">chuva no trajeto</span></div>
         <div><b id="s-wind">–</b><span id="s-wind-l">vento</span></div>
       </div>
       <div class="when">
         <span>Saída</span>
         <button class="chip" type="button" id="dep-now" aria-pressed="true">Agora</button>
         <input type="time" id="dep" step="300" aria-label="Horário de saída">
+        <button class="btn primary ride-btn" type="button" id="ride"><svg class="i" viewBox="0 0 24 24"><path d="M12 2l7 19-7-4-7 4z"/></svg><span id="ride-lbl">Iniciar pedal</span></button>
       </div>
     </section>
 
@@ -279,12 +295,16 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
         <span class="lb">PARA</span><span class="nm" id="trip-b">Trabalho</span>
         <span class="ed">Editar</span>
       </button>
+      <div class="open-in">
+        <a class="btn" id="open-gmaps" href="#" target="_blank" rel="noopener">Abrir no Google Maps</a>
+        <a class="btn" id="open-waze" href="#" target="_blank" rel="noopener">Abrir no Waze</a>
+      </div>
       <div class="routebar" id="routebar" aria-hidden="true"></div>
       <div class="routebar-lbl"><span id="rb-a">Casa</span><span id="rb-b">Trabalho</span></div>
       <ol class="tl" id="timeline"></ol>
     </section>
 
-    <section class="card">
+    <section class="card" id="slots-card">
       <h2>Melhor hora para sair <span class="aside">próximas 3 h</span></h2>
       <div class="slots" id="slots"></div>
       <p class="note" id="slot-hint"></p>
@@ -554,8 +574,9 @@ const isRainy = ev => ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= 
 /* ---------- Render ---------- */
 function render(){
   if(!st.wx) return;
-  const ev = evaluate(depTime());
-  renderMap(ev); renderHero(ev); renderTimeline(ev); renderSlots(); renderChecklist(ev); renderTrip();
+  const riding = !!(st.ride && st.ride.pos);
+  const ev = riding ? evaluate(Date.now() - st.ride.d / rideSpeed() * 3600e3) : evaluate(depTime());
+  renderMap(ev); riding ? renderRideHero(ev) : renderHero(ev); renderTimeline(ev); if(!riding) renderSlots(); renderChecklist(ev); renderTrip(); renderOpenIn(); $("slots-card").hidden = riding;
   $("setup-banner").hidden = !!cfg.customized;
   $("updated").textContent = "previsão " + hhmm(st.wxAt);
 }
@@ -597,6 +618,8 @@ function verdict(ev){
     sub: `Sem chuva prevista em nenhum trecho até ${hhmm(ev.arr)}.` };
 }
 function renderHero(ev){
+  $("hero").classList.remove("riding"); $("m-l1").textContent = "de viagem"; $("m-l3").textContent = "chuva no trajeto";
+  $("ride-lbl").textContent = st.ride ? "Procurando GPS…" : "Iniciar pedal";
   const v = verdict(ev);
   $("hero").dataset.level = v.level; $("wx-icon").innerHTML = icon(v.icon);
   $("v-title").textContent = v.title; $("v-sub").textContent = v.sub;
@@ -626,7 +649,9 @@ function renderTimeline(ev){
     let desc = g.c === 0 ? (g.prob >= 30 ? `seco · ${g.prob}% de chance de chuva` : "seco")
                          : `${CATS[g.c][0]} · até ${fmt1(g.max)} mm/h`;
     if(k === 0 && temp0 != null) desc += ` · ${Math.round(temp0)} °C`;
-    return `<li style="--seg:${seg}"><span class="t">${hhmm(g.t)}</span><span class="rail"><span class="dot"></span></span>
+    const rd = st.ride && st.ride.pos ? st.ride.d : null;
+    const cls = rd == null ? "" : g.to <= rd ? "past" : g.from <= rd ? "here" : "";
+    return `<li class="${cls}" style="--seg:${seg}"><span class="t">${hhmm(g.t)}</span><span class="rail"><span class="dot"></span></span>
       <div class="what"><b>${title}</b><small>${desc} · ${fmt1(len)} km, ~${mins} min</small></div></li>`;
   });
   rows.push(`<li class="end"><span class="t">${hhmm(ev.arr)}</span><span class="rail"><span class="dot"></span></span><div class="what"><b>${placeName(T)}</b><small>${fmt1(T)} km no total</small></div></li>`);
@@ -693,7 +718,8 @@ $("radar-play").onclick = e => { const btn = e.currentTarget;
   if(st.playTimer){ clearInterval(st.playTimer); st.playTimer = null; btn.querySelector("svg").innerHTML = PLAY; st.radarIdx = st.radarFrames.length - 1; showRadar(); return; }
   if(!st.radarFrames.length) return; st.radarOn = true; $("radar-toggle").setAttribute("aria-pressed", true); btn.querySelector("svg").innerHTML = STOP; st.radarIdx = 0;
   st.playTimer = setInterval(() => { st.radarIdx = (st.radarIdx + 1) % st.radarFrames.length; showRadar(); }, 650); };
-$("fit").onclick = () => { if(st.route) map.fitBounds(L.latLngBounds(st.route).pad(0.08)); };
+$("fit").onclick = () => { if(st.ride && st.ride.pos){ st.ride.follow = true; map.setView(st.ride.pos, Math.max(map.getZoom(), 15)); return; }
+  if(st.route) map.fitBounds(L.latLngBounds(st.route).pad(0.08)); };
 $("full").onclick = () => { const c = $("mapcard"), on = !c.classList.contains("full"); c.classList.toggle("full", on); document.body.style.overflow = on ? "hidden" : ""; setTimeout(() => map.invalidateSize(), 50); };
 document.addEventListener("keydown", e => { if(e.key === "Escape" && $("mapcard").classList.contains("full")) $("full").click(); });
 
@@ -718,6 +744,90 @@ $("prof-bike").onclick = () => setProfile("bike"); $("prof-main").onclick = () =
 $("speed").onchange = e => { cfg.speed = Math.min(45, Math.max(8, +e.target.value || 22)); save(); renderSettings(); render(); };
 $("t-ida").onchange = e => { cfg.tIda = e.target.value; save(); renderSettings(); };
 $("t-volta").onchange = e => { cfg.tVolta = e.target.value; save(); renderSettings(); };
+
+const isSheet = () => false, setSheet = () => {};
+/* ---------- Modo pedal (GPS ao vivo) ---------- */
+let meDot = null, meAcc = null, wakeLock = null;
+const rideSpeed = () => { const r = st.ride; return r && r.ema > 8 ? Math.min(45, r.ema) : (+cfg.speed || 22); };
+function project(pos){ // posição → km ao longo da rota (sentido ida) e distância até ela
+  const line = st.route, cum = st.cum, kx = 111.32 * Math.cos(toRad(pos[0])), ky = 110.57; let best = { off: Infinity, d: 0 };
+  for(let i = 0; i < line.length - 1; i++){
+    const ax = (line[i][1] - pos[1]) * kx, ay = (line[i][0] - pos[0]) * ky, bx = (line[i+1][1] - pos[1]) * kx, by = (line[i+1][0] - pos[0]) * ky;
+    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+    const off = Math.hypot(ax + t * dx, ay + t * dy);
+    if(off < best.off) best = { off, d: cum[i] + t * (cum[i+1] - cum[i]) };
+  }
+  return best;
+}
+async function keepAwake(){ try{ if(st.ride && navigator.wakeLock && !document.hidden) wakeLock = await navigator.wakeLock.request("screen"); }catch(e){} }
+function startRide(){
+  if(!navigator.geolocation){ $("v-sub").textContent = "Este navegador não fornece localização."; return; }
+  st.ride = { watch: null, pos: null, d: 0, off: 0, ema: 0, last: null, follow: true, autoDir: true };
+  st.ride.watch = navigator.geolocation.watchPosition(onFix, err => {
+    if(err.code === 1){ stopRide(); $("v-title").textContent = "Sem localização"; $("v-sub").textContent = "Permita o acesso à localização no navegador para usar o modo pedal."; return; }
+    if(st.ride && !st.ride.pos) $("v-sub").textContent = "Procurando sinal de GPS… em local aberto fica mais rápido.";
+    else if(st.ride) $("live-txt").textContent = "AO VIVO · sinal de GPS fraco";
+  }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 });
+  keepAwake(); render(); if(isSheet()) setSheet("peek");
+}
+function stopRide(arrived){
+  if(st.ride && st.ride.watch != null) navigator.geolocation.clearWatch(st.ride.watch);
+  st.ride = null; if(wakeLock){ wakeLock.release().catch(() => {}); wakeLock = null; }
+  if(meDot){ map.removeLayer(meDot); map.removeLayer(meAcc); meDot = meAcc = null; }
+  st.dep = null; render();
+  if(arrived){ $("v-title").textContent = "Você chegou"; $("v-sub").textContent = "Pedal encerrado. Bom trabalho!"; $("hero").dataset.level = "ok"; $("wx-icon").innerHTML = icon("check"); }
+}
+function onFix(p){
+  const r = st.ride; if(!r || !st.route) return;
+  const pos = [p.coords.latitude, p.coords.longitude], now = p.timestamp || Date.now();
+  if(r.last){ const dt = (now - r.last.t) / 3600e3, dist = hav(r.last.pos, pos);
+    const v = p.coords.speed != null && p.coords.speed >= 0 ? p.coords.speed * 3.6 : (dt > 0 ? dist / dt : 0);
+    if(v < 70) r.ema = r.ema ? r.ema * 0.7 + v * 0.3 : v; }
+  r.last = { pos, t: now }; r.pos = pos; r.acc = p.coords.accuracy || 0;
+  if(r.autoDir){ r.autoDir = false; const dir = hav(pos, cfg.work) < hav(pos, cfg.home) ? "volta" : "ida"; if(dir !== st.dir) st.dir = dir; }
+  const pr = project(pos); r.off = pr.off; r.d = st.dir === "ida" ? pr.d : st.total - pr.d;
+  if(!meDot){
+    meAcc = L.circle(pos, { radius: r.acc, color: "#2b7fff", weight: 1, opacity: .4, fillOpacity: .12, interactive: false }).addTo(map);
+    meDot = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: "", iconSize: [18, 18], iconAnchor: [9, 9], html: '<div class="me-dot"></div>' }) }).addTo(map);
+  } else { meDot.setLatLng(pos); meAcc.setLatLng(pos).setRadius(r.acc); }
+  if(r.follow) map.setView(pos, Math.max(map.getZoom(), 15), { animate: true });
+  const dest = st.dir === "ida" ? cfg.work : cfg.home;
+  if((st.total - r.d < 0.12 && r.off < 0.15) || hav(pos, dest) < 0.15){ stopRide(true); return; }
+  render();
+}
+map.on("dragstart", () => { if(st.ride) st.ride.follow = false; });
+document.addEventListener("visibilitychange", () => { if(!document.hidden) keepAwake(); });
+function renderRideHero(ev){
+  const r = st.ride, sp = rideSpeed(), left = Math.max(0, st.total - r.d), eta = Date.now() + left / sp * 3600e3;
+  const ahead = ev.segs.filter(sg => sg.to > r.d);
+  const storm = ahead.find(sg => sg.code >= 95), rain = ahead.find(sg => sg.rate >= 0.2);
+  const dist = sg => Math.max(0, sg.from - r.d), mins = sg => Math.round(dist(sg) / sp * 60);
+  let level = "ok", ic = "check", title = "Seco até a chegada", sub = "Nenhuma chuva prevista no trecho que falta.";
+  if(storm){ level = "bad"; ic = "storm"; title = dist(storm) < 0.2 ? "Trovoada no seu trecho" : `Trovoada em ${fmt1(dist(storm))} km`; sub = "Procure abrigo seguro se começar a relampejar."; }
+  else if(rain){ level = rain.rate >= 4 ? "bad" : "warn"; ic = "rain";
+    title = dist(rain) < 0.2 ? "Chuva no seu trecho agora" : `Chuva em ${fmt1(dist(rain))} km`;
+    sub = `${CATS[cat(rain.rate)][0][0].toUpperCase() + CATS[cat(rain.rate)][0].slice(1)}${dist(rain) >= 0.2 ? ` daqui a ~${mins(rain)} min, ${lowerPlace(rain.from).replace(/^km/, "no km").replace(/^ponto/, "no ponto")}` : ""}.`; }
+  if(r.off > 0.2) sub += ` Você está a ${Math.round(r.off * 1000)} m da rota.`;
+  const h = $("hero"); h.classList.add("riding"); h.dataset.level = level; $("wx-icon").innerHTML = icon(ic);
+  $("v-title").textContent = title; $("v-sub").textContent = sub;
+  $("live-txt").textContent = "AO VIVO · " + (st.dir === "ida" ? "indo para o trabalho" : "voltando para casa");
+  $("s-time").textContent = fmt1(left) + " km"; $("m-l1").textContent = "faltam";
+  $("s-arr").textContent = hhmm(eta);
+  $("s-rain").textContent = r.ema > 2 ? Math.round(r.ema) + " km/h" : "parado"; $("m-l3").textContent = "velocidade";
+  $("s-wind").textContent = Math.abs(ev.head).toFixed(0) + " km/h";
+  $("s-wind-l").textContent = Math.abs(ev.head) < 3 ? "vento fraco" : ev.head > 0 ? "vento contra" : "vento a favor";
+  $("ride-lbl").textContent = "Encerrar pedal";
+}
+$("ride").onclick = () => st.ride ? stopRide() : startRide();
+
+/* Abrir no Google Maps / Waze */
+function renderOpenIn(){
+  const a = st.dir === "ida" ? cfg.home : cfg.work, b = st.dir === "ida" ? cfg.work : cfg.home, f = p => p[0] + "," + p[1];
+  const g = new URLSearchParams({ api: "1", origin: f(a), destination: f(b), travelmode: "bicycling" });
+  if(cfg.via) g.set("waypoints", f(cfg.via));
+  $("open-gmaps").href = "https://www.google.com/maps/dir/?" + g;
+  $("open-waze").href = `https://waze.com/ul?ll=${f(b)}&navigate=yes`;
+}
 
 /* ---------- Busca de endereço (Photon, sem chave) ---------- */
 const PLACE_DEF = [
@@ -842,6 +952,7 @@ async function rebuild(){
   try{
     st.route = await fetchRoute();
     const b = buildSamples(st.route); st.samples = b.samples; st.total = b.total;
+    st.cum = [0]; for(let i = 1; i < st.route.length; i++) st.cum.push(st.cum[i-1] + hav(st.route[i-1], st.route[i]));
     let best = 0, bd = Infinity; if(cfg.via) st.samples.forEach(s => { const d = hav([s.lat, s.lon], cfg.via); if(d < bd){ bd = d; best = s.km; } }); st.viaKm = bd < 3 ? best : null;
     const rk = st.route.length + ":" + st.route[0] + st.route[st.route.length - 1];
     if(rk !== st.fitKey){ st.fitKey = rk; map.fitBounds(L.latLngBounds(st.route).pad(0.08)); }
