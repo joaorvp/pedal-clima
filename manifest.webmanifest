@@ -1,0 +1,16 @@
+{
+  "name": "Pedal & Clima",
+  "short_name": "Pedal",
+  "description": "Chuva ao longo do trajeto de bike, no horário em que você passa por cada trecho.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e2b2f",
+  "theme_color": "#0e2b2f",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

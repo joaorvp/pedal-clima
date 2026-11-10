@@ -3,218 +3,385 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f2a2e">
+<meta name="theme-color" content="#0e2b2f">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pedal & Clima">
 <title>Pedal & Clima</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-/* Layout: mobile-first single column — veredito, mapa, perfil do trajeto, janela de saída, checklist. Duas colunas no desktop. */
+/* Layout: app de uma coluna no celular (veredito → linha do tempo → mapa → saída → checklist);
+   no desktop, mapa fixo à esquerda e o painel rolando à direita. */
 :root{
-  --bg:#f3f6f5; --surface:#ffffff; --ink:#122427; --muted:#5b6f72; --line:#d6e0df;
-  --accent:#0d7c72; --accent-ink:#ffffff; --head:#0f2a2e; --head-ink:#e8f3f1;
-  --ok:#2f8a4e; --warn:#c27c0e; --bad:#c2372f;
-  --r0:#b9c9c6; --r1:#7cc4e8; --r2:#2f86d6; --r3:#5b3fc4; --r4:#c42d8c;
+  --bg:#eef3f2; --surface:#ffffff; --surface-2:#f5f8f7; --ink:#102326; --muted:#5a6e71; --line:#dbe4e2;
+  --accent:#0b7a70; --accent-ink:#ffffff; --head:#0e2b2f; --head-ink:#e6f2f0;
+  --ok:#2c8a4c; --warn:#c07a0c; --bad:#c3362e; --lvl:var(--ok);
+  --r0:#b7c7c4; --r1:#79c2e6; --r2:#2e84d4; --r3:#5a3ec2; --r4:#c42c8b;
+  --shadow:0 1px 2px rgba(16,35,38,.06),0 8px 24px rgba(16,35,38,.06);
   --font-display:"Archivo",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif; --font-data:"JetBrains Mono",ui-monospace,monospace;
-  color-scheme:light;
+  --radius:16px; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0b1416; --surface:#132124; --ink:#e3eeec; --muted:#93a8a6; --line:#24383b;
-  --accent:#3cc2b0; --accent-ink:#06201c; --head:#081012; --head-ink:#e3eeec;
-  --ok:#5cc47c; --warn:#e8a73a; --bad:#ef6a5f;
-  --r0:#3c5154; --r1:#5fb6e0; --r2:#3b8ff0; --r3:#8a6cf0; --r4:#ee4fae; color-scheme:dark}}
+  --bg:#091315; --surface:#11201f; --surface-2:#172a2a; --ink:#e2eeec; --muted:#91a7a4; --line:#223836;
+  --accent:#3cc4b1; --accent-ink:#04201b; --head:#060e10; --head-ink:#e2eeec;
+  --ok:#5cc47c; --warn:#e9a83b; --bad:#ef6b60;
+  --r0:#3a5052; --r1:#5db5e0; --r2:#3c90f0; --r3:#8b6df0; --r4:#ef50ae;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0b1416; --surface:#132124; --ink:#e3eeec; --muted:#93a8a6; --line:#24383b;
-  --accent:#3cc2b0; --accent-ink:#06201c; --head:#081012; --head-ink:#e3eeec;
-  --ok:#5cc47c; --warn:#e8a73a; --bad:#ef6a5f;
-  --r0:#3c5154; --r1:#5fb6e0; --r2:#3b8ff0; --r3:#8a6cf0; --r4:#ee4fae; color-scheme:dark}
+  --bg:#091315; --surface:#11201f; --surface-2:#172a2a; --ink:#e2eeec; --muted:#91a7a4; --line:#223836;
+  --accent:#3cc4b1; --accent-ink:#04201b; --head:#060e10; --head-ink:#e2eeec;
+  --ok:#5cc47c; --warn:#e9a83b; --bad:#ef6b60;
+  --r0:#3a5052; --r1:#5db5e0; --r2:#3c90f0; --r3:#8b6df0; --r4:#ef50ae;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
 *{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-body);padding-bottom:env(safe-area-inset-bottom,0px)}
-header{background:var(--head);color:var(--head-ink);padding-top:env(safe-area-inset-top,0px)}
-.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.bar{display:flex;align-items:center;gap:12px;padding-block:12px;flex-wrap:wrap}
-.brand{font:800 20px/1 var(--font-display);letter-spacing:-.01em;margin:0}
-.brand small{display:block;font:500 12px/1.4 var(--font-body);opacity:.7;letter-spacing:0;margin-top:3px}
-.status{margin-left:auto;font:12px var(--font-data);opacity:.85;display:flex;gap:8px;align-items:center}
-button,select,input{font:inherit;color:inherit}
-.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:600;font-size:13px}
-.btn:hover{border-color:var(--accent)}
-.btn:focus-visible,.seg button:focus-visible,.slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-header .btn{background:transparent;color:var(--head-ink);border-color:rgba(255,255,255,.25)}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-main{padding-block:16px 32px}
-.controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:14px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
-.seg button{border:0;background:transparent;padding:7px 14px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.field{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.field input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 8px;width:auto}
-.field input[type=number]{width:64px}
-.grid{display:grid;grid-template-columns:1fr;gap:14px}
-@media (min-width:960px){.grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}.mapcol{grid-row:span 3}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
-.panel h2{font:700 13px/1.2 var(--font-display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
-.verdict{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;border-left:6px solid var(--ok)}
-.verdict[data-level="warn"]{border-left-color:var(--warn)}
-.verdict[data-level="bad"]{border-left-color:var(--bad)}
-.verdict .big{font:800 26px/1.1 var(--font-display);margin:0;text-wrap:balance;grid-column:1/-1}
-.verdict p{margin:0;color:var(--muted);grid-column:1/-1}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;grid-column:1/-1}
-@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.stat{background:var(--bg);border-radius:8px;padding:8px 10px;min-width:0}
-.stat b{display:block;font:600 18px/1.2 var(--font-data);font-variant-numeric:tabular-nums}
-.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-#map{height:62vh;min-height:340px;max-height:640px;border-radius:10px;border:1px solid var(--line);z-index:0}
-.maptools{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
-.radarinfo{font:12px var(--font-data);color:var(--muted);margin-left:auto}
-.hint{font-size:13px;color:var(--muted);margin:8px 0 0}
-.hint.alert{color:var(--warn);font-weight:600}
-.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:8px}
-.legend i{display:inline-block;width:18px;height:6px;border-radius:3px;margin-right:5px;vertical-align:middle}
-svg text{fill:var(--muted);font:11px var(--font-data)}
-.profile-wrap{overflow-x:auto}
-.slots{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px}
-@media (max-width:700px){.slots{grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}}
-.slot{border:0;border-radius:5px;height:46px;cursor:pointer;position:relative;padding:0;display:flex;align-items:flex-end;justify-content:center;font:10px var(--font-data);color:var(--ink)}
-.slot span{background:var(--surface);border-radius:3px;padding:0 2px;margin-bottom:3px;opacity:.9}
-.slot[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:1px}
-.checklist{list-style:none;padding:0;margin:0;display:grid;gap:8px}
-.checklist li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start}
-.checklist .dot{width:14px;height:14px;border-radius:50%;margin-top:4px;background:var(--ok)}
-.checklist li[data-l="warn"] .dot{background:var(--warn)}
-.checklist li[data-l="bad"] .dot{background:var(--bad)}
-.checklist strong{font-weight:600}
-.checklist small{display:block;color:var(--muted)}
-.links{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px}
-.links a{color:var(--accent)}
-.err{background:color-mix(in srgb,var(--bad) 14%,var(--surface));border:1px solid var(--bad);color:var(--ink);border-radius:10px;padding:10px 14px;margin-bottom:14px}
-.leaflet-container{background:var(--bg);font-family:var(--font-body)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}}
-:root[data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
-.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:grid;place-items:center}
-.pin b{transform:rotate(45deg);color:#fff;font:700 11px var(--font-display)}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-body);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.num{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+
+/* App bar */
+.appbar{position:sticky;top:0;z-index:20;background:var(--head);color:var(--head-ink);padding-top:env(safe-area-inset-top,0px)}
+.appbar .in{display:flex;align-items:center;gap:10px;height:56px;max-width:1280px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.brand{white-space:nowrap;font:800 19px/1 var(--font-display);font-stretch:85%;letter-spacing:.01em;margin:0}
+.upd{margin-left:auto;font:500 12px var(--font-data);opacity:.75}
+.ibtn{width:40px;height:40px;border-radius:12px;border:0;background:transparent;color:inherit;display:grid;place-items:center;cursor:pointer}
+.ibtn:hover{background:rgba(127,160,160,.18)}
+.ibtn.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Shell */
+.shell{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:14px calc(28px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+@media (min-width:1000px){
+  .shell{grid-template-columns:minmax(0,1.25fr) minmax(380px,1fr);align-items:start}
+  .mapcard{position:sticky;top:70px;grid-row:1 / span 8;grid-column:1}
+  .side{grid-column:2}
+  #map{height:calc(100vh - 150px)!important;max-height:none!important}
+}
+.side{display:grid;gap:14px;min-width:0}
+@media (max-width:999px){.side{display:contents}.side>*{order:2}#error{order:-3}#setup-banner{order:-2}.hero{order:-1}.mapcard{order:1}}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0}
+.card h2{display:flex;align-items:center;gap:8px;font:700 12px/1 var(--font-display);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 12px}
+.card h2 .aside{margin-left:auto;text-transform:none;letter-spacing:0;font:500 12px var(--font-body)}
+
+/* Veredito */
+.hero{position:relative;overflow:hidden;padding:18px 18px 16px}
+.hero::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--lvl)}
+.hero[data-level="warn"]{--lvl:var(--warn)} .hero[data-level="bad"]{--lvl:var(--bad)}
+.dirs{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:3px;gap:2px;margin-bottom:14px}
+.dirs button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer}
+.dirs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.hero-main{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;align-items:center}
+.wx{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;color:var(--lvl);background:color-mix(in srgb,var(--lvl) 13%,transparent)}
+.wx svg{width:38px;height:38px;stroke-width:1.6}
+.hero h1{font:800 27px/1.08 var(--font-display);font-stretch:88%;margin:0;text-wrap:balance}
+.hero .sub{margin:6px 0 0;color:var(--muted);text-wrap:pretty}
+.meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;margin-top:16px;background:var(--line);border-radius:12px;overflow:hidden}
+.meta div{background:var(--surface-2);padding:9px 10px;min-width:0}
+.meta b{display:block;font:600 17px/1.2 var(--font-data);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta span{font-size:11px;color:var(--muted)}
+@media (max-width:460px){.meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.when{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--muted)}
+.when input{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:5px 8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-weight:600;font-size:13px;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+/* Linha do tempo */
+.routebar{position:relative;height:12px;border-radius:999px;overflow:hidden;display:flex;background:var(--r0);margin:4px 0 6px}
+.routebar i{height:100%}
+.routebar-lbl{display:flex;justify-content:space-between;font:500 11px var(--font-data);color:var(--muted);margin-bottom:12px}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:52px 18px minmax(0,1fr);gap:0 10px;min-height:46px}
+.tl .t{font:600 14px var(--font-data);font-variant-numeric:tabular-nums;padding-top:1px;text-align:right}
+.tl .rail{position:relative;display:flex;justify-content:center}
+.tl .rail::after{content:"";position:absolute;top:16px;bottom:-2px;width:4px;border-radius:2px;background:var(--seg,var(--r0))}
+.tl li:last-child .rail::after{display:none}
+.tl .dot{width:14px;height:14px;border-radius:50%;margin-top:3px;background:var(--surface);border:3px solid var(--seg,var(--r0));z-index:1}
+.tl li.end .dot{background:var(--ink);border-color:var(--ink)}
+.tl .what{padding-bottom:12px;min-width:0}
+.tl .what b{font-weight:600}
+.tl .what small{display:block;color:var(--muted);font-size:13px}
+
+/* Mapa */
+.mapcard{padding:0;overflow:hidden;position:relative}
+.mapwrap{position:relative}
+#map{height:48vh;min-height:300px;max-height:560px;z-index:0;background:var(--surface-2)}
+.mapcard.full .mapwrap{height:100%}
+.mapcard.full{position:fixed!important;inset:0;z-index:50;border-radius:0;top:0!important}
+.mapcard.full #map{height:100%!important;max-height:none!important}
+.mapfab{position:absolute;z-index:5;display:flex;flex-direction:column;gap:8px;right:calc(10px + env(safe-area-inset-right,0px));top:10px}
+.mapcard.full .mapfab{top:calc(10px + env(safe-area-inset-top,0px))}
+.fab{width:42px;height:42px;border-radius:12px;border:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);display:grid;place-items:center;cursor:pointer}
+.fab[aria-pressed="false"]{color:var(--muted);opacity:.85}
+.radarpill{position:absolute;z-index:5;left:calc(10px + env(safe-area-inset-left,0px));bottom:24px;background:var(--surface);box-shadow:var(--shadow);border-radius:999px;padding:5px 12px;font:500 12px var(--font-data);color:var(--muted)}
+.mapcard.full .radarpill{bottom:calc(26px + env(safe-area-inset-bottom,0px))}
+.picking{position:absolute;z-index:6;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:var(--surface);border-radius:999px;padding:8px 16px;font-weight:600;font-size:13px;box-shadow:var(--shadow);white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:10px 14px}
+.legend i{display:inline-block;width:16px;height:6px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.leaflet-container{font-family:var(--font-body)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6)}}
+:root[data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6)}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center}
+.pin b{transform:rotate(45deg);color:#fff;font:800 12px var(--font-display)}
 .tip b{font-family:var(--font-data)}
+
+/* Janela de saída */
+.slots{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;align-items:end;height:110px}
+.slot{border:0;background:transparent;padding:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;cursor:pointer;color:var(--muted);position:relative}
+.slot .bar{width:100%;border-radius:6px 6px 3px 3px;min-height:6px;transition:height .3s}
+.slot .lbl{font:500 10px var(--font-data);writing-mode:horizontal-tb;white-space:nowrap}
+.slot[aria-pressed="true"] .bar{outline:2.5px solid var(--ink);outline-offset:1px}
+.slot[aria-pressed="true"] .lbl{color:var(--ink);font-weight:600}
+.slot .best{position:absolute;top:0;font:700 9px var(--font-body);color:var(--ok);text-transform:uppercase;letter-spacing:.05em}
+@media (max-width:520px){.slot:nth-child(even) .lbl{visibility:hidden}}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+.note.strong{color:var(--ink);font-weight:500}
+
+/* Checklist */
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.check{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:start;background:var(--surface-2);border-radius:12px;padding:10px}
+.check .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.check[data-l="ok"]{--c:var(--ok)} .check[data-l="warn"]{--c:var(--warn)} .check[data-l="bad"]{--c:var(--bad)}
+.check b{display:block;font-weight:600;font-size:14px;line-height:1.3}
+.check small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;margin-top:2px}
+
+/* Rodapé */
+.foot{font-size:12.5px;color:var(--muted);display:grid;gap:8px}
+.foot .links{display:flex;flex-wrap:wrap;gap:6px 14px}
+.foot a{color:var(--accent)}
+.err{background:color-mix(in srgb,var(--bad) 12%,var(--surface));border:1px solid var(--bad);border-radius:12px;padding:10px 14px}
+.banner{display:flex;gap:10px;align-items:center;background:color-mix(in srgb,var(--warn) 14%,var(--surface));border-radius:12px;padding:10px 12px;font-size:13.5px}
+.banner button{margin-left:auto}
+
+/* Ajustes (dialog) */
+dialog{border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+dialog::backdrop{background:rgba(6,14,16,.55)}
+.dlg-head{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dlg-head h2{font:800 18px var(--font-display);margin:0}
+.dlg-body{padding:16px;display:grid;gap:20px}
+.sec h3{font:700 12px var(--font-display);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fld{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.fld input{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 10px;color:var(--ink);width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.steps{margin:0;padding-left:20px;display:grid;gap:10px;font-size:14px}
+.steps li::marker{font-weight:700;color:var(--accent)}
+.kv{display:grid;gap:6px;margin-top:6px}
+.kv div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--surface-2);border-radius:10px;padding:6px 6px 6px 10px}
+.kv code{font:500 12.5px var(--font-data);overflow-wrap:anywhere}
+.kv code em{font-style:normal;color:var(--muted)}
+.ok-text{color:var(--ok);font-weight:600}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap bar">
-    <h1 class="brand">Pedal &amp; Clima<small>Casa ⇄ trabalho · chuva ao longo do trajeto</small></h1>
-    <div class="status"><span id="updated">carregando…</span><button class="btn" id="refresh" type="button">Atualizar</button></div>
+<header class="appbar">
+  <div class="in">
+    <div class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-7h5l3 7M10 9l-1-3h-2M15 9l-1.5 3.5"/></svg></div>
+    <p class="brand">Pedal &amp; Clima</p>
+    <span class="upd" id="updated">carregando…</span>
+    <button class="ibtn" id="refresh" type="button" aria-label="Atualizar"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+    <button class="ibtn" id="open-settings" type="button" aria-label="Ajustes e avisos"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
   </div>
 </header>
 
-<main class="wrap">
-  <div id="error" class="err" hidden></div>
-
-  <div class="controls">
-    <div class="seg" role="group" aria-label="Sentido">
-      <button type="button" id="dir-ida" aria-pressed="true">Ida · casa → trabalho</button>
-      <button type="button" id="dir-volta" aria-pressed="false">Volta · trabalho → casa</button>
+<main class="shell">
+  <section class="card mapcard" id="mapcard">
+    <div class="mapwrap">
+    <div id="map" aria-label="Mapa do trajeto com radar de chuva"></div>
+    <div class="mapfab">
+      <button class="fab" id="full" type="button" aria-label="Mapa em tela cheia"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="fab" id="radar-toggle" type="button" aria-pressed="true" aria-label="Mostrar radar"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg></button>
+      <button class="fab" id="radar-play" type="button" aria-label="Animar radar da última hora"><svg class="i" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></button>
+      <button class="fab" id="fit" type="button" aria-label="Centralizar trajeto"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
     </div>
-    <label class="field" for="dep">Saída
-      <input type="time" id="dep" step="900">
-      <button class="btn" type="button" id="dep-now">Agora</button>
-    </label>
-    <label class="field" for="speed">Média <input type="number" id="speed" min="8" max="45" step="1" value="22"> km/h</label>
-  </div>
+    <div class="radarpill num" id="radar-time">radar…</div>
+    <div class="picking" id="picking" hidden></div>
+    </div>
+    <div class="legend" aria-label="Legenda">
+      <span><i style="background:var(--r0)"></i>seco</span><span><i style="background:var(--r1)"></i>garoa</span>
+      <span><i style="background:var(--r2)"></i>moderada</span><span><i style="background:var(--r3)"></i>forte</span><span><i style="background:var(--r4)"></i>muito forte</span>
+    </div>
+  </section>
 
-  <div class="grid">
-    <section class="panel verdict" id="verdict" data-level="ok" aria-live="polite">
-      <p class="big" id="v-title">Carregando previsão…</p>
-      <p id="v-sub">Buscando rota, previsão e radar.</p>
-      <div class="stats">
-        <div class="stat"><b id="s-time">–</b><span>Tempo de viagem</span></div>
-        <div class="stat"><b id="s-arr">–</b><span>Chegada</span></div>
-        <div class="stat"><b id="s-rain">–</b><span>Chuva no trajeto</span></div>
-        <div class="stat"><b id="s-wind">–</b><span>Vento</span></div>
+  <div class="side">
+    <div id="error" class="err" hidden></div>
+    <div id="setup-banner" class="banner" hidden>
+      <svg class="i" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      <span>Casa e trabalho ainda estão em posições aproximadas.</span>
+      <button class="btn" type="button" id="banner-fix">Ajustar</button>
+    </div>
+
+    <section class="card hero" id="hero" data-level="ok" aria-live="polite">
+      <div class="dirs" role="group" aria-label="Sentido">
+        <button type="button" id="dir-ida" aria-pressed="true">Ida</button>
+        <button type="button" id="dir-volta" aria-pressed="false">Volta</button>
+      </div>
+      <div class="hero-main">
+        <div class="wx" id="wx-icon"></div>
+        <div><h1 id="v-title">Carregando previsão…</h1><p class="sub" id="v-sub">Buscando rota, previsão e radar.</p></div>
+      </div>
+      <div class="meta">
+        <div><b id="s-time">–</b><span>de viagem</span></div>
+        <div><b id="s-arr">–</b><span>chegada</span></div>
+        <div><b id="s-rain">–</b><span>chuva no trajeto</span></div>
+        <div><b id="s-wind">–</b><span id="s-wind-l">vento</span></div>
+      </div>
+      <div class="when">
+        <span>Saída</span>
+        <button class="chip" type="button" id="dep-now" aria-pressed="true">Agora</button>
+        <input type="time" id="dep" step="300" aria-label="Horário de saída">
       </div>
     </section>
 
-    <section class="panel mapcol">
-      <h2>Mapa do trajeto</h2>
-      <div id="map" aria-label="Mapa com o trajeto e o radar de chuva"></div>
-      <div class="maptools">
-        <button class="btn" type="button" id="radar-toggle" aria-pressed="true">Radar: ligado</button>
-        <button class="btn" type="button" id="radar-play">▶ Animar radar</button>
-        <button class="btn" type="button" id="set-home">Marcar casa no mapa</button>
-        <button class="btn" type="button" id="set-work">Marcar trabalho</button>
-        <button class="btn" type="button" id="gps">Estou aqui = casa</button>
-        <span class="radarinfo" id="radar-time"></span>
-      </div>
-      <p class="hint" id="pin-hint">Arraste os marcadores <b>C</b> (casa), <b>T</b> (trabalho) e <b>P</b> (passar por) para os pontos exatos. A rota é recalculada e fica salva neste aparelho.</p>
-      <div class="legend" aria-label="Legenda de intensidade de chuva">
-        <span><i style="background:var(--r0)"></i>seco</span>
-        <span><i style="background:var(--r1)"></i>garoa &lt;1 mm/h</span>
-        <span><i style="background:var(--r2)"></i>moderada 1–4</span>
-        <span><i style="background:var(--r3)"></i>forte 4–10</span>
-        <span><i style="background:var(--r4)"></i>muito forte &gt;10</span>
-      </div>
+    <section class="card">
+      <h2>Seu trajeto, minuto a minuto <span class="aside num" id="tl-dist"></span></h2>
+      <div class="routebar" id="routebar" aria-hidden="true"></div>
+      <div class="routebar-lbl"><span id="rb-a">Casa</span><span id="rb-b">Trabalho</span></div>
+      <ol class="tl" id="timeline"></ol>
     </section>
 
-    <section class="panel">
-      <h2>Chuva quando você passar por cada trecho</h2>
-      <div class="profile-wrap"><svg id="profile" viewBox="0 0 600 170" width="100%" role="img" aria-label="Perfil de chuva por quilômetro"></svg></div>
-      <p class="hint">Barras: intensidade prevista (mm/h) no horário em que você estará em cada km. Linha: probabilidade de chuva.</p>
-    </section>
-
-    <section class="panel">
-      <h2>Melhor horário para sair (próximas 3 h)</h2>
+    <section class="card">
+      <h2>Melhor hora para sair <span class="aside">próximas 3 h</span></h2>
       <div class="slots" id="slots"></div>
-      <p class="hint" id="slot-hint">Toque num horário para ver o trajeto com aquela saída.</p>
+      <p class="note" id="slot-hint"></p>
     </section>
 
-    <section class="panel">
+    <section class="card">
       <h2>Antes de sair</h2>
-      <ul class="checklist" id="checklist"></ul>
+      <div class="checks" id="checklist"></div>
     </section>
 
-    <section class="panel">
-      <h2>Fontes e conferência</h2>
+    <section class="card foot">
       <div class="links">
         <a href="https://portal.inmet.gov.br/" target="_blank" rel="noopener">Alertas INMET</a>
         <a href="https://www.redemet.aer.mil.br/?i=produtos&p=radares-meteorologicos" target="_blank" rel="noopener">Radar REDEMET</a>
         <a href="https://www.rainviewer.com/map.html" target="_blank" rel="noopener">RainViewer</a>
         <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
       </div>
-      <p class="hint">Previsão: modelos numéricos via Open-Meteo, com resolução de poucos km. Mostram a tendência, mas podem errar a célula exata de chuva. O radar mostra a chuva que está caindo agora; para os próximos 30–60 min, confie mais nele.</p>
+      <span>A previsão vem de modelos com resolução de alguns km: boa para tendência, pode errar o bairro exato. Para os próximos 30–60 min, confie mais no radar.</span>
     </section>
   </div>
 </main>
 
+<dialog id="settings" aria-labelledby="set-title">
+  <div class="dlg-head">
+    <h2 id="set-title">Ajustes</h2>
+    <button class="ibtn" type="button" id="close-settings" aria-label="Fechar" style="margin-left:auto"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <div class="sec">
+      <h3>Pontos do trajeto</h3>
+      <div class="row">
+        <button class="btn" type="button" data-pick="home">Marcar casa</button>
+        <button class="btn" type="button" data-pick="via">Marcar ponto P</button>
+        <button class="btn" type="button" data-pick="work">Marcar trabalho</button>
+        <button class="btn" type="button" id="gps">Estou em casa agora</button>
+      </div>
+      <p class="note">Você também pode arrastar os marcadores <b>C</b>, <b>P</b> e <b>T</b> direto no mapa. Tudo fica salvo só neste aparelho.</p>
+    </div>
+    <div class="sec">
+      <h3>Rotina</h3>
+      <div class="grid2">
+        <label class="fld" for="t-ida">Saída de casa<input type="time" id="t-ida"></label>
+        <label class="fld" for="t-volta">Saída do trabalho<input type="time" id="t-volta"></label>
+        <label class="fld" for="speed">Média (km/h)<input type="number" id="speed" min="8" max="45" step="1"></label>
+      </div>
+      <p class="note">Com os horários preenchidos, o app abre no sentido certo e já mostra a previsão para a sua próxima saída.</p>
+    </div>
+    <div class="sec">
+      <h3>Avisos no celular</h3>
+      <ol class="steps">
+        <li>Instale o app gratuito <b>ntfy</b> (Android ou iPhone), toque em <b>+</b> e assine este tópico:
+          <div class="kv"><div><code id="topic"></code><button class="btn" type="button" data-copy="topic">Copiar</button></div></div>
+          <div class="row" style="margin-top:8px"><button class="btn" type="button" id="test-push">Enviar notificação de teste</button><span id="test-res" class="note" style="margin:0"></span></div>
+        </li>
+        <li>No GitHub, abra <a id="gh-secrets" href="#" target="_blank" rel="noopener">Settings → Secrets and variables → Actions</a> e crie estes <b>secrets</b> (aba <i>Secrets</i>, botão <i>New repository secret</i>):
+          <div class="kv" id="kv-secrets"></div>
+        </li>
+        <li>Na aba <i>Variables</i>, crie estas <b>variables</b>:
+          <div class="kv" id="kv-vars"></div>
+        </li>
+        <li>Pronto. Em dias úteis, uns 45 min antes de cada saída, você recebe um aviso quando houver chuva ou pista molhada no trajeto. Para testar na hora: aba <i>Actions</i> → <i>Aviso de chuva</i> → <i>Run workflow</i>.</li>
+      </ol>
+    </div>
+  </div>
+</dialog>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 "use strict";
+/* ---------- Ícones ---------- */
+const ICONS = {
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  cloud: '<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.5A3.3 3.3 0 0 0 7 18z"/>',
+  partly: '<path d="M8 3.5v1.2M3.5 8h1.2M4.8 4.8l.9.9M11.2 4.8l-.9.9"/><path d="M5.6 10.6A3.2 3.2 0 0 1 10.4 6"/><path d="M9 19h8a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.6 1.3A2.9 2.9 0 0 0 9 19z"/>',
+  rain: '<path d="M7 14h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.5A3.3 3.3 0 0 0 7 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
+  storm: '<path d="M7 14h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.5A3.3 3.3 0 0 0 7 14z"/><path d="M12.5 13l-2 4h3l-2 4"/>',
+  drop: '<path d="M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3z"/>',
+  wind: '<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
+  battery: '<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10v4M7 10l-1 2h3l-1 2"/>',
+  bag: '<path d="M7 8V6a5 5 0 0 1 10 0v2"/><rect x="5" y="8" width="14" height="13" rx="3"/><path d="M9 14h6"/>',
+  light: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M5 12H3M21 12h-2"/>',
+  thermo: '<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/>',
+  uv: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+  road: '<path d="M8 3L4 21M16 3l4 18M12 5v3M12 11v3M12 17v3"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  bolt: '<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>'
+};
+const icon = (n, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ""}</svg>`;
+
 /* ---------- Estado ---------- */
 const DEFAULTS = {
-  home: [-15.8760, -48.0930],   // casa: ajuste arrastando o marcador C
-  via:  [-15.8395, -48.0265],   // ponto intermediário
-  work: [-15.8030, -47.9560],   // trabalho: ajuste arrastando o marcador T
-  speed: 22, customized: false
+  home: [-15.8760, -48.0930], via: [-15.8395, -48.0265], work: [-15.8030, -47.9560],
+  speed: 22, customized: false, tIda: "", tVolta: "", topic: ""
 };
 const STORE_KEY = "pedalclima.v1";
-function load(){ try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY)||"{}")); }catch(e){ return Object.assign({}, DEFAULTS); } }
+function load(){ try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); }catch(e){ return Object.assign({}, DEFAULTS); } }
 function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(cfg)); }catch(e){} }
 const cfg = load();
-const st = { dir: new Date().getHours() < 12 ? "ida" : "volta", dep: null, route: null, samples: [], wx: null, wxAt: 0, radarFrames: [], radarHost: "", radarIdx: 0, radarOn: true, playTimer: null, pickMode: null, routeNote: "" };
+if(!cfg.topic){ const a = new Uint8Array(12); crypto.getRandomValues(a); cfg.topic = "pedal-" + Array.from(a, b => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join(""); save(); }
+const st = { dir: "ida", dep: null, route: null, samples: [], total: 0, wx: null, wxAt: 0, radarFrames: [], radarHost: "", radarIdx: 0, radarOn: true, playTimer: null, pickMode: null, routeNote: "", viaKm: null, fitKey: "" };
 
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const pad = n => String(n).padStart(2, "0");
-const hhmm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+const hhmm = d => { d = new Date(d); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
 const toRad = d => d * Math.PI / 180, toDeg = r => r * 180 / Math.PI;
+const fmt1 = n => n.toFixed(1).replace(".", ",");
+function hav(a, b){ const R = 6371, dLa = toRad(b[0]-a[0]), dLo = toRad(b[1]-a[1]);
+  const x = Math.sin(dLa/2)**2 + Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
+function bearing(a, b){ const y = Math.sin(toRad(b[1]-a[1]))*Math.cos(toRad(b[0]));
+  const x = Math.cos(toRad(a[0]))*Math.sin(toRad(b[0])) - Math.sin(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.cos(toRad(b[1]-a[1])); return (toDeg(Math.atan2(y, x)) + 360) % 360; }
 
-function hav(a, b){ const R=6371, dLa=toRad(b[0]-a[0]), dLo=toRad(b[1]-a[1]);
-  const x=Math.sin(dLa/2)**2+Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
-function bearing(a, b){ const y=Math.sin(toRad(b[1]-a[1]))*Math.cos(toRad(b[0]));
-  const x=Math.cos(toRad(a[0]))*Math.sin(toRad(b[0]))-Math.sin(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.cos(toRad(b[1]-a[1])); return (toDeg(Math.atan2(y,x))+360)%360; }
+/* Rotina: sentido e saída padrão a partir dos horários salvos */
+function minutesOf(t){ if(!t) return null; const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function nextCommute(){
+  const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), opts = [];
+  [["ida", minutesOf(cfg.tIda)], ["volta", minutesOf(cfg.tVolta)]].forEach(([d, m]) => { if(m != null){ let diff = m - nm; if(diff < -20) diff += 1440; opts.push({ d, diff }); } });
+  opts.sort((a, b) => a.diff - b.diff); return opts[0] || null;
+}
+(function initDir(){
+  const n = nextCommute();
+  if(n){ st.dir = n.d; if(n.diff > 5 && n.diff <= 180) st.dep = Date.now() + n.diff * 60e3 - (Date.now() % 60e3); }
+  else st.dir = new Date().getHours() < 12 ? "ida" : "volta";
+})();
 
 /* ---------- Mapa ---------- */
-const map = L.map("map", { zoomControl: true, attributionControl: true }).setView([-15.84, -48.02], 12);
-// Mapa de fundo sem chave de API: OpenStreetMap; se falhar, troca sozinho para Esri.
+const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([-15.84, -48.02], 12);
+L.control.zoom({ position: "bottomright" }).addTo(map);
 const BASES = [
   { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", opt: { maxZoom: 19, attribution: "&copy; OpenStreetMap" } },
   { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", opt: { maxZoom: 19, attribution: "Esri, &copy; OpenStreetMap" } }
@@ -229,245 +396,281 @@ function setBase(i){
 }
 setBase(0);
 map.createPane("radar"); map.getPane("radar").style.zIndex = 350; map.getPane("radar").style.pointerEvents = "none";
-
-function pinIcon(letter, color){ return L.divIcon({ className: "", iconSize: [26,26], iconAnchor: [13,26],
+function pinIcon(letter, color){ return L.divIcon({ className: "", iconSize: [30, 30], iconAnchor: [15, 30],
   html: `<div class="pin" style="background:${color}"><b>${letter}</b></div>` }); }
 const markers = {
-  home: L.marker(cfg.home, { draggable: true, icon: pinIcon("C", "#0d7c72"), title: "Casa" }).addTo(map),
-  via:  L.marker(cfg.via,  { draggable: true, icon: pinIcon("P", "#7a8a8c"), title: "Passar por" }).addTo(map),
+  home: L.marker(cfg.home, { draggable: true, icon: pinIcon("C", "#0b7a70"), title: "Casa" }).addTo(map),
+  via:  L.marker(cfg.via,  { draggable: true, icon: pinIcon("P", "#6f8285"), title: "Passar por" }).addTo(map),
   work: L.marker(cfg.work, { draggable: true, icon: pinIcon("T", "#b5562b"), title: "Trabalho" }).addTo(map)
 };
-Object.entries(markers).forEach(([k, m]) => m.on("dragend", () => { const p = m.getLatLng(); cfg[k] = [+p.lat.toFixed(5), +p.lng.toFixed(5)]; cfg.customized = true; save(); rebuild(); }));
-map.on("click", e => { if(!st.pickMode) return; const k = st.pickMode; cfg[k] = [+e.latlng.lat.toFixed(5), +e.latlng.lng.toFixed(5)]; cfg.customized = true;
-  markers[k].setLatLng(cfg[k]); st.pickMode = null; map.getContainer().style.cursor = ""; save(); rebuild(); });
-let routeLayer = L.layerGroup().addTo(map), radarLayer = null;
+const setPoint = (k, ll) => { cfg[k] = [+ll[0].toFixed(5), +ll[1].toFixed(5)]; if(k !== "via") cfg.customized = true; markers[k].setLatLng(cfg[k]); save(); renderSettings(); rebuild(); };
+Object.entries(markers).forEach(([k, m]) => m.on("dragend", () => { const p = m.getLatLng(); setPoint(k, [p.lat, p.lng]); }));
+const PICK_LABEL = { home: "Toque no mapa onde fica a sua casa", via: "Toque num ponto por onde você passa", work: "Toque no mapa onde fica o trabalho" };
+function startPick(k){ st.pickMode = k; $("settings").close(); const p = $("picking"); p.textContent = PICK_LABEL[k]; p.hidden = false; map.getContainer().style.cursor = "crosshair"; $("mapcard").scrollIntoView({ behavior: "smooth", block: "start" }); }
+map.on("click", e => { if(!st.pickMode) return; const k = st.pickMode; st.pickMode = null; $("picking").hidden = true; map.getContainer().style.cursor = ""; setPoint(k, [e.latlng.lat, e.latlng.lng]); });
+const routeLayer = L.layerGroup().addTo(map); let radarLayer = null;
 
 /* ---------- Rota ---------- */
 async function fetchRoute(){
-  const pts = [cfg.home, cfg.via, cfg.work];
-  const key = "route:" + pts.flat().join(",");
-  try{ const c = localStorage.getItem(key); if(c) return JSON.parse(c); }catch(e){}
+  const pts = [cfg.home, cfg.via, cfg.work], key = "route:" + pts.flat().join(",");
+  try{ const c = localStorage.getItem(key); if(c){ st.routeNote = ""; return JSON.parse(c); } }catch(e){}
   const coords = pts.map(p => p[1] + "," + p[0]).join(";");
-  const urls = [
-    `https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coords}?overview=full&geometries=geojson`,
-    `https://router.project-osrm.org/route/v1/bike/${coords}?overview=full&geometries=geojson`
-  ];
-  for(const u of urls){
-    try{
-      const r = await fetch(u); if(!r.ok) continue; const j = await r.json();
+  for(const u of [`https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coords}?overview=full&geometries=geojson`,
+                  `https://router.project-osrm.org/route/v1/bike/${coords}?overview=full&geometries=geojson`]){
+    try{ const r = await fetch(u); if(!r.ok) continue; const j = await r.json();
       if(j.routes && j.routes[0]){ const line = j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-        try{ localStorage.setItem(key, JSON.stringify(line)); }catch(e){} st.routeNote = ""; return line; }
-    }catch(e){}
+        try{ localStorage.setItem(key, JSON.stringify(line)); }catch(e){} st.routeNote = ""; return line; } }catch(e){}
   }
-  st.routeNote = "Não consegui calcular a rota de bike agora; usando linha reta entre os pontos.";
-  return pts;
+  st.routeNote = "Não consegui calcular a rota de bike agora; usando linha reta entre os pontos."; return pts;
 }
-
 function buildSamples(line){
-  const cum = [0]; for(let i=1;i<line.length;i++) cum.push(cum[i-1] + hav(line[i-1], line[i]));
+  const cum = [0]; for(let i = 1; i < line.length; i++) cum.push(cum[i-1] + hav(line[i-1], line[i]));
   const total = cum[cum.length-1], step = Math.max(1.2, total / 18), out = [];
   let next = 0, i = 0;
   while(next <= total + 1e-9){
     while(i < line.length - 1 && cum[i+1] < next) i++;
-    const a = line[i], b = line[Math.min(i+1, line.length-1)], seg = (cum[i+1] ?? cum[i]) - cum[i];
-    const f = seg > 0 ? (next - cum[i]) / seg : 0;
+    const a = line[i], b = line[Math.min(i+1, line.length-1)], seg = (cum[i+1] ?? cum[i]) - cum[i], f = seg > 0 ? (next - cum[i]) / seg : 0;
     out.push({ lat: a[0] + (b[0]-a[0])*f, lon: a[1] + (b[1]-a[1])*f, km: next, ri: i, brg: bearing(a, b) });
     if(next === total) break; next = Math.min(total, next + step);
   }
   return { samples: out, total };
 }
 
-/* ---------- Previsão (Open-Meteo) ---------- */
+/* ---------- Previsão ---------- */
 async function fetchWeather(){
-  const s = st.samples;
-  const p = new URLSearchParams({
+  const s = st.samples, p = new URLSearchParams({
     latitude: s.map(x => x.lat.toFixed(4)).join(","), longitude: s.map(x => x.lon.toFixed(4)).join(","),
-    current: "temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
     minutely_15: "precipitation", past_minutely_15: "12", forecast_minutely_15: "96",
-    hourly: "precipitation_probability,precipitation,temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
+    hourly: "precipitation_probability,precipitation,temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day",
     past_hours: "2", forecast_hours: "24", timeformat: "unixtime", timezone: "America/Sao_Paulo"
   });
   const r = await fetch("https://api.open-meteo.com/v1/forecast?" + p);
-  if(!r.ok) throw new Error("Previsão indisponível (HTTP " + r.status + ")");
+  if(!r.ok) throw new Error("previsão indisponível (HTTP " + r.status + ")");
   const j = await r.json(); st.wx = Array.isArray(j) ? j : [j]; st.wxAt = Date.now();
 }
-function idxAt(times, tsec){ let k = times.findIndex(t => t >= tsec); return k < 0 ? times.length - 1 : k; }
-function nearest(times, tsec){ let best = 0, bd = Infinity; times.forEach((t, k) => { const d = Math.abs(t - tsec); if(d < bd){ bd = d; best = k; } }); return best; }
-function rateAt(i, ms){ // mm/h
-  const w = st.wx[i], t = ms / 1000, m = w.minutely_15;
-  if(m && m.time.length && t <= m.time[m.time.length-1]){ const v = m.precipitation[idxAt(m.time, t)]; return (v ?? 0) * 4; }
-  const h = w.hourly; return h.precipitation[idxAt(h.time, t)] ?? 0;
-}
-function hourly(i, ms, key){ const h = st.wx[i].hourly; return h[key][nearest(h.time, ms/1000)]; }
-function probAt(i, ms){ const h = st.wx[i].hourly; return h.precipitation_probability[idxAt(h.time, ms/1000)] ?? 0; }
-function pastRain(i){ const m = st.wx[i].minutely_15, now = Date.now()/1000; let s = 0;
-  if(!m) return 0; m.time.forEach((t, k) => { if(t <= now && t > now - 3*3600) s += m.precipitation[k] || 0; }); return s; }
+function idxAt(times, t){ const k = times.findIndex(x => x >= t); return k < 0 ? times.length - 1 : k; }
+function nearest(times, t){ let b = 0, bd = Infinity; times.forEach((x, k) => { const d = Math.abs(x - t); if(d < bd){ bd = d; b = k; } }); return b; }
+function rateAt(i, ms){ const w = st.wx[i], t = ms / 1000, m = w.minutely_15;
+  if(m && m.time.length && t <= m.time[m.time.length-1]) return (m.precipitation[idxAt(m.time, t)] ?? 0) * 4;
+  return w.hourly.precipitation[idxAt(w.hourly.time, t)] ?? 0; }
+function hourly(i, ms, key){ const h = st.wx[i].hourly; return h[key] ? h[key][nearest(h.time, ms / 1000)] : null; }
+function probAt(i, ms){ const h = st.wx[i].hourly; return h.precipitation_probability[idxAt(h.time, ms / 1000)] ?? 0; }
+function pastRain(i){ const m = st.wx[i].minutely_15, now = Date.now() / 1000; let s = 0;
+  if(m) m.time.forEach((t, k) => { if(t <= now && t > now - 3 * 3600) s += m.precipitation[k] || 0; }); return s; }
 
-/* ---------- Cálculo do trajeto num horário de saída ---------- */
-function ordered(){ // amostras na ordem do sentido escolhido
-  const total = st.total;
+/* ---------- Avaliação do trajeto ---------- */
+function ordered(){ const T = st.total;
   return st.dir === "ida" ? st.samples.map((s, i) => ({ ...s, wi: i, d: s.km }))
-    : st.samples.map((s, i) => ({ ...s, wi: i, d: total - s.km, brg: (s.brg + 180) % 360 })).reverse();
-}
+    : st.samples.map((s, i) => ({ ...s, wi: i, d: T - s.km, brg: (s.brg + 180) % 360 })).reverse(); }
 function evaluate(depMs){
   const sp = Math.max(5, +cfg.speed || 22), pts = ordered(), segs = [];
   let exposure = 0, maxRate = 0, maxProb = 0, storm = false, headSum = 0, gustMax = 0;
   for(let k = 0; k < pts.length - 1; k++){
-    const a = pts[k], b = pts[k+1], len = b.d - a.d, mid = (a.d + b.d) / 2;
-    const t = depMs + mid / sp * 3600e3;
+    const a = pts[k], b = pts[k+1], len = b.d - a.d, t = depMs + (a.d + b.d) / 2 / sp * 3600e3;
     const rate = (rateAt(a.wi, t) + rateAt(b.wi, t)) / 2, prob = Math.max(probAt(a.wi, t), probAt(b.wi, t));
     const code = Math.max(hourly(a.wi, t, "weather_code"), hourly(b.wi, t, "weather_code"));
-    const ws = hourly(a.wi, t, "wind_speed_10m"), wd = hourly(a.wi, t, "wind_direction_10m");
-    const head = ws * Math.cos(toRad(wd - a.brg)); // + = contra
+    const head = hourly(a.wi, t, "wind_speed_10m") * Math.cos(toRad(hourly(a.wi, t, "wind_direction_10m") - a.brg));
     exposure += rate * (len / sp); maxRate = Math.max(maxRate, rate); maxProb = Math.max(maxProb, prob);
     storm = storm || code >= 95; headSum += head * len; gustMax = Math.max(gustMax, hourly(a.wi, t, "wind_gusts_10m") || 0);
-    segs.push({ a, b, from: a.d, to: b.d, t, rate, prob, code });
+    segs.push({ a, b, from: a.d, to: b.d, t, tA: depMs + a.d / sp * 3600e3, rate, prob, code });
   }
   const dur = st.total / sp * 3600e3;
   return { segs, exposure, maxRate, maxProb, storm, head: headSum / st.total, gustMax, dur, arr: depMs + dur, depMs };
 }
+const CATS = [["seco", "--r0"], ["garoa", "--r1"], ["chuva moderada", "--r2"], ["chuva forte", "--r3"], ["chuva muito forte", "--r4"]];
+const cat = r => r < 0.1 ? 0 : r < 1 ? 1 : r < 4 ? 2 : r < 10 ? 3 : 4;
+const rateColor = r => css(CATS[cat(r)][1]);
+function placeName(d){ const T = st.total, vk = st.viaKm != null ? (st.dir === "ida" ? st.viaKm : T - st.viaKm) : null;
+  if(d < 1) return st.dir === "ida" ? "Saída de casa" : "Saída do trabalho";
+  if(d > T - 1) return st.dir === "ida" ? "Chegada no trabalho" : "Chegada em casa";
+  if(vk != null && Math.abs(d - vk) < 1.5) return "Ponto P";
+  return "Km " + Math.round(d); }
+const lowerPlace = d => placeName(d).replace(/^./, c => c.toLowerCase());
+const depTime = () => st.dep == null ? Date.now() : st.dep;
+const isRainy = ev => ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= 50;
 
 /* ---------- Render ---------- */
-function rateColor(r){ return r < 0.1 ? css("--r0") : r < 1 ? css("--r1") : r < 4 ? css("--r2") : r < 10 ? css("--r3") : css("--r4"); }
-function rateWord(r){ return r < 0.1 ? "seco" : r < 1 ? "garoa" : r < 4 ? "chuva moderada" : r < 10 ? "chuva forte" : "chuva muito forte"; }
-function placeName(d){ const tot = st.total; const viaKm = st.viaKm != null ? (st.dir === "ida" ? st.viaKm : tot - st.viaKm) : null;
-  if(d < 2) return st.dir === "ida" ? "saída de casa" : "saída do trabalho";
-  if(d > tot - 2) return st.dir === "ida" ? "chegada no trabalho" : "chegada em casa";
-  if(viaKm != null && Math.abs(d - viaKm) < 2.5) return "ponto P"; return "km " + d.toFixed(0); }
-
-function depTime(){ if(st.dep == null) return Date.now(); return st.dep; }
-
 function render(){
   if(!st.wx) return;
   const ev = evaluate(depTime());
-  // mapa
-  routeLayer.clearLayers();
-  const line = st.route;
+  renderMap(ev); renderHero(ev); renderTimeline(ev); renderSlots(); renderChecklist(ev);
+  $("setup-banner").hidden = !!cfg.customized;
+  $("updated").textContent = "previsão " + hhmm(st.wxAt);
+}
+function renderMap(ev){
+  routeLayer.clearLayers(); const line = st.route;
   ev.segs.forEach(sg => {
     const i0 = Math.min(sg.a.ri, sg.b.ri), i1 = Math.max(sg.a.ri, sg.b.ri) + 1;
     const pts = [[sg.a.lat, sg.a.lon], ...line.slice(i0 + 1, i1), [sg.b.lat, sg.b.lon]];
-    L.polyline(pts, { color: css("--ink"), weight: 9, opacity: .25 }).addTo(routeLayer);
-    L.polyline(pts, { color: rateColor(sg.rate), weight: 6, opacity: .95 })
-      .bindTooltip(`<div class="tip">${placeName(sg.from)} · passa às <b>${hhmm(new Date(sg.t))}</b><br>${rateWord(sg.rate)} (${sg.rate.toFixed(1)} mm/h) · prob. ${sg.prob}%</div>`, { sticky: true })
-      .addTo(routeLayer);
+    L.polyline(pts, { color: "#fff", weight: 10, opacity: .9 }).addTo(routeLayer);
+    L.polyline(pts, { color: rateColor(sg.rate), weight: 6, opacity: 1 })
+      .bindTooltip(`<div class="tip">${placeName(sg.from)} · você passa às <b>${hhmm(sg.t)}</b><br>${CATS[cat(sg.rate)][0]} · ${fmt1(sg.rate)} mm/h · ${sg.prob}%</div>`, { sticky: true }).addTo(routeLayer);
   });
-  // veredito
-  const pastMax = st.samples.map((s, i) => ({ s, v: pastRain(i) })).sort((a, b) => b.v - a.v)[0];
-  const wet = pastMax && pastMax.v >= 0.5;
-  const wetWhere = wet ? placeName(st.dir === "ida" ? pastMax.s.km : st.total - pastMax.s.km) : "";
-  let level = "ok", title = "Tempo firme no trajeto", sub = "Sem chuva prevista no horário em que você vai passar por cada trecho.";
-  const firstRain = ev.segs.find(s => s.rate >= 0.2);
-  if(ev.storm){ level = "bad"; title = "Risco de trovoada: espere passar";
-    sub = "Previsão de tempestade com raios em algum trecho. Na bike você é o ponto mais alto da via; veja o radar e a janela de saída abaixo."; }
-  else if(ev.maxRate >= 4){ level = "bad"; title = "Chuva forte no caminho";
-    sub = `Até ${ev.maxRate.toFixed(1)} mm/h perto de ${placeName(firstRain.from)} (~${hhmm(new Date(firstRain.t))}). Se der, adie a saída.`; }
-  else if(ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= 50){ level = "warn"; title = "Leve a capa: chuva provável";
-    sub = firstRain ? `Começa perto de ${placeName(firstRain.from)} por volta de ${hhmm(new Date(firstRain.t))}: ${rateWord(firstRain.rate)}.`
-                    : `Probabilidade de até ${ev.maxProb}% em algum trecho. Proteja a bateria antes de sair.`; }
-  else if(wet){ level = "warn"; title = "Seco agora, mas a pista está molhada"; sub = `Choveu nas últimas 3 h perto de ${wetWhere} (${pastMax.v.toFixed(1)} mm). Cuidado com frenagem e faixas pintadas.`; }
-  const v = $("verdict"); v.dataset.level = level; $("v-title").textContent = title; $("v-sub").textContent = sub;
-  $("s-time").textContent = Math.round(ev.dur / 60000) + " min · " + st.total.toFixed(1) + " km";
-  $("s-arr").textContent = hhmm(new Date(ev.arr));
-  $("s-rain").textContent = ev.exposure < 0.05 ? "0 mm" : ev.exposure.toFixed(1) + " mm";
-  $("s-wind").textContent = (ev.head >= 0 ? "contra " : "a favor ") + Math.abs(ev.head).toFixed(0) + " km/h";
-  if(!$("dep").matches(":focus")) $("dep").value = hhmm(new Date(ev.depMs));
-  renderProfile(ev); renderSlots(); renderChecklist(ev, wet, wetWhere);
-  const hint = $("pin-hint");
-  hint.classList.toggle("alert", !cfg.customized);
-  if(!cfg.customized) hint.innerHTML = "Ajuste os pontos: os marcadores <b>C</b> (casa) e <b>T</b> (trabalho) estão em posições aproximadas. Arraste para os pontos certos ou use os botões acima.";
-  if(st.routeNote) { hint.textContent = st.routeNote; hint.classList.add("alert"); }
-  $("updated").textContent = "previsão de " + hhmm(new Date(st.wxAt));
 }
-
-function renderProfile(ev){
-  const W = 600, H = 170, L0 = 34, R0 = 10, T0 = 12, B0 = 26, w = W - L0 - R0, h = H - T0 - B0, tot = st.total, maxR = Math.max(5, ev.maxRate * 1.1);
-  const x = d => L0 + d / tot * w, y = r => T0 + h - Math.min(r, maxR) / maxR * h, yp = p => T0 + h - p / 100 * h;
-  let s = `<line x1="${L0}" y1="${T0+h}" x2="${W-R0}" y2="${T0+h}" stroke="${css("--line")}"/>`;
-  [0, maxR / 2, maxR].forEach(r => { s += `<line x1="${L0}" x2="${W-R0}" y1="${y(r)}" y2="${y(r)}" stroke="${css("--line")}" stroke-dasharray="2 4"/><text x="${L0-6}" y="${y(r)+4}" text-anchor="end">${r.toFixed(0)}</text>`; });
-  ev.segs.forEach(sg => { const hh = Math.max(2, T0 + h - y(sg.rate));
-    s += `<rect x="${x(sg.from)+.5}" y="${T0+h-hh}" width="${Math.max(1, x(sg.to)-x(sg.from)-1)}" height="${hh}" fill="${rateColor(sg.rate)}" rx="1.5"><title>${placeName(sg.from)} às ${hhmm(new Date(sg.t))}: ${sg.rate.toFixed(1)} mm/h, ${sg.prob}%</title></rect>`; });
-  s += `<polyline fill="none" stroke="${css("--ink")}" stroke-width="1.5" stroke-opacity=".7" points="${ev.segs.map(sg => x((sg.from+sg.to)/2) + "," + yp(sg.prob)).join(" ")}"/>`;
-  const step = tot > 20 ? 5 : 2;
-  for(let d = 0; d <= tot; d += step) s += `<text x="${x(d)}" y="${H-10}" text-anchor="middle">${d}</text>`;
-  s += `<text x="${W-R0}" y="${H-10}" text-anchor="end">km</text><text x="${L0-6}" y="${T0-2}" text-anchor="end">mm/h</text>`;
-  if(st.viaKm != null){ const vk = st.dir === "ida" ? st.viaKm : tot - st.viaKm; s += `<line x1="${x(vk)}" x2="${x(vk)}" y1="${T0}" y2="${T0+h}" stroke="${css("--muted")}" stroke-dasharray="3 3"/><text x="${x(vk)+4}" y="${T0+10}">P</text>`; }
-  s += `<text x="${L0}" y="${T0+10}" dx="4">${st.dir === "ida" ? "Casa" : "Trabalho"}</text><text x="${W-R0}" y="${T0+10}" text-anchor="end">${st.dir === "ida" ? "Trabalho" : "Casa"}</text>`;
-  $("profile").innerHTML = s;
+function wetInfo(){
+  let best = null; st.samples.forEach((s, i) => { const v = pastRain(i); if(!best || v > best.v) best = { s, v }; });
+  if(!best || best.v < 0.5) return null;
+  return { v: best.v, where: placeName(st.dir === "ida" ? best.s.km : st.total - best.s.km) };
 }
-
+function verdict(ev){
+  const wet = wetInfo(), first = ev.segs.find(s => s.rate >= 0.2);
+  const code = hourly(0, ev.depMs, "weather_code") ?? 0, day = hourly(0, ev.depMs, "is_day") ?? 1;
+  if(ev.storm) return { level: "bad", icon: "storm", title: "Trovoada no caminho. Melhor esperar.",
+    sub: "Há previsão de raios em algum trecho. Acompanhe o radar e veja abaixo a melhor hora para sair." };
+  if(ev.maxRate >= 4) return { level: "bad", icon: "rain", title: "Chuva forte no trajeto",
+    sub: `Até ${fmt1(ev.maxRate)} mm/h ${first ? "a partir de " + lowerPlace(first.from) + ", por volta de " + hhmm(first.t) : ""}. Se puder, adie a saída.` };
+  if(isRainy(ev)) return { level: "warn", icon: "rain", title: "Leve a capa",
+    sub: first ? `${CATS[cat(first.rate)][0][0].toUpperCase() + CATS[cat(first.rate)][0].slice(1)} a partir de ${lowerPlace(first.from)}, por volta de ${hhmm(first.t)}.`
+               : `Até ${ev.maxProb}% de chance de chuva em algum trecho. Proteja a bateria antes de sair.` };
+  if(wet) return { level: "warn", icon: "road", title: "Seco agora, mas a pista está molhada",
+    sub: `Choveu ${fmt1(wet.v)} mm nas últimas 3 h perto de ${wet.where.replace(/^./, c => c.toLowerCase())}. Cuidado nas frenagens.` };
+  return { level: "ok", icon: code >= 3 ? "cloud" : code >= 1 ? (day ? "partly" : "cloud") : (day ? "sun" : "cloud"), title: "Pode ir tranquilo",
+    sub: `Sem chuva prevista em nenhum trecho até ${hhmm(ev.arr)}.` };
+}
+function renderHero(ev){
+  const v = verdict(ev);
+  $("hero").dataset.level = v.level; $("wx-icon").innerHTML = icon(v.icon);
+  $("v-title").textContent = v.title; $("v-sub").textContent = v.sub;
+  $("s-time").textContent = Math.round(ev.dur / 60000) + " min";
+  $("s-arr").textContent = hhmm(ev.arr);
+  $("s-rain").textContent = ev.exposure < 0.05 ? "0 mm" : fmt1(ev.exposure) + " mm";
+  $("s-wind").textContent = Math.abs(ev.head).toFixed(0) + " km/h";
+  $("s-wind-l").textContent = Math.abs(ev.head) < 3 ? "vento fraco" : ev.head > 0 ? "vento contra" : "vento a favor";
+  $("dir-ida").setAttribute("aria-pressed", st.dir === "ida"); $("dir-volta").setAttribute("aria-pressed", st.dir === "volta");
+  $("dep-now").setAttribute("aria-pressed", st.dep == null);
+  if(document.activeElement !== $("dep")) $("dep").value = hhmm(ev.depMs);
+}
+function renderTimeline(ev){
+  const T = st.total;
+  $("tl-dist").textContent = fmt1(T) + " km";
+  $("rb-a").textContent = st.dir === "ida" ? "Casa" : "Trabalho"; $("rb-b").textContent = st.dir === "ida" ? "Trabalho" : "Casa";
+  $("routebar").innerHTML = ev.segs.map(s => `<i style="width:${(s.to - s.from) / T * 100}%;background:${rateColor(s.rate)}"></i>`).join("");
+  // agrupa trechos consecutivos de mesma categoria
+  const groups = [];
+  ev.segs.forEach(s => { const c = cat(s.rate), g = groups[groups.length - 1];
+    if(g && g.c === c){ g.to = s.to; g.max = Math.max(g.max, s.rate); g.prob = Math.max(g.prob, s.prob); }
+    else groups.push({ c, from: s.from, to: s.to, t: s.tA, max: s.rate, prob: s.prob }); });
+  const temp0 = hourly(0, ev.depMs, "temperature_2m");
+  const rows = groups.map((g, k) => {
+    const seg = css(CATS[g.c][1]), len = g.to - g.from, mins = Math.round(len / (+cfg.speed || 22) * 60);
+    const title = k === 0 ? placeName(0) : placeName(g.from);
+    let desc = g.c === 0 ? (g.prob >= 30 ? `seco · ${g.prob}% de chance de chuva` : "seco")
+                         : `${CATS[g.c][0]} · até ${fmt1(g.max)} mm/h`;
+    if(k === 0 && temp0 != null) desc += ` · ${Math.round(temp0)} °C`;
+    return `<li style="--seg:${seg}"><span class="t">${hhmm(g.t)}</span><span class="rail"><span class="dot"></span></span>
+      <div class="what"><b>${title}</b><small>${desc} · ${fmt1(len)} km, ~${mins} min</small></div></li>`;
+  });
+  rows.push(`<li class="end"><span class="t">${hhmm(ev.arr)}</span><span class="rail"><span class="dot"></span></span><div class="what"><b>${placeName(T)}</b><small>${fmt1(T)} km no total</small></div></li>`);
+  $("timeline").innerHTML = rows.join("");
+}
 function renderSlots(){
-  const base = Math.ceil((Date.now() + 5 * 60e3) / 900e3) * 900e3, el = $("slots"); el.innerHTML = "";
-  const cur = st.dep;
-  let best = null;
-  const items = [];
-  for(let k = 0; k < 13; k++){ const t = k === 0 ? Date.now() : base + (k - 1) * 900e3;
-    const ev = evaluate(t); items.push({ t, ev }); if(!ev.storm && (!best || ev.exposure < best.ev.exposure - 0.02)) best = { t, ev }; }
-  items.forEach(({ t, ev }, k) => {
+  const now = Date.now(), base = Math.ceil((now + 5 * 60e3) / 900e3) * 900e3, items = [];
+  for(let k = 0; k < 13; k++){ const t = k === 0 ? now : base + (k - 1) * 900e3; items.push({ t, ev: evaluate(t) }); }
+  const maxE = Math.max(0.6, ...items.map(x => x.ev.exposure));
+  let best = items[0]; items.forEach(x => { if(!x.ev.storm && (best.ev.storm || x.ev.exposure < best.ev.exposure - 0.03)) best = x; });
+  const showBest = best !== items[0] && items[0].ev.exposure - best.ev.exposure > 0.1;
+  $("slots").innerHTML = "";
+  items.forEach((x, k) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "slot";
-    b.style.background = ev.storm ? css("--r4") : rateColor(ev.exposure / (ev.dur / 3600e3));
-    b.setAttribute("aria-pressed", String(k === 0 ? cur == null : cur != null && Math.abs(cur - t) < 60e3));
-    b.title = `${hhmm(new Date(t))}: ${ev.exposure.toFixed(1)} mm no trajeto${ev.storm ? ", trovoada" : ""}`;
-    b.innerHTML = `<span>${k === 0 ? "agora" : hhmm(new Date(t))}</span>`;
-    b.onclick = () => { st.dep = k === 0 ? null : t; render(); };
-    el.appendChild(b);
+    const h = 10 + 76 * Math.min(1, x.ev.exposure / maxE);
+    const col = x.ev.storm ? css("--r4") : rateColor(x.ev.exposure / (x.ev.dur / 3600e3));
+    const sel = k === 0 ? st.dep == null : st.dep != null && Math.abs(st.dep - x.t) < 450e3;
+    b.setAttribute("aria-pressed", String(sel));
+    b.setAttribute("aria-label", `${k === 0 ? "agora" : hhmm(x.t)}: ${fmt1(x.ev.exposure)} mm no trajeto${x.ev.storm ? ", trovoada" : ""}`);
+    b.innerHTML = `${showBest && x === best ? '<span class="best">melhor</span>' : ""}<span class="bar" style="height:${h}px;background:${col}"></span><span class="lbl">${k === 0 ? "agora" : hhmm(x.t)}</span>`;
+    b.onclick = () => { st.dep = k === 0 ? null : x.t; render(); };
+    $("slots").appendChild(b);
   });
-  const now = items[0].ev;
-  $("slot-hint").textContent = best && now.exposure - best.ev.exposure > 0.1
-    ? `Saindo às ${hhmm(new Date(best.t))} você pega ~${best.ev.exposure.toFixed(1)} mm em vez de ~${now.exposure.toFixed(1)} mm agora.`
-    : "Toque num horário para ver o trajeto com aquela saída. Cor = chuva média que você pegaria.";
+  const hint = $("slot-hint");
+  if(showBest){ hint.className = "note strong"; hint.textContent = `Saindo às ${hhmm(best.t)} você pega ~${fmt1(best.ev.exposure)} mm, contra ~${fmt1(items[0].ev.exposure)} mm saindo agora.`; }
+  else if(items.every(x => x.ev.exposure < 0.05 && !x.ev.storm)){ hint.className = "note"; hint.textContent = "Seco em qualquer horário das próximas 3 h."; }
+  else { hint.className = "note"; hint.textContent = "Altura da barra = chuva que você pegaria no trajeto. Toque para ver aquela saída."; }
+}
+function renderChecklist(ev){
+  const out = [], add = (l, ic, t, d) => out.push(`<div class="check" data-l="${l}"><span class="ic">${icon(ic)}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ""}</div></div>`);
+  const wet = wetInfo(), rainy = ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= 40;
+  if(ev.storm) add("bad", "bolt", "Espere a trovoada passar", "Na bike você é o ponto mais alto da via. Células assim costumam passar em 30 a 60 min.");
+  if(rainy){
+    add("warn", "battery", "Capa na bateria", "Cubra o conector e a porta de carga. Evite poças acima do eixo.");
+    add("warn", "bag", "Capa na mochila e capa de chuva", `Até ${ev.maxProb}% de chance, ~${fmt1(ev.exposure)} mm no trajeto.`);
+    add("warn", "light", "Luz traseira piscando", "A visibilidade cai muito na chuva, mesmo de dia.");
+  } else add("ok", "check", "Sem capa hoje", `Chance máxima de chuva de ${ev.maxProb}% no trajeto.`);
+  if(wet) add("warn", "road", "Pista molhada perto de " + wet.where.replace(/^./, c => c.toLowerCase()), "Freie antes das curvas. Faixas pintadas e tampas de bueiro escorregam.");
+  if(ev.gustMax >= 40) add("warn", "wind", `Rajadas de até ${ev.gustMax.toFixed(0)} km/h`, "Atenção em trechos abertos e ao lado de caminhões.");
+  if(ev.head >= 12) add("warn", "wind", `Vento contra de ~${ev.head.toFixed(0)} km/h`, "Mais consumo de bateria e alguns minutos a mais.");
+  const uv = hourly(0, ev.depMs, "uv_index") || 0, temp = hourly(0, ev.depMs, "apparent_temperature") ?? hourly(0, ev.depMs, "temperature_2m");
+  if(uv >= 8) add("warn", "uv", `UV ${uv.toFixed(0)}, muito alto`, "Protetor solar e manga longa.");
+  if(temp != null && temp >= 31) add("warn", "thermo", `Sensação de ${Math.round(temp)} °C`, "Leve água.");
+  $("checklist").innerHTML = out.join("");
 }
 
-function renderChecklist(ev, wet, wetWhere){
-  const items = [], rainy = ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= 40;
-  const add = (l, t, d) => items.push(`<li data-l="${l}"><span class="dot"></span><div><strong>${t}</strong>${d ? `<small>${d}</small>` : ""}</div></li>`);
-  if(ev.storm) add("bad", "Não saia durante trovoada", "Espere a célula passar no radar; elas costumam durar 30–60 min.");
-  if(rainy){ add("warn", "Capa na bateria", "Cubra conector e porta de carga; evite poças fundas acima do motor.");
-             add("warn", "Capa na mochila e roupa de chuva", `Prob. máx. ${ev.maxProb}% · ${ev.exposure.toFixed(1)} mm estimados no trajeto.`);
-             add("warn", "Luz traseira ligada", "Visibilidade cai muito na chuva, mesmo de dia."); }
-  else add("ok", "Sem capa necessária", `Probabilidade máxima de ${ev.maxProb}% no trajeto.`);
-  if(wet) add("warn", "Pista molhada perto de " + wetWhere, "Freie antes das curvas e evite faixas pintadas e tampas de bueiro.");
-  if(ev.gustMax >= 40) add("warn", `Rajadas de até ${ev.gustMax.toFixed(0)} km/h`, "Cuidado em trechos abertos e ao passar por caminhões.");
-  if(ev.head >= 12) add("warn", `Vento contra de ~${ev.head.toFixed(0)} km/h`, "Conte com mais consumo de bateria e alguns minutos a mais.");
-  const i0 = 0, uv = hourly(i0, ev.depMs, "uv_index") || 0, temp = hourly(i0, ev.depMs, "temperature_2m");
-  if(uv >= 8) add("warn", `UV ${uv.toFixed(0)} (muito alto)`, "Protetor solar e manga longa.");
-  if(temp != null) add(temp >= 32 ? "warn" : "ok", `${temp.toFixed(0)} °C na saída`, temp >= 32 ? "Leve água." : "");
-  $("checklist").innerHTML = items.join("");
-}
-
-/* ---------- Radar (RainViewer) ---------- */
+/* ---------- Radar ---------- */
 async function fetchRadar(){
-  try{
-    const r = await fetch("https://api.rainviewer.com/public/weather-maps.json"); if(!r.ok) throw 0;
-    const j = await r.json(); st.radarHost = j.host; st.radarFrames = (j.radar && j.radar.past) || []; st.radarIdx = st.radarFrames.length - 1; showRadar();
-  }catch(e){ $("radar-time").textContent = "radar indisponível"; }
+  try{ const r = await fetch("https://api.rainviewer.com/public/weather-maps.json"); if(!r.ok) throw 0;
+    const j = await r.json(); st.radarHost = j.host; st.radarFrames = (j.radar && j.radar.past) || []; st.radarIdx = st.radarFrames.length - 1; showRadar(); }
+  catch(e){ $("radar-time").textContent = "radar indisponível"; }
 }
 function showRadar(){
   if(radarLayer){ map.removeLayer(radarLayer); radarLayer = null; }
-  const f = st.radarFrames[st.radarIdx]; if(!st.radarOn || !f) { $("radar-time").textContent = st.radarOn ? "" : "radar desligado"; return; }
-  radarLayer = L.tileLayer(`${st.radarHost}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: "radar", opacity: .65, maxNativeZoom: 7, maxZoom: 18, attribution: "Radar: RainViewer" }).addTo(map);
+  const f = st.radarFrames[st.radarIdx];
+  if(!st.radarOn || !f){ $("radar-time").textContent = st.radarOn ? "radar indisponível" : "radar desligado"; return; }
+  radarLayer = L.tileLayer(`${st.radarHost}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: "radar", opacity: .65, maxNativeZoom: 7, maxZoom: 19, attribution: "Radar: RainViewer" }).addTo(map);
   const ago = Math.round((Date.now() / 1000 - f.time) / 60);
-  $("radar-time").textContent = "radar " + hhmm(new Date(f.time * 1000)) + " (há " + ago + " min)";
+  $("radar-time").textContent = "radar " + hhmm(f.time * 1000) + (st.playTimer ? "" : ` · há ${ago} min`);
 }
-$("radar-toggle").onclick = e => { st.radarOn = !st.radarOn; e.target.setAttribute("aria-pressed", st.radarOn); e.target.textContent = "Radar: " + (st.radarOn ? "ligado" : "desligado"); showRadar(); };
-$("radar-play").onclick = e => {
-  if(st.playTimer){ clearInterval(st.playTimer); st.playTimer = null; e.target.textContent = "▶ Animar radar"; st.radarIdx = st.radarFrames.length - 1; showRadar(); return; }
-  if(!st.radarFrames.length) return; st.radarOn = true; e.target.textContent = "■ Parar"; st.radarIdx = 0;
-  st.playTimer = setInterval(() => { st.radarIdx = (st.radarIdx + 1) % st.radarFrames.length; showRadar(); }, 700);
-};
+$("radar-toggle").onclick = e => { st.radarOn = !st.radarOn; e.currentTarget.setAttribute("aria-pressed", st.radarOn); showRadar(); };
+const PLAY = '<path d="M8 5l11 7-11 7z"/>', STOP = '<rect x="6" y="6" width="12" height="12" rx="2"/>';
+$("radar-play").onclick = e => { const btn = e.currentTarget;
+  if(st.playTimer){ clearInterval(st.playTimer); st.playTimer = null; btn.querySelector("svg").innerHTML = PLAY; st.radarIdx = st.radarFrames.length - 1; showRadar(); return; }
+  if(!st.radarFrames.length) return; st.radarOn = true; $("radar-toggle").setAttribute("aria-pressed", true); btn.querySelector("svg").innerHTML = STOP; st.radarIdx = 0;
+  st.playTimer = setInterval(() => { st.radarIdx = (st.radarIdx + 1) % st.radarFrames.length; showRadar(); }, 650); };
+$("fit").onclick = () => { if(st.route) map.fitBounds(L.latLngBounds(st.route).pad(0.08)); };
+$("full").onclick = () => { const c = $("mapcard"), on = !c.classList.contains("full"); c.classList.toggle("full", on); document.body.style.overflow = on ? "hidden" : ""; setTimeout(() => map.invalidateSize(), 50); };
+document.addEventListener("keydown", e => { if(e.key === "Escape" && $("mapcard").classList.contains("full")) $("full").click(); });
 
 /* ---------- Controles ---------- */
-function setDir(d){ st.dir = d; $("dir-ida").setAttribute("aria-pressed", d === "ida"); $("dir-volta").setAttribute("aria-pressed", d === "volta"); render(); }
+const setDir = d => { st.dir = d; const n = nextCommute(); if(st.dep == null && n && n.d === d && n.diff > 5 && n.diff <= 180) st.dep = Date.now() + n.diff * 60e3; render(); };
 $("dir-ida").onclick = () => setDir("ida"); $("dir-volta").onclick = () => setDir("volta");
 $("dep-now").onclick = () => { st.dep = null; render(); };
 $("dep").onchange = e => { const [H, M] = e.target.value.split(":").map(Number); if(isNaN(H)) return;
   const d = new Date(); d.setHours(H, M, 0, 0); if(d.getTime() < Date.now() - 30 * 60e3) d.setDate(d.getDate() + 1); st.dep = d.getTime(); render(); };
-$("speed").value = cfg.speed; $("speed").onchange = e => { cfg.speed = Math.min(45, Math.max(8, +e.target.value || 22)); save(); render(); };
-$("set-home").onclick = () => { st.pickMode = "home"; map.getContainer().style.cursor = "crosshair"; $("pin-hint").textContent = "Toque no mapa onde fica a sua casa."; };
-$("set-work").onclick = () => { st.pickMode = "work"; map.getContainer().style.cursor = "crosshair"; $("pin-hint").textContent = "Toque no mapa onde fica o seu trabalho."; };
-$("gps").onclick = () => { if(!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(p => { cfg.home = [+p.coords.latitude.toFixed(5), +p.coords.longitude.toFixed(5)]; cfg.customized = true; markers.home.setLatLng(cfg.home); save(); rebuild(); },
-    () => { $("pin-hint").textContent = "Não consegui sua localização. Permita o acesso no navegador ou arraste o marcador C."; }); };
 $("refresh").onclick = () => refreshAll();
+$("open-settings").onclick = () => { renderSettings(); $("settings").showModal(); };
+$("banner-fix").onclick = () => { renderSettings(); $("settings").showModal(); };
+$("close-settings").onclick = () => $("settings").close();
+$("settings").addEventListener("click", e => { if(e.target === $("settings")) $("settings").close(); });
+document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => startPick(b.dataset.pick));
+$("gps").onclick = () => { if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(p => { $("settings").close(); setPoint("home", [p.coords.latitude, p.coords.longitude]); },
+    () => { $("gps").textContent = "Localização negada"; }); };
+$("speed").onchange = e => { cfg.speed = Math.min(45, Math.max(8, +e.target.value || 22)); save(); renderSettings(); render(); };
+$("t-ida").onchange = e => { cfg.tIda = e.target.value; save(); renderSettings(); };
+$("t-volta").onchange = e => { cfg.tVolta = e.target.value; save(); renderSettings(); };
+
+/* Ajustes + avisos */
+function repoInfo(){ const h = location.hostname, seg = location.pathname.split("/").filter(Boolean)[0];
+  if(h.endsWith(".github.io")) return { owner: h.split(".")[0], repo: seg || h }; return { owner: "joaorvp", repo: "pedal-clima" }; }
+const ll = p => p[0].toFixed(5) + "," + p[1].toFixed(5);
+function kvRow(name, value, id){ return `<div><code><em>${name}</em><br><span id="${id}">${value || "(vazio: preencha acima)"}</span></code><button class="btn" type="button" data-copy="${id}">Copiar</button></div>`; }
+function renderSettings(){
+  $("speed").value = cfg.speed; $("t-ida").value = cfg.tIda; $("t-volta").value = cfg.tVolta; $("topic").textContent = cfg.topic;
+  const r = repoInfo(); $("gh-secrets").href = `https://github.com/${r.owner}/${r.repo}/settings/secrets/actions`;
+  $("kv-secrets").innerHTML = kvRow("PEDAL_TOPIC", cfg.topic, "v-topic") + kvRow("PEDAL_CASA", ll(cfg.home), "v-casa") + kvRow("PEDAL_PASSAR", ll(cfg.via), "v-passar") + kvRow("PEDAL_TRABALHO", ll(cfg.work), "v-trab");
+  $("kv-vars").innerHTML = kvRow("PEDAL_IDA", cfg.tIda, "v-ida") + kvRow("PEDAL_VOLTA", cfg.tVolta, "v-volta") + kvRow("PEDAL_VELOCIDADE", String(cfg.speed), "v-vel");
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-copy]"); if(!b) return;
+  const el = $(b.dataset.copy), text = el.textContent;
+  try{ await navigator.clipboard.writeText(text); b.textContent = "Copiado"; }
+  catch(err){ const rg = document.createRange(); rg.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); b.textContent = "Selecionado"; }
+  setTimeout(() => b.textContent = "Copiar", 1600);
+});
+$("test-push").onclick = async () => {
+  const res = $("test-res"); res.textContent = "enviando…";
+  try{ const r = await fetch("https://ntfy.sh/", { method: "POST", body: JSON.stringify({ topic: cfg.topic, title: "Pedal & Clima", message: "Teste: os avisos de chuva vão chegar assim.", tags: ["bike"] }) });
+    res.innerHTML = r.ok ? '<span class="ok-text">Enviado. Chegou no celular?</span>' : "Falhou (HTTP " + r.status + ")"; }
+  catch(err){ res.textContent = "Não consegui enviar. Verifique a conexão."; }
+};
 
 /* ---------- Ciclo ---------- */
 function showError(msg){ const e = $("error"); e.hidden = !msg; e.textContent = msg || ""; }
@@ -475,15 +678,15 @@ async function rebuild(){
   try{
     st.route = await fetchRoute();
     const b = buildSamples(st.route); st.samples = b.samples; st.total = b.total;
-    // km do ponto "passar por"
     let best = 0, bd = Infinity; st.samples.forEach(s => { const d = hav([s.lat, s.lon], cfg.via); if(d < bd){ bd = d; best = s.km; } }); st.viaKm = bd < 3 ? best : null;
     const rk = st.route.length + ":" + st.route[0] + st.route[st.route.length - 1];
     if(rk !== st.fitKey){ st.fitKey = rk; map.fitBounds(L.latLngBounds(st.route).pad(0.08)); }
-    await fetchWeather(); showError(""); render();
-  }catch(e){ showError("Não consegui carregar a previsão: " + (e.message || e) + ". Verifique a conexão e toque em Atualizar."); }
+    await fetchWeather(); showError(st.routeNote); render();
+  }catch(e){ showError("Não consegui carregar a previsão: " + (e.message || e) + ". Verifique a conexão e toque em atualizar."); }
 }
-async function refreshAll(){ $("updated").textContent = "atualizando…"; await Promise.all([rebuild(), fetchRadar()]); }
-setDir(st.dir);
+async function refreshAll(){ $("refresh").classList.add("spin"); $("updated").textContent = "atualizando…";
+  await Promise.all([rebuild(), fetchRadar()]); $("refresh").classList.remove("spin"); }
+renderSettings();
 refreshAll();
 setInterval(refreshAll, 10 * 60e3);
 setInterval(() => { if(st.dep == null) render(); }, 60e3);

@@ -1,0 +1,45 @@
+name: Aviso de chuva
+
+# Roda a cada 15 min em dias úteis, nas janelas 04:00–11:59 e 14:00–20:59 (horário de Brasília).
+# O script só envia a notificação quando faltam até 45 min para PEDAL_IDA ou PEDAL_VOLTA,
+# e no máximo uma vez por saída.
+on:
+  schedule:
+    - cron: "*/15 7-14 * * 1-5"
+    - cron: "*/15 17-23 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      forcar:
+        description: "Enviar agora a previsão da próxima saída (mesmo se estiver seco)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aviso
+  cancel-in-progress: false
+
+jobs:
+  aviso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node .github/scripts/aviso.mjs
+        env:
+          PEDAL_TOPIC: ${{ secrets.PEDAL_TOPIC }}
+          PEDAL_CASA: ${{ secrets.PEDAL_CASA }}
+          PEDAL_PASSAR: ${{ secrets.PEDAL_PASSAR }}
+          PEDAL_TRABALHO: ${{ secrets.PEDAL_TRABALHO }}
+          PEDAL_IDA: ${{ vars.PEDAL_IDA }}
+          PEDAL_VOLTA: ${{ vars.PEDAL_VOLTA }}
+          PEDAL_VELOCIDADE: ${{ vars.PEDAL_VELOCIDADE }}
+          PEDAL_SEMPRE: ${{ vars.PEDAL_SEMPRE }}
+          PEDAL_ANTECEDENCIA: ${{ vars.PEDAL_ANTECEDENCIA }}
+          PEDAL_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          FORCAR: ${{ inputs.forcar }}
