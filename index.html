@@ -64,12 +64,12 @@ svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-widt
   padding-block:14px calc(28px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
 @media (min-width:1000px){
   .shell{grid-template-columns:minmax(0,1.25fr) minmax(380px,1fr);align-items:start}
-  .mapcard{position:sticky;top:70px;grid-row:1 / span 8;grid-column:1}
+  .shell .mapcard{position:sticky;top:70px;grid-row:1 / span 8;grid-column:1}
   .side{grid-column:2}
   #map{height:calc(100vh - 150px)!important;max-height:none!important}
 }
 .side{display:grid;gap:14px;min-width:0}
-@media (max-width:999px){.side{display:contents}.side>*{order:2}#error{order:-3}#setup-banner{order:-2}.hero{order:-1}.mapcard{order:1}}
+
 .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0}
 .card h2{display:flex;align-items:center;gap:8px;font:700 12px/1 var(--font-display);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 12px}
 .card h2 .aside{margin-left:auto;text-transform:none;letter-spacing:0;font:500 12px var(--font-body)}
@@ -127,6 +127,7 @@ svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .mapcard.full .radarpill{bottom:calc(26px + env(safe-area-inset-bottom,0px))}
 .picking{position:absolute;z-index:6;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:var(--surface);border-radius:999px;padding:8px 16px;font-weight:600;font-size:13px;box-shadow:var(--shadow);white-space:nowrap}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:10px 14px}
+.legend.inline{padding:0 0 12px}
 .legend i{display:inline-block;width:16px;height:6px;border-radius:3px;margin-right:5px;vertical-align:middle}
 .leaflet-container{font-family:var(--font-body)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6)}}
@@ -236,6 +237,25 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .trip .lb{font:600 11px var(--font-data);color:var(--muted)}
 .trip .nm{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .trip .ed{grid-row:1 / span 2;grid-column:3;color:var(--accent);font-size:13px;font-weight:600}
+/* Gaveta no celular: mapa em tela cheia por trás, painel arrastável por cima */
+.grab{display:none}
+@media (max-width:999px){
+  html,body{overflow:hidden;height:100%}
+  .shell{display:block;padding:0}
+  .mapcard{position:fixed;left:0;right:0;bottom:0;top:calc(56px + env(safe-area-inset-top,0px));border-radius:0;box-shadow:none;z-index:1}
+  .mapwrap,#map{height:100%!important;max-height:none!important;min-height:0!important}
+  #full,.leaflet-control-zoom{display:none!important}
+  .leaflet-bottom.leaflet-right{top:0;bottom:auto;left:0;right:auto}
+  .radarpill{top:30px;bottom:auto!important}
+  .side{position:fixed;left:0;right:0;bottom:0;z-index:15;height:calc(100dvh - 68px - env(safe-area-inset-top,0px));
+    background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2);overflow:hidden;overscroll-behavior:contain;
+    padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));
+    align-content:start;grid-auto-rows:max-content;gap:12px;transform:translateY(60%);transition:transform .34s cubic-bezier(.2,.8,.2,1);will-change:transform}
+  .side.full{overflow-y:auto}
+  .side.dragging{transition:none}
+  .grab{display:block;position:sticky;top:0;z-index:3;height:24px;width:calc(100% + 24px);margin:0 -12px -6px;border:0;padding:0;background:var(--bg);cursor:grab}
+  .grab::before{content:"";display:block;width:42px;height:5px;border-radius:3px;background:var(--muted);opacity:.45;margin:9px auto 0}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -263,13 +283,10 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
     <div class="radarpill num" id="radar-time">radar…</div>
     <div class="picking" id="picking" hidden></div>
     </div>
-    <div class="legend" aria-label="Legenda">
-      <span><i style="background:var(--r0)"></i>seco</span><span><i style="background:var(--r1)"></i>garoa</span>
-      <span><i style="background:var(--r2)"></i>moderada</span><span><i style="background:var(--r3)"></i>forte</span><span><i style="background:var(--r4)"></i>muito forte</span>
-    </div>
   </section>
 
-  <div class="side">
+  <div class="side" id="sheet">
+    <button class="grab" id="grab" type="button" aria-label="Expandir ou recolher o painel"></button>
     <div id="error" class="err" hidden></div>
     <div id="setup-banner" class="banner" hidden>
       <svg class="i" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
@@ -315,6 +332,11 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
       <div class="routes" id="routes" role="radiogroup" aria-label="Rotas"></div>
       <div class="routebar" id="routebar" aria-hidden="true"></div>
       <div class="routebar-lbl"><span id="rb-a">Casa</span><span id="rb-b">Trabalho</span></div>
+    <div class="legend inline" aria-label="Legenda">
+      <span><i style="background:var(--r0)"></i>seco</span><span><i style="background:var(--r1)"></i>garoa</span>
+      <span><i style="background:var(--r2)"></i>moderada</span><span><i style="background:var(--r3)"></i>forte</span><span><i style="background:var(--r4)"></i>muito forte</span>
+    </div>
+
       <ol class="tl" id="timeline"></ol>
     </section>
 
@@ -483,7 +505,7 @@ function setPoint(k, ll, name){
 function clearVia(){ cfg.via = null; cfg.names.via = ""; map.removeLayer(markers.via); save(); renderSettings(); rebuild(); }
 Object.entries(markers).forEach(([k, m]) => m.on("dragend", () => { const p = m.getLatLng(); setPoint(k, [p.lat, p.lng]); }));
 const PICK_LABEL = { home: "Toque no mapa onde fica a sua casa", via: "Toque num ponto por onde você passa", work: "Toque no mapa onde fica o trabalho" };
-function startPick(k){ st.pickMode = k; $("settings").close(); const p = $("picking"); p.textContent = PICK_LABEL[k]; p.hidden = false; map.getContainer().style.cursor = "crosshair"; $("mapcard").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function startPick(k){ st.pickMode = k; $("settings").close(); const p = $("picking"); p.textContent = PICK_LABEL[k]; p.hidden = false; map.getContainer().style.cursor = "crosshair"; if(isSheet()) setSheet("peek"); else $("mapcard").scrollIntoView({ behavior: "smooth", block: "start" }); }
 map.on("click", e => { if(!st.pickMode) return; const k = st.pickMode; st.pickMode = null; $("picking").hidden = true; map.getContainer().style.cursor = ""; setPoint(k, [e.latlng.lat, e.latlng.lng]); });
 const routeLayer = L.layerGroup().addTo(map); let radarLayer = null;
 
@@ -621,6 +643,7 @@ function render(){
   const ev = riding ? evaluate(Date.now() - st.ride.d / rideSpeed() * 3600e3) : evaluate(depTime());
   renderMap(ev); riding ? renderRideHero(ev) : renderHero(ev); renderTimeline(ev); if(!riding) renderSlots(); renderChecklist(ev); renderTrip(); renderOpenIn(); renderRoutes(riding ? Date.now() : depTime()); $("slots-card").hidden = riding;
   $("setup-banner").hidden = !!cfg.customized;
+  if(isSheet() && sheetState === "peek") setSheet("peek");
   $("updated").textContent = "previsão " + hhmm(st.wxAt);
 }
 function renderMap(ev){
@@ -765,8 +788,7 @@ $("radar-play").onclick = e => { const btn = e.currentTarget;
   if(st.playTimer){ clearInterval(st.playTimer); st.playTimer = null; btn.querySelector("svg").innerHTML = PLAY; st.radarIdx = st.radarFrames.length - 1; showRadar(); return; }
   if(!st.radarFrames.length) return; st.radarOn = true; $("radar-toggle").setAttribute("aria-pressed", true); btn.querySelector("svg").innerHTML = STOP; st.radarIdx = 0;
   st.playTimer = setInterval(() => { st.radarIdx = (st.radarIdx + 1) % st.radarFrames.length; showRadar(); }, 650); };
-$("fit").onclick = () => { if(st.ride && st.ride.pos){ st.ride.follow = true; map.setView(st.ride.pos, Math.max(map.getZoom(), 15)); return; }
-  if(st.route) map.fitBounds(L.latLngBounds(st.route).pad(0.08)); };
+$("fit").onclick = () => { if(st.ride && st.ride.pos){ st.ride.follow = true; centerOn(st.ride.pos); return; } fitRoute(); };
 $("full").onclick = () => { const c = $("mapcard"), on = !c.classList.contains("full"); c.classList.toggle("full", on); document.body.style.overflow = on ? "hidden" : ""; setTimeout(() => map.invalidateSize(), 50); };
 document.addEventListener("keydown", e => { if(e.key === "Escape" && $("mapcard").classList.contains("full")) $("full").click(); });
 
@@ -792,7 +814,57 @@ $("speed").onchange = e => { cfg.speed = Math.min(45, Math.max(8, +e.target.valu
 $("t-ida").onchange = e => { cfg.tIda = e.target.value; save(); renderSettings(); };
 $("t-volta").onchange = e => { cfg.tVolta = e.target.value; save(); renderSettings(); };
 
-const isSheet = () => false, setSheet = () => {};
+/* ---------- Gaveta (celular) ---------- */
+const sheet = $("sheet"), mqSheet = matchMedia("(max-width: 999px)");
+const isSheet = () => mqSheet.matches;
+let sheetState = "peek", sheetY = 0;
+function sheetStops(){
+  const H = sheet.offsetHeight, hero = $("hero");
+  const peekVis = Math.min(H * 0.58, hero.offsetTop + hero.offsetHeight + 14);
+  const peek = Math.max(0, Math.round(H - peekVis));
+  return { full: 0, half: Math.max(0, Math.min(Math.round(H * 0.3), peek - 90)), peek };
+}
+function applySheet(y, anim = true){
+  sheetY = y; sheet.classList.toggle("dragging", !anim); sheet.style.transform = `translateY(${y}px)`;
+}
+function setSheet(state){
+  if(!isSheet()) return;
+  sheetState = state; const st0 = sheetStops();
+  sheet.classList.toggle("full", state === "full"); if(state !== "full") sheet.scrollTop = 0;
+  applySheet(st0[state]);
+}
+const sheetVisible = () => isSheet() ? Math.max(0, sheet.offsetHeight - sheetY) : 0;
+function fitRoute(){ if(!st.routes) return;
+  const b = L.latLngBounds(st.routes.flatMap(r => r.line)).pad(0.06);
+  map.fitBounds(b, { paddingTopLeft: [16, 40], paddingBottomRight: [56, sheetVisible() + 16] }); }
+function centerOn(pos, z){ z = z || Math.max(map.getZoom(), 15);
+  const pt = map.project(pos, z).add([0, sheetVisible() / 2]); map.setView(map.unproject(pt, z), z, { animate: true }); }
+(function sheetGestures(){
+  let d = null;
+  const order = ["full", "half", "peek"];
+  sheet.addEventListener("touchstart", e => { if(!isSheet() || e.touches.length !== 1) return;
+    const t = e.touches[0]; d = { x0: t.clientX, y0: t.clientY, base: sheetY, active: false, lastY: t.clientY, lastT: performance.now(), v: 0 }; }, { passive: true });
+  sheet.addEventListener("touchmove", e => { if(!d) return; const t = e.touches[0], dy = t.clientY - d.y0, dx = t.clientX - d.x0;
+    if(!d.active){
+      if(Math.abs(dy) < 7) return;
+      if(Math.abs(dx) > Math.abs(dy) || (sheetState === "full" && (sheet.scrollTop > 0 || dy < 0))){ d = null; return; }
+      d.active = true; d.y0 = t.clientY; d.base = sheetY;
+    }
+    e.preventDefault();
+    const stops = sheetStops(), now = performance.now();
+    applySheet(Math.max(0, Math.min(stops.peek + 40, d.base + (t.clientY - d.y0))), false);
+    d.v = (t.clientY - d.lastY) / Math.max(1, now - d.lastT); d.lastY = t.clientY; d.lastT = now; }, { passive: false });
+  sheet.addEventListener("touchend", () => { if(!d || !d.active){ d = null; return; }
+    const stops = sheetStops(); let target;
+    if(Math.abs(d.v) > 0.45){ const i = order.indexOf(nearest()); target = d.v > 0 ? order[Math.min(2, order.indexOf(sheetState) + 1)] : order[Math.max(0, order.indexOf(sheetState) - 1)];
+      if(d.v > 0 && sheetY > stops[target]) target = order[Math.min(2, order.indexOf(target) + 1)]; }
+    else target = nearest();
+    d = null; setSheet(target);
+    function nearest(){ return order.reduce((b, k) => Math.abs(stops[k] - sheetY) < Math.abs(stops[b] - sheetY) ? k : b, "peek"); } });
+  $("grab").onclick = () => setSheet(sheetState === "peek" ? "half" : sheetState === "half" ? "full" : "peek");
+  mqSheet.addEventListener("change", () => { if(isSheet()) setSheet("peek"); else { sheet.style.transform = ""; sheet.classList.remove("full"); } setTimeout(() => map.invalidateSize(), 60); });
+  addEventListener("resize", () => { if(isSheet()) setSheet(sheetState); });
+})();
 /* ---------- Modo pedal (GPS ao vivo) ---------- */
 let meDot = null, meAcc = null, wakeLock = null;
 const rideSpeed = () => { const r = st.ride; return r && r.ema > 8 ? Math.min(45, r.ema) : (+cfg.speed || 22); };
@@ -837,7 +909,7 @@ function onFix(p){
     meAcc = L.circle(pos, { radius: r.acc, color: "#2b7fff", weight: 1, opacity: .4, fillOpacity: .12, interactive: false }).addTo(map);
     meDot = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: "", iconSize: [18, 18], iconAnchor: [9, 9], html: '<div class="me-dot"></div>' }) }).addTo(map);
   } else { meDot.setLatLng(pos); meAcc.setLatLng(pos).setRadius(r.acc); }
-  if(r.follow) map.setView(pos, Math.max(map.getZoom(), 15), { animate: true });
+  if(r.follow) centerOn(pos);
   const dest = st.dir === "ida" ? cfg.work : cfg.home;
   if((st.total - r.d < 0.12 && r.off < 0.15) || hav(pos, dest) < 0.15){ stopRide(true); return; }
   render();
@@ -1032,8 +1104,10 @@ async function rebuild(){
     const keep = st.routes.findIndex(r => r.name === cfg.routePick);
     useRoute(keep >= 0 ? keep : 0);
     const rk = st.route.length + ":" + st.route[0] + st.route[st.route.length - 1];
-    if(rk !== st.fitKey && !(st.ride && st.ride.pos)){ st.fitKey = rk; map.fitBounds(L.latLngBounds(st.routes.flatMap(r => r.line)).pad(0.08)); }
+    const first = !st.fitKey;
     showError(st.routeNote); render();
+    if(first) setSheet("peek");
+    if(rk !== st.fitKey && !(st.ride && st.ride.pos)){ st.fitKey = rk; fitRoute(); }
   }catch(e){ showError("Não consegui carregar a previsão: " + (e.message || e) + ". Verifique a conexão e toque em atualizar."); }
 }
 async function refreshAll(){ $("refresh").classList.add("spin"); $("updated").textContent = "atualizando…";
