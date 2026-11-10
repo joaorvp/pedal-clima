@@ -195,6 +195,19 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .tl li.past{opacity:.42}
 .tl li.here .dot{background:#2b7fff;border-color:#2b7fff;box-shadow:0 0 0 4px rgba(43,127,255,.25)}
 .open-in{display:flex;gap:8px;margin:-6px 0 14px}
+.routes{display:grid;gap:6px;margin-bottom:14px}
+.routes:empty{display:none}
+.rt{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 10px;align-items:center;text-align:left;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 12px;cursor:pointer}
+.rt[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.rt .rd{width:16px;height:16px;border-radius:50%;border:2px solid var(--line)}
+.rt[aria-checked="true"] .rd{border:5px solid var(--accent)}
+.rt .nm{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rt .dt{grid-column:2;font:500 12px var(--font-data);color:var(--muted)}
+.rt .rain{grid-row:1 / span 2;grid-column:3;text-align:right;font:600 14px var(--font-data)}
+.rt .rain small{display:block;font:500 10px var(--font-body);color:var(--muted)}
+.badges{display:inline-flex;gap:4px;margin-left:6px;vertical-align:1px}
+.badge{font:700 9.5px var(--font-body);text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:999px;background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.badge.fast{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
 .open-in .btn{flex:1;justify-content:center;text-decoration:none}
 .me-dot{width:18px;height:18px;border-radius:50%;background:#2b7fff;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2),0 2px 6px rgba(0,0,0,.35)}
 /* Busca de endereço */
@@ -299,6 +312,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
         <a class="btn" id="open-gmaps" href="#" target="_blank" rel="noopener">Abrir no Google Maps</a>
         <a class="btn" id="open-waze" href="#" target="_blank" rel="noopener">Abrir no Waze</a>
       </div>
+      <div class="routes" id="routes" role="radiogroup" aria-label="Rotas"></div>
       <div class="routebar" id="routebar" aria-hidden="true"></div>
       <div class="routebar-lbl"><span id="rb-a">Casa</span><span id="rb-b">Trabalho</span></div>
       <ol class="tl" id="timeline"></ol>
@@ -474,21 +488,48 @@ map.on("click", e => { if(!st.pickMode) return; const k = st.pickMode; st.pickMo
 const routeLayer = L.layerGroup().addTo(map); let radarLayer = null;
 
 /* ---------- Rota ---------- */
-async function fetchRoute(){
-  const pts = [cfg.home, cfg.via, cfg.work].filter(Boolean), main = cfg.profile === "main";
-  const key = "route3:" + (main ? "main" : "bike") + ":" + pts.flat().join(",");
-  try{ const c = localStorage.getItem(key); if(c){ st.routeNote = ""; return JSON.parse(c); } }catch(e){}
+/* Busca até 3 rotas diferentes: a principal (passando pelo P, se houver) e alternativas sem o P, nos dois perfis */
+async function osrm(profile, pts, alts){
   const coords = pts.map(p => p[1] + "," + p[0]).join(";");
-  const q = "?overview=full&geometries=geojson&continue_straight=true";
-  const urls = main
+  const q = `?overview=full&geometries=geojson&continue_straight=true${alts ? "&alternatives=" + alts : ""}`;
+  const urls = profile === "main"
     ? [`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}${q}`, `https://router.project-osrm.org/route/v1/driving/${coords}${q}`]
     : [`https://routing.openstreetmap.de/routed-bike/route/v1/driving/${coords}${q}`, `https://router.project-osrm.org/route/v1/bike/${coords}${q}`];
   for(const u of urls){
     try{ const r = await fetch(u); if(!r.ok) continue; const j = await r.json();
-      if(j.routes && j.routes[0]){ const line = removeSpurs(j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]));
-        try{ localStorage.setItem(key, JSON.stringify(line)); }catch(e){} st.routeNote = ""; return line; } }catch(e){}
+      if(j.routes && j.routes.length) return j.routes.map(rt => ({
+        line: removeSpurs(rt.geometry.coordinates.map(c => [c[1], c[0]])),
+        roads: rt.legs.map(l => l.summary).join(", ").split(",").map(x => x.trim()).filter(Boolean), profile })); }catch(e){}
   }
-  st.routeNote = "Não consegui calcular a rota agora; usando linha reta entre os pontos."; return pts;
+  return [];
+}
+function similar(a, b){ // fração dos pontos de a que ficam a menos de 80 m de b
+  const step = Math.max(1, Math.floor(a.length / 40)), bs = b.filter((_, i) => i % Math.max(1, Math.floor(b.length / 300)) === 0);
+  let near = 0, n = 0; for(let i = 0; i < a.length; i += step){ n++; if(bs.some(q => hav(a[i], q) < 0.08)) near++; } return near / n;
+}
+async function fetchRoutes(){
+  const main = cfg.profile === "main" ? "main" : "bike", other = main === "main" ? "bike" : "main";
+  const ends = [cfg.home, cfg.work], pts = [cfg.home, cfg.via, cfg.work].filter(Boolean);
+  const key = "routes4:" + main + ":" + pts.flat().join(",");
+  try{ const c = localStorage.getItem(key); if(c){ st.routeNote = ""; return JSON.parse(c); } }catch(e){}
+  const [prim, alts, oth] = await Promise.all([
+    osrm(main, pts, 0), osrm(main, ends, cfg.via ? 2 : 3), osrm(other, ends, 1)
+  ]);
+  const cands = [];
+  if(prim[0]) cands.push({ ...prim[0], viaP: !!cfg.via });
+  for(const c of [alts[0], oth[0], ...alts.slice(1), ...oth.slice(1)].filter(Boolean)){
+    if(cands.length >= 3) break;
+    if(cands.every(o => similar(c.line, o.line) < 0.8 && similar(o.line, c.line) < 0.8)) cands.push({ ...c, viaP: false });
+  }
+  if(!cands.length){ st.routeNote = "Não consegui calcular a rota agora; usando linha reta entre os pontos."; return [{ line: pts, roads: [], profile: main, viaP: !!cfg.via }]; }
+  try{ localStorage.setItem(key, JSON.stringify(cands)); }catch(e){}
+  st.routeNote = ""; return cands;
+}
+function routeName(r, i){
+  const roads = (r.roads || []).filter(x => !/^\d+$/.test(x)).slice(0, 2);
+  if(roads.length) return "Via " + roads.join(" e ");
+  if(r.viaP) return "Passando pelo ponto P";
+  return r.profile === "main" ? "Pelas vias principais" : "Por ruas calmas";
 }
 /* Remove "bicos" de ida e volta (o roteador vai até um ponto fora da via e volta pelo mesmo caminho) */
 function removeSpurs(line){
@@ -520,15 +561,17 @@ function buildSamples(line){
 
 /* ---------- Previsão ---------- */
 async function fetchWeather(){
-  const s = st.samples, p = new URLSearchParams({
-    latitude: s.map(x => x.lat.toFixed(4)).join(","), longitude: s.map(x => x.lon.toFixed(4)).join(","),
+  const all = st.routes.flatMap(r => r.samples), p = new URLSearchParams({
+    latitude: all.map(x => x.lat.toFixed(4)).join(","), longitude: all.map(x => x.lon.toFixed(4)).join(","),
     minutely_15: "precipitation", past_minutely_15: "12", forecast_minutely_15: "96",
     hourly: "precipitation_probability,precipitation,temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day",
     past_hours: "2", forecast_hours: "24", timeformat: "unixtime", timezone: "America/Sao_Paulo"
   });
   const r = await fetch("https://api.open-meteo.com/v1/forecast?" + p);
   if(!r.ok) throw new Error("previsão indisponível (HTTP " + r.status + ")");
-  const j = await r.json(); st.wx = Array.isArray(j) ? j : [j]; st.wxAt = Date.now();
+  let j = await r.json(); if(!Array.isArray(j)) j = [j];
+  let o = 0; st.routes.forEach(rt => { rt.wx = j.slice(o, o + rt.samples.length); o += rt.samples.length; });
+  st.wxAt = Date.now();
 }
 function idxAt(times, t){ const k = times.findIndex(x => x >= t); return k < 0 ? times.length - 1 : k; }
 function nearest(times, t){ let b = 0, bd = Infinity; times.forEach((x, k) => { const d = Math.abs(x - t); if(d < bd){ bd = d; b = k; } }); return b; }
@@ -576,13 +619,17 @@ function render(){
   if(!st.wx) return;
   const riding = !!(st.ride && st.ride.pos);
   const ev = riding ? evaluate(Date.now() - st.ride.d / rideSpeed() * 3600e3) : evaluate(depTime());
-  renderMap(ev); riding ? renderRideHero(ev) : renderHero(ev); renderTimeline(ev); if(!riding) renderSlots(); renderChecklist(ev); renderTrip(); renderOpenIn(); $("slots-card").hidden = riding;
+  renderMap(ev); riding ? renderRideHero(ev) : renderHero(ev); renderTimeline(ev); if(!riding) renderSlots(); renderChecklist(ev); renderTrip(); renderOpenIn(); renderRoutes(riding ? Date.now() : depTime()); $("slots-card").hidden = riding;
   $("setup-banner").hidden = !!cfg.customized;
   $("updated").textContent = "previsão " + hhmm(st.wxAt);
 }
 function renderMap(ev){
   routeLayer.clearLayers(); const line = st.route;
   const base = { lineJoin: "round", lineCap: "round", smoothFactor: 1.2, interactive: false };
+  st.routes.forEach((r, i) => { if(i === st.sel) return;
+    L.polyline(r.line, { ...base, color: "#0b1a1c", weight: 9, opacity: .18 }).addTo(routeLayer);
+    L.polyline(r.line, { ...base, interactive: true, color: "#8fa3a6", weight: 6, opacity: .9 })
+      .bindTooltip(r.name + " · toque para usar", { sticky: true }).on("click", () => selectRoute(i)).addTo(routeLayer); });
   // contorno contínuo: uma sombra escura e uma faixa clara por baixo de tudo
   L.polyline(line, { ...base, color: "#0b1a1c", weight: 13, opacity: .28 }).addTo(routeLayer);
   L.polyline(line, { ...base, color: "#ffffff", weight: 10, opacity: 1 }).addTo(routeLayer);
@@ -820,6 +867,25 @@ function renderRideHero(ev){
 }
 $("ride").onclick = () => st.ride ? stopRide() : startRide();
 
+/* Rotas alternativas */
+function renderRoutes(depMs){
+  const box = $("routes");
+  if(!st.routes || st.routes.length < 2){ box.innerHTML = ""; return; }
+  const evs = st.routes.map((r, i) => withRoute(i, () => evaluate(depMs)));
+  const ex = evs.map(e => e.exposure), du = evs.map(e => e.dur);
+  const dryI = ex.indexOf(Math.min(...ex)), fastI = du.indexOf(Math.min(...du));
+  const dry = Math.max(...ex) - ex[dryI] >= 0.1 && ex.filter(x => x - ex[dryI] < 0.05).length === 1 ? dryI : -1;
+  const fast = [...du].sort((a, b) => a - b)[1] - du[fastI] >= 120e3 ? fastI : -1;
+  const allDry = false;
+  box.innerHTML = st.routes.map((r, i) => { const e = evs[i];
+    const b = [!allDry && i === dry ? '<span class="badge">mais seca</span>' : "", i === fast ? '<span class="badge fast">mais rápida</span>' : ""].join("");
+    return `<button class="rt" type="button" role="radio" aria-checked="${i === st.sel}" data-i="${i}">
+      <span class="rd"></span><span class="nm">${r.name}${b ? `<span class="badges">${b}</span>` : ""}</span>
+      <span class="rain">${e.exposure < 0.05 ? "0 mm" : fmt1(e.exposure) + " mm"}<small>chuva</small></span>
+      <span class="dt">${Math.round(e.dur / 60000)} min · ${fmt1(r.total)} km${r.profile === "main" ? " · vias principais" : ""}</span></button>`; }).join("");
+  box.querySelectorAll(".rt").forEach(b => b.onclick = () => selectRoute(+b.dataset.i));
+}
+
 /* Abrir no Google Maps / Waze */
 function renderOpenIn(){
   const a = st.dir === "ida" ? cfg.home : cfg.work, b = st.dir === "ida" ? cfg.work : cfg.home, f = p => p[0] + "," + p[1];
@@ -948,15 +1014,26 @@ $("test-push").onclick = async () => {
 
 /* ---------- Ciclo ---------- */
 function showError(msg){ const e = $("error"); e.hidden = !msg; e.textContent = msg || ""; }
+function prepRoute(c, i){
+  const b = buildSamples(c.line), cum = [0];
+  for(let k = 1; k < c.line.length; k++) cum.push(cum[k-1] + hav(c.line[k-1], c.line[k]));
+  let best = 0, bd = Infinity; if(cfg.via) b.samples.forEach(s => { const d = hav([s.lat, s.lon], cfg.via); if(d < bd){ bd = d; best = s.km; } });
+  return { ...c, name: routeName(c, i), cum, samples: b.samples, total: b.total, viaKm: bd < 3 ? best : null, wx: null };
+}
+function useRoute(i){ const r = st.routes[i]; if(!r) return; st.sel = i;
+  st.route = r.line; st.cum = r.cum; st.samples = r.samples; st.total = r.total; st.viaKm = r.viaKm; st.wx = r.wx; }
+function withRoute(i, fn){ const keep = st.sel; useRoute(i); try{ return fn(); } finally { useRoute(keep); } }
+function selectRoute(i){ useRoute(i); cfg.routePick = st.routes[i].name; save(); render(); }
 async function rebuild(){
   try{
-    st.route = await fetchRoute();
-    const b = buildSamples(st.route); st.samples = b.samples; st.total = b.total;
-    st.cum = [0]; for(let i = 1; i < st.route.length; i++) st.cum.push(st.cum[i-1] + hav(st.route[i-1], st.route[i]));
-    let best = 0, bd = Infinity; if(cfg.via) st.samples.forEach(s => { const d = hav([s.lat, s.lon], cfg.via); if(d < bd){ bd = d; best = s.km; } }); st.viaKm = bd < 3 ? best : null;
+    const cands = await fetchRoutes();
+    st.routes = cands.map(prepRoute);
+    await fetchWeather();
+    const keep = st.routes.findIndex(r => r.name === cfg.routePick);
+    useRoute(keep >= 0 ? keep : 0);
     const rk = st.route.length + ":" + st.route[0] + st.route[st.route.length - 1];
-    if(rk !== st.fitKey){ st.fitKey = rk; map.fitBounds(L.latLngBounds(st.route).pad(0.08)); }
-    await fetchWeather(); showError(st.routeNote); render();
+    if(rk !== st.fitKey && !(st.ride && st.ride.pos)){ st.fitKey = rk; map.fitBounds(L.latLngBounds(st.routes.flatMap(r => r.line)).pad(0.08)); }
+    showError(st.routeNote); render();
   }catch(e){ showError("Não consegui carregar a previsão: " + (e.message || e) + ". Verifique a conexão e toque em atualizar."); }
 }
 async function refreshAll(){ $("refresh").classList.add("spin"); $("updated").textContent = "atualizando…";
