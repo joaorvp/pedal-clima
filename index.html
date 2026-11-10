@@ -185,13 +185,15 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .ok-text{color:var(--ok);font-weight:600}
 /* Busca de endereço */
 .places{display:grid;gap:10px;position:relative}
-.places::before{content:"";position:absolute;left:15px;top:22px;bottom:22px;border-left:2px dotted var(--line)}
-.place{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;position:relative}
-.place .tag{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 12px var(--font-display);z-index:1}
+.places::before{content:"";position:absolute;left:15px;top:40px;bottom:20px;border-left:2px dotted var(--line)}
+.place{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:start;position:relative}
+.place .mapbtn{margin-top:22px}
+.place .cap{display:block;font-size:11.5px;color:var(--muted);margin:0 0 3px 2px}
+.place .tag{margin-top:18px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 12px var(--font-display);z-index:1}
 .combo{position:relative;min-width:0}
 .combo input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:10px 34px 10px 12px;color:var(--ink);font-size:15px}
 .combo input:focus{border-color:var(--accent);background:var(--surface);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
-.combo .clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.combo .clear{position:absolute;right:4px;bottom:7px;width:28px;height:28px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center}
 .combo .clear svg{width:16px;height:16px}
 .sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:10;list-style:none;margin:0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);max-height:300px;overflow:auto}
 .sugg li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;padding:8px 10px;border-radius:8px;cursor:pointer}
@@ -384,6 +386,7 @@ function load(){ try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage
 function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(cfg)); }catch(e){} }
 const cfg = load();
 cfg.names = Object.assign({ home: "", via: "", work: "" }, cfg.names || {});
+if(cfg.nameVer !== 2){ cfg.names = { home: "", via: "", work: "" }; cfg.nameVer = 2; }
 if(!cfg.topic){ const a = new Uint8Array(12); crypto.getRandomValues(a); cfg.topic = "pedal-" + Array.from(a, b => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join(""); save(); }
 const st = { dir: "ida", dep: null, route: null, samples: [], total: 0, wx: null, wxAt: 0, radarFrames: [], radarHost: "", radarIdx: 0, radarOn: true, playTimer: null, pickMode: null, routeNote: "", viaKm: null, fitKey: "" };
 
@@ -718,9 +721,9 @@ $("t-volta").onchange = e => { cfg.tVolta = e.target.value; save(); renderSettin
 
 /* ---------- Busca de endereço (Photon, sem chave) ---------- */
 const PLACE_DEF = [
-  { k: "home", label: "Casa", ph: "Endereço de casa" },
-  { k: "via", label: "Passar por", ph: "Passar por (opcional)" },
-  { k: "work", label: "Trabalho", ph: "Endereço do trabalho" }
+  { k: "home", label: "Casa", cap: "Casa", ph: "Endereço de casa" },
+  { k: "via", label: "Passar por", cap: "Passar por (opcional)", ph: "Nenhum (rota direta)" },
+  { k: "work", label: "Trabalho", cap: "Trabalho", ph: "Endereço do trabalho" }
 ];
 const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
 const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -743,17 +746,23 @@ async function photon(q){
   const u = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lat=${BIAS.lat}&lon=${BIAS.lon}&bbox=${BBOX}`;
   const r = await fetch(u); if(!r.ok) throw new Error("HTTP " + r.status); return (await r.json()).features || [];
 }
+/* Nome automático: rua e bairro, nunca o comércio ou rio mais próximo */
+function areaName(f){ const p = f.properties || {};
+  const street = p.street || (p.osm_key === "highway" ? p.name : "");
+  const area = p.district || p.locality || p.city || "";
+  const parts = [street, area].filter(Boolean);
+  return parts.length ? [...new Set(parts)].join(", ") : (p.city || "Ponto marcado no mapa"); }
 async function reverseName(k){
   const p = cfg[k]; if(!p) return;
   try{ const r = await fetch(`https://photon.komoot.io/reverse?lat=${p[0]}&lon=${p[1]}&limit=1`); const j = await r.json();
-    const f = (j.features || [])[0]; if(f && !cfg.names[k]){ cfg.names[k] = shortName(f); save(); renderSettings(); renderTrip(); } }catch(e){}
+    const f = (j.features || [])[0]; if(f && !cfg.names[k]){ cfg.names[k] = areaName(f); save(); renderSettings(); renderTrip(); } }catch(e){}
 }
 function buildPlaces(){
   const box = $("places"); box.innerHTML = "";
-  PLACE_DEF.forEach(({ k, label, ph }) => {
+  PLACE_DEF.forEach(({ k, label, cap, ph }) => {
     const row = document.createElement("div"); row.className = "place";
     row.innerHTML = `<span class="tag" style="background:${PIN_COLOR[k]}" aria-hidden="true">${PIN_LETTER[k]}</span>
-      <div class="combo"><input id="addr-${k}" type="text" autocomplete="off" spellcheck="false" placeholder="${ph}" aria-label="${label}"
+      <div class="combo"><label class="cap" for="addr-${k}">${cap}</label><input id="addr-${k}" type="text" autocomplete="off" spellcheck="false" placeholder="${ph}" aria-label="${label}"
         role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugg-${k}">
         <button class="clear" type="button" aria-label="Limpar ${label}">${X_SVG}</button>
         <ul class="sugg" id="sugg-${k}" role="listbox" hidden></ul></div>
