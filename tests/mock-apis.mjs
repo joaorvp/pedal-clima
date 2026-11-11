@@ -28,7 +28,7 @@ export const elevationJson = url => { const n = new URL(url).searchParams.get("l
 export const inmetJson = { hoje: [{ descricao: "Tempestade", severidade: "Perigo", geocodes: "5300108", inicio: "2026-01-01 10:00:00", fim: "2099-01-01 10:00:00" }], futuro: [] };
 export const photonJson = { features: [{ geometry: { coordinates: [-47.99, -15.83] }, properties: { name: "Lugar Teste", street: "Rua 5", district: "Setor Y", city: "Brasília" } }] };
 export const reverseJson = { features: [{ geometry: { coordinates: [0, 0] }, properties: { street: "Rua 9", district: "Bairro Z", city: "Cidade" } }] };
-export const radarJson = () => ({ host: "https://tilecache.rainviewer.com", radar: { past: [{ time: Math.floor(Date.now() / 1000) - 600, path: "/v2/radar/x" }] } });
+export const radarJson = () => { const now = Math.floor(Date.now() / 600e3) * 600; return { host: "https://tilecache.rainviewer.com", radar: { past: Array.from({ length: 6 }, (_, i) => ({ time: now - (6 - i) * 600, path: "/v2/radar/x" + i })) } }; };
 export const overpassJson = { elements: [
   { type: "node", id: 11, lat: -15.8555, lon: -48.0345, tags: { highway: "bus_stop", shelter: "yes", name: "Parada EPTG" } },
   { type: "node", id: 12, lat: -15.857, lon: -48.031, tags: { amenity: "fuel", brand: "Posto Exemplo" } },

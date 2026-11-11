@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.17.0'
+export const CURRENT_APP_VERSION = '2.17.1'
 export const CHANGELOG = [
+  {
+    version: '2.17.1',
+    title: 'Animação do radar consertada',
+    items: [
+      'O botão ▶ do radar agora mostra a chuva se movendo na última hora: os quadros carregam antes e a animação para um instante no mais recente.',
+      'Durante a animação, o horário de cada quadro aparece no canto do mapa.',
+    ],
+  },
   {
     version: '2.17.0',
     title: 'Telas mais limpas e dicas nos botões',

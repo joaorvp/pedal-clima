@@ -62,12 +62,12 @@ const PICK_LABEL: Record<PointKey | 'dest' | 'origin', string> = { home: 'Toque 
 
 interface Lyr { route: L.LayerGroup; ends: L.LayerGroup; places: L.LayerGroup }
 /** Camadas que o próprio Leaflet altera: ficam num ref, fora do estado do React. */
-interface Slots { radar: L.TileLayer | null; me: L.Marker | null; acc: L.Circle | null; handle: L.Marker | null; meBike: boolean | null }
+interface Slots { me: L.Marker | null; acc: L.Circle | null; handle: L.Marker | null; meBike: boolean | null }
 
 export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: () => void }) {
   const el = useRef<HTMLDivElement>(null)
   const [inst, setInst] = useState<{ map: L.Map; ly: Lyr } | null>(null)
-  const slots = useRef<Slots>({ radar: null, me: null, acc: null, handle: null, meBike: null })
+  const slots = useRef<Slots>({ me: null, acc: null, handle: null, meBike: null })
   const view = useTripView()
   const mode = useTrip(s => s.mode), origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), via = useTrip(s => s.via)
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), radar = useTrip(s => s.radar)
@@ -274,17 +274,33 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     map.flyTo(map.unproject(pt, z), z, { duration: reduceMotion() ? 0 : 0.7 })
   }, [map, centerNonce])
 
-  // radar
+  // radar: todos os quadros da última hora ficam carregados (invisíveis) e a animação só troca a opacidade;
+  // recriar a camada a cada quadro deixava o mapa em branco, porque as imagens não davam tempo de carregar
+  const radarLayers = useRef(new Map<string, L.TileLayer>())
   useEffect(() => {
     if (!map || !ly) return
-    if (slots.current.radar) { map.removeLayer(slots.current.radar); slots.current.radar = null }
-    const f = radar.frames[radar.idx]
-    if (radar.on && f) slots.current.radar = L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: .65, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' }).addTo(map)
-  }, [map, ly, radar.on, radar.idx, radar.frames, radar.host])
+    const layers = radarLayers.current
+    if (!radar.on) { layers.forEach(l => map.removeLayer(l)); layers.clear(); return }
+    const keep = new Set(radar.frames.map(f => f.path))
+    layers.forEach((l, k) => { if (!keep.has(k)) { map.removeLayer(l); layers.delete(k) } })
+    for (const f of radar.frames) if (!layers.has(f.path))
+      layers.set(f.path, L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' }).addTo(map))
+  }, [map, ly, radar.on, radar.frames, radar.host])
+  useEffect(() => {
+    const cur = radar.frames[radar.idx]?.path
+    radarLayers.current.forEach((l, k) => l.setOpacity(radar.on && k === cur ? .65 : 0))
+  }, [radar.on, radar.idx, radar.frames])
   useEffect(() => {
     if (!radar.playing) return
-    const id = setInterval(() => useTrip.setState(s => ({ radar: { ...s.radar, idx: (s.radar.idx + 1) % Math.max(1, s.radar.frames.length) } })), 650)
-    return () => clearInterval(id)
+    // passa pelos quadros e segura um pouco no mais recente, para dar para perceber o "agora"
+    let id = 0
+    const step = () => {
+      const s = useTrip.getState().radar, n = Math.max(1, s.frames.length), last = s.idx >= n - 1
+      useTrip.setState({ radar: { ...s, idx: last ? 0 : s.idx + 1 } })
+      id = window.setTimeout(step, s.idx + 1 >= n - 1 ? 1600 : 500)
+    }
+    id = window.setTimeout(step, 500)
+    return () => clearTimeout(id)
   }, [radar.playing])
 
   // você no mapa: ponto azul; pedalando, a bike girando no sentido do movimento
@@ -319,7 +335,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   useEffect(() => { const id = setTimeout(() => map?.invalidateSize(), 60); return () => clearTimeout(id) }, [map, full])
 
   const f = radar.frames[radar.idx]
-  const radarLabel = !radar.on ? 'radar desligado' : f ? `radar ${hhmm(f.time * 1000)}${radar.playing ? '' : ` · há ${Math.max(0, Math.round((now / 1000 - f.time) / 60))} min`}` : 'radar indisponível'
+  const radarLabel = !radar.on ? 'radar desligado' : f ? `${radar.playing ? '▶ ' : ''}radar ${hhmm(f.time * 1000)} · há ${Math.max(0, Math.round((now / 1000 - f.time) / 60))} min` : 'radar indisponível'
   const T = useTrip.getState
   const lost = riding && !ride!.follow
   return (

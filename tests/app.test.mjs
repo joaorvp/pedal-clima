@@ -69,6 +69,17 @@ assert.match(await page.textContent(".tip"), /Seus pedais/);
 await page.mouse.move(200, 400); await page.waitForTimeout(200);
 assert.ok(await page.locator(".tip").count() === 0, "a dica some ao tirar o mouse");
 
+// radar: os quadros da última hora ficam carregados e a animação só troca qual aparece
+const radarPanes = () => page.evaluate(() => [...document.querySelectorAll(".leaflet-radar-pane .leaflet-layer")].map(l => +getComputedStyle(l).opacity));
+let op = await radarPanes();
+assert.ok(op.length > 1 && op.filter(o => o > 0).length === 1, "todos os quadros carregados, só o mais recente visível: " + op);
+const t0 = await page.textContent("#radar-time");
+await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(1300);
+assert.match(await page.textContent("#radar-time"), /▶ radar/);
+assert.notEqual(await page.textContent("#radar-time"), t0, "a animação muda o horário do radar");
+assert.equal((await radarPanes()).length, op.length, "animar não recria as camadas");
+await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(200);
+
 // relatar problema: relatório técnico sem coordenadas
 await page.click("#open-settings"); await page.waitForTimeout(300);
 await page.evaluate(() => document.getElementById("report").click()); await page.waitForTimeout(400);

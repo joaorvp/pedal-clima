@@ -29,5 +29,6 @@ jobs:
           VITE_BASE_PATH: /pedal-clima/
       - name: Teste de ponta a ponta (build de produção)
         run: |
-          npx playwright install --with-deps chromium
+          # as dependências de sistema vêm do apt do Ubuntu; se o espelho estiver fora, a imagem do runner já traz quase tudo
+          npx playwright install --with-deps chromium || npx playwright install chromium
           npm run test:e2e
