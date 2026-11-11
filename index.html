@@ -198,11 +198,31 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .livebadge{display:none;align-items:center;gap:6px;font:600 12px var(--font-data);color:var(--accent);margin-bottom:12px}
 .livebadge i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.6s ease-out infinite}
 .hero.riding .livebadge{display:flex}
+.hero.riding h1{font-size:32px}
+.hero.riding .meta b{font-size:20px}
+.hero.riding .ride-btn{padding:14px 16px;font-size:16px}
+.wx[data-icon="rain"] svg path + path{stroke-dasharray:3 3;animation:drip .9s linear infinite}
+.wx[data-icon="sun"] svg{animation:spin 30s linear infinite}
+.wx[data-icon="storm"] svg path + path{animation:flash 2.4s ease-in-out infinite}
+@keyframes drip{to{stroke-dashoffset:-6}}
+@keyframes flash{0%,70%,100%{opacity:1}75%{opacity:.2}80%{opacity:1}85%{opacity:.3}}
 @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
 .tl li.past{opacity:.42}
 .tl li.here .dot{background:#2b7fff;border-color:#2b7fff;box-shadow:0 0 0 4px rgba(43,127,255,.25)}
 .open-in{display:flex;gap:8px;margin:-6px 0 14px}
 .routes{display:grid;gap:6px;margin-bottom:14px}
+.dests{display:flex;gap:6px;overflow-x:auto;margin:-6px 0 12px;padding-bottom:2px;scrollbar-width:none}
+.dests button{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;cursor:pointer}
+.dests button[aria-checked="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.dests .add{color:var(--accent);border-style:dashed}
+.plist{display:grid;gap:6px;margin-bottom:10px}
+.plist:empty{display:none}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--surface-2);border-radius:10px;padding:8px 8px 8px 12px}
+.prow b{display:block;font-weight:600;font-size:14px}
+.prow small{display:block;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.padd{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr);gap:8px}
+.padd > input,.padd .combo input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:10px 12px;color:var(--ink)}
+@media (max-width:460px){.padd{grid-template-columns:1fr}}
 .elev{border-top:1px solid var(--line);margin-top:6px;padding-top:12px}
 .elev-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
 .elev-head b{font-weight:600;font-size:14px}
@@ -225,6 +245,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .badge{font:700 9.5px var(--font-body);text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:999px;background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
 .badge.fast{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
 .open-in .btn{flex:1;justify-content:center;text-decoration:none}
+.rhandle{width:26px;height:26px;border-radius:50%;background:#fff;border:4px solid var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:grab}
 .me-dot{width:18px;height:18px;border-radius:50%;background:#2b7fff;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.2),0 2px 6px rgba(0,0,0,.35)}
 /* Busca de endereço */
 .places{display:grid;gap:10px;position:relative}
@@ -341,6 +362,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
         <span class="lb">PARA</span><span class="nm" id="trip-b">Trabalho</span>
         <span class="ed">Editar</span>
       </button>
+      <div class="dests" id="dests" role="radiogroup" aria-label="Destino"></div>
       <div class="open-in">
         <a class="btn" id="open-gmaps" href="#" target="_blank" rel="noopener">Abrir no Google Maps</a>
         <a class="btn" id="open-waze" href="#" target="_blank" rel="noopener">Abrir no Waze</a>
@@ -396,6 +418,15 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
       <div class="places" id="places"></div>
       <div class="row" style="margin-top:10px"><button class="btn" type="button" id="gps">Estou em casa agora</button></div>
       <p class="note">Digite um endereço, um lugar ou cole um link do Google Maps. Se não achar, toque no ícone de alvo e marque no mapa. Tudo fica salvo só neste aparelho.</p>
+    </div>
+    <div class="sec" id="sec-places">
+      <h3>Lugares salvos</h3>
+      <div class="plist" id="plist"></div>
+      <div class="padd">
+        <input id="pl-name" type="text" placeholder="Nome (ex.: Academia)" aria-label="Nome do lugar" maxlength="30">
+        <div class="combo"><input id="pl-addr" type="text" autocomplete="off" spellcheck="false" placeholder="Endereço do lugar" aria-label="Endereço do lugar"><ul class="sugg" id="pl-sugg" role="listbox" hidden></ul></div>
+      </div>
+      <p class="note">Os lugares aparecem como destino no card do trajeto. A ida é sempre a partir de casa.</p>
     </div>
     <div class="sec">
       <h3>Rotina</h3>
@@ -461,7 +492,7 @@ const icon = (n, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hid
 /* ---------- Estado ---------- */
 const DEFAULTS = {
   home: [-15.8760, -48.0930], via: [-15.8395, -48.0265], work: [-15.8030, -47.9560],
-  speed: 22, batt: 500, whkm: 10, profile: "bike", customized: false, tIda: "", tVolta: "", topic: "", names: { home: "", via: "", work: "" }
+  speed: 22, batt: 500, whkm: 10, places: [], destId: null, profile: "bike", customized: false, tIda: "", tVolta: "", topic: "", names: { home: "", via: "", work: "" }
 };
 const STORE_KEY = "pedalclima.v1";
 function load(){ try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY) || "{}")); }catch(e){ return Object.assign({}, DEFAULTS); } }
@@ -470,6 +501,12 @@ const cfg = load();
 cfg.names = Object.assign({ home: "", via: "", work: "" }, cfg.names || {});
 if(cfg.nameVer !== 2){ cfg.names = { home: "", via: "", work: "" }; cfg.nameVer = 2; }
 if(!cfg.topic){ const a = new Uint8Array(12); crypto.getRandomValues(a); cfg.topic = "pedal-" + Array.from(a, b => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join(""); save(); }
+/* Destino atual: o trabalho ou um lugar salvo */
+const curPlace = () => cfg.destId ? (cfg.places || []).find(p => p.id === cfg.destId) || null : null;
+const destPt = () => { const p = curPlace(); return p ? [p.lat, p.lon] : cfg.work; };
+const destName = () => { const p = curPlace(); return p ? p.name : "Trabalho"; };
+const depLabel = () => st.dir === "ida" ? "Saída de casa" : curPlace() ? "Saída: " + destName() : "Saída do trabalho";
+const arrLabel = () => st.dir === "ida" ? (curPlace() ? "Chegada: " + destName() : "Chegada no trabalho") : "Chegada em casa";
 const st = { dir: "ida", dep: null, route: null, samples: [], total: 0, wx: null, wxAt: 0, radarFrames: [], radarHost: "", radarIdx: 0, radarOn: true, playTimer: null, pickMode: null, routeNote: "", viaKm: null, fitKey: "" };
 
 const $ = id => document.getElementById(id);
@@ -518,18 +555,22 @@ function pinIcon(letter, color){ return L.divIcon({ className: "", iconSize: [30
 const markers = {
   home: L.marker(cfg.home, { draggable: true, icon: pinIcon("C", "#0b7a70"), title: "Casa" }).addTo(map),
   via:  L.marker(cfg.via || cfg.home, { draggable: true, icon: pinIcon("P", "#6f8285"), title: "Passar por" }),
-  work: L.marker(cfg.work, { draggable: true, icon: pinIcon("T", "#b5562b"), title: "Trabalho" }).addTo(map)
+  work: L.marker(destPt(), { draggable: true, icon: pinIcon("T", "#b5562b"), title: "Destino" }).addTo(map)
 };
 if(cfg.via) markers.via.addTo(map);
 const PIN_COLOR = { home: "#0b7a70", via: "#6f8285", work: "#b5562b" }, PIN_LETTER = { home: "C", via: "P", work: "T" };
 function setPoint(k, ll, name){
   cfg[k] = [+ll[0].toFixed(5), +ll[1].toFixed(5)]; if(k !== "via") cfg.customized = true;
-  markers[k].setLatLng(cfg[k]); if(k === "via" && !map.hasLayer(markers.via)) markers.via.addTo(map);
+  syncMarkers();
   if(name){ cfg.names[k] = name; } else { cfg.names[k] = ""; reverseName(k); }
   save(); renderSettings(); rebuild();
 }
 function clearVia(){ cfg.via = null; cfg.names.via = ""; map.removeLayer(markers.via); save(); renderSettings(); rebuild(); }
-Object.entries(markers).forEach(([k, m]) => m.on("dragend", () => { const p = m.getLatLng(); setPoint(k, [p.lat, p.lng]); }));
+Object.entries(markers).forEach(([k, m]) => m.on("dragend", () => { const p = m.getLatLng();
+  if(k === "work" && curPlace()){ const pl = curPlace(); pl.lat = +p.lat.toFixed(5); pl.lon = +p.lng.toFixed(5); save(); renderPlacesList(); rebuild(); return; }
+  setPoint(k, [p.lat, p.lng]); }));
+function syncMarkers(){ markers.home.setLatLng(cfg.home); markers.work.setLatLng(destPt());
+  if(cfg.via){ markers.via.setLatLng(cfg.via); if(!map.hasLayer(markers.via)) markers.via.addTo(map); } else if(map.hasLayer(markers.via)) map.removeLayer(markers.via); }
 const PICK_LABEL = { home: "Toque no mapa onde fica a sua casa", via: "Toque num ponto por onde você passa", work: "Toque no mapa onde fica o trabalho" };
 function startPick(k){ st.pickMode = k; $("settings").close(); const p = $("picking"); p.textContent = PICK_LABEL[k]; p.hidden = false; map.getContainer().style.cursor = "crosshair"; if(isSheet()) setSheet("peek"); else $("mapcard").scrollIntoView({ behavior: "smooth", block: "start" }); }
 map.on("click", e => { if(!st.pickMode) return; const k = st.pickMode; st.pickMode = null; $("picking").hidden = true; map.getContainer().style.cursor = ""; setPoint(k, [e.latlng.lat, e.latlng.lng]); });
@@ -557,7 +598,7 @@ function similar(a, b){ // fração dos pontos de a que ficam a menos de 80 m de
 }
 async function fetchRoutes(){
   const main = cfg.profile === "main" ? "main" : "bike", other = main === "main" ? "bike" : "main";
-  const ends = [cfg.home, cfg.work], pts = [cfg.home, cfg.via, cfg.work].filter(Boolean);
+  const ends = [cfg.home, destPt()], pts = [cfg.home, cfg.via, destPt()].filter(Boolean);
   const key = "routes4:" + main + ":" + pts.flat().join(",");
   try{ const c = localStorage.getItem(key); if(c){ st.routeNote = ""; return JSON.parse(c); } }catch(e){}
   const [prim, alts, oth] = await Promise.all([
@@ -655,8 +696,8 @@ const CATS = [["seco", "--r0"], ["garoa", "--r1"], ["chuva moderada", "--r2"], [
 const cat = r => r < 0.1 ? 0 : r < 1 ? 1 : r < 4 ? 2 : r < 10 ? 3 : 4;
 const rateColor = r => css(CATS[cat(r)][1]);
 function placeName(d){ const T = st.total, vk = st.viaKm != null ? (st.dir === "ida" ? st.viaKm : T - st.viaKm) : null;
-  if(d < 1) return st.dir === "ida" ? "Saída de casa" : "Saída do trabalho";
-  if(d > T - 1) return st.dir === "ida" ? "Chegada no trabalho" : "Chegada em casa";
+  if(d < 1) return depLabel();
+  if(d > T - 1) return arrLabel();
   if(vk != null && Math.abs(d - vk) < 1.5) return "Ponto P";
   return "Km " + Math.round(d); }
 const lowerPlace = d => placeName(d).replace(/^./, c => c.toLowerCase());
@@ -687,7 +728,8 @@ function renderMap(ev){
     const i0 = Math.min(sg.a.ri, sg.b.ri), i1 = Math.max(sg.a.ri, sg.b.ri) + 1;
     const pts = [[sg.a.lat, sg.a.lon], ...line.slice(i0 + 1, i1), [sg.b.lat, sg.b.lon]];
     L.polyline(pts, { ...base, interactive: true, color: rateColor(sg.rate), weight: 6, opacity: 1 })
-      .bindTooltip(`<div class="tip">${placeName(sg.from)} · você passa às <b>${hhmm(sg.t)}</b><br>${CATS[cat(sg.rate)][0]} · ${fmt1(sg.rate)} mm/h · ${sg.prob}%</div>`, { sticky: true }).addTo(routeLayer);
+      .bindTooltip(`<div class="tip">${placeName(sg.from)} · você passa às <b>${hhmm(sg.t)}</b><br>${CATS[cat(sg.rate)][0]} · ${fmt1(sg.rate)} mm/h · ${sg.prob}%</div>`, { sticky: true })
+      .on("click", e => { L.DomEvent.stopPropagation(e); showRouteHandle(e.latlng); }).addTo(routeLayer);
   });
   // setas discretas indicando o sentido
   const pts = ordered(); for(let k = 3; k < pts.length - 1; k += 4){ const a = pts[k];
@@ -726,7 +768,7 @@ function renderHero(ev){
   $("hero").classList.remove("riding"); $("m-l1").textContent = "de viagem"; $("m-l3").textContent = "chuva no trajeto";
   $("ride-lbl").textContent = st.ride ? "Procurando GPS…" : "Iniciar pedal";
   const v = verdict(ev);
-  $("hero").dataset.level = v.level; $("wx-icon").innerHTML = icon(v.icon);
+  $("hero").dataset.level = v.level; $("wx-icon").innerHTML = icon(v.icon); $("wx-icon").dataset.icon = v.icon;
   $("v-title").textContent = v.title; $("v-sub").textContent = v.sub;
   $("s-time").textContent = Math.round(ev.dur / 60000) + " min";
   $("s-arr").textContent = hhmm(ev.arr);
@@ -740,7 +782,7 @@ function renderHero(ev){
 function renderTimeline(ev){
   const T = st.total;
   $("tl-dist").textContent = fmt1(T) + " km";
-  $("rb-a").textContent = st.dir === "ida" ? "Casa" : "Trabalho"; $("rb-b").textContent = st.dir === "ida" ? "Trabalho" : "Casa";
+  $("rb-a").textContent = st.dir === "ida" ? "Casa" : destName(); $("rb-b").textContent = st.dir === "ida" ? destName() : "Casa";
   $("routebar").innerHTML = ev.segs.map(s => `<i style="width:${(s.to - s.from) / T * 100}%;background:${rateColor(s.rate)}"></i>`).join("");
   // agrupa trechos consecutivos de mesma categoria
   const groups = [];
@@ -958,14 +1000,14 @@ function onFix(p){
     const v = p.coords.speed != null && p.coords.speed >= 0 ? p.coords.speed * 3.6 : (dt > 0 ? dist / dt : 0);
     if(v < 70) r.ema = r.ema ? r.ema * 0.7 + v * 0.3 : v; }
   r.last = { pos, t: now }; r.pos = pos; r.acc = p.coords.accuracy || 0;
-  if(r.autoDir){ r.autoDir = false; const dir = hav(pos, cfg.work) < hav(pos, cfg.home) ? "volta" : "ida"; if(dir !== st.dir) st.dir = dir; }
+  if(r.autoDir){ r.autoDir = false; const dir = hav(pos, destPt()) < hav(pos, cfg.home) ? "volta" : "ida"; if(dir !== st.dir) st.dir = dir; }
   const pr = project(pos); r.off = pr.off; r.d = st.dir === "ida" ? pr.d : st.total - pr.d;
   if(!meDot){
     meAcc = L.circle(pos, { radius: r.acc, color: "#2b7fff", weight: 1, opacity: .4, fillOpacity: .12, interactive: false }).addTo(map);
     meDot = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: "", iconSize: [18, 18], iconAnchor: [9, 9], html: '<div class="me-dot"></div>' }) }).addTo(map);
   } else { meDot.setLatLng(pos); meAcc.setLatLng(pos).setRadius(r.acc); }
   if(r.follow) centerOn(pos);
-  const dest = st.dir === "ida" ? cfg.work : cfg.home;
+  const dest = st.dir === "ida" ? destPt() : cfg.home;
   if((st.total - r.d < 0.12 && r.off < 0.15) || hav(pos, dest) < 0.15){ stopRide(true); return; }
   render();
 }
@@ -982,9 +1024,9 @@ function renderRideHero(ev){
     title = dist(rain) < 0.2 ? "Chuva no seu trecho agora" : `Chuva em ${fmt1(dist(rain))} km`;
     sub = `${CATS[cat(rain.rate)][0][0].toUpperCase() + CATS[cat(rain.rate)][0].slice(1)}${dist(rain) >= 0.2 ? ` daqui a ~${mins(rain)} min, ${lowerPlace(rain.from).replace(/^km/, "no km").replace(/^ponto/, "no ponto")}` : ""}.`; }
   if(r.off > 0.2) sub += ` Você está a ${Math.round(r.off * 1000)} m da rota.`;
-  const h = $("hero"); h.classList.add("riding"); h.dataset.level = level; $("wx-icon").innerHTML = icon(ic);
+  const h = $("hero"); h.classList.add("riding"); h.dataset.level = level; $("wx-icon").innerHTML = icon(ic); $("wx-icon").dataset.icon = ic;
   $("v-title").textContent = title; $("v-sub").textContent = sub;
-  $("live-txt").textContent = "AO VIVO · " + (st.dir === "ida" ? "indo para o trabalho" : "voltando para casa");
+  $("live-txt").textContent = "AO VIVO · " + (st.dir === "ida" ? (curPlace() ? "indo para " + destName() : "indo para o trabalho") : "voltando para casa");
   $("s-time").textContent = fmt1(left) + " km"; $("m-l1").textContent = "faltam";
   $("s-arr").textContent = hhmm(eta);
   $("s-rain").textContent = r.ema > 2 ? Math.round(r.ema) + " km/h" : "parado"; $("m-l3").textContent = "velocidade";
@@ -1070,6 +1112,43 @@ function renderAlerts(){
   el.innerHTML = `<span class="ic">${icon(sev >= 2 ? "storm" : "rain")}</span><div><b>INMET: ${a.title}${a.sev ? " · " + a.sev : ""}</b><small>Alerta oficial para o DF ${when}${st.alerts.length > 1 ? ` · +${st.alerts.length - 1} alerta(s)` : ""}. Toque para ver.</small></div>`;
 }
 
+/* ---------- Lugares salvos ---------- */
+function setDest(id){ cfg.destId = id; save(); st.fitKey = ""; renderTrip(); rebuild(); }
+function renderDests(){
+  const box = $("dests"), places = cfg.places || [];
+  const chip = (id, name) => `<button type="button" role="radio" aria-checked="${(cfg.destId || null) === id}" data-id="${id ?? ""}">${name}</button>`;
+  box.innerHTML = chip(null, "Trabalho") + places.map(p => chip(p.id, p.name)).join("") + `<button type="button" class="add" id="dest-add">+ Lugar</button>`;
+  box.querySelectorAll("[role=radio]").forEach(b => b.onclick = () => setDest(b.dataset.id || null));
+  $("dest-add").onclick = () => { renderSettings(); $("settings").showModal(); setTimeout(() => { $("sec-places").scrollIntoView({ block: "start" }); $("pl-name").focus(); }, 60); };
+}
+function renderPlacesList(){
+  $("plist").innerHTML = (cfg.places || []).map(p => `<div class="prow"><div><b>${p.name}</b><small>${p.addr || "Ponto marcado"}</small></div>
+    <button class="btn" type="button" data-del="${p.id}" aria-label="Remover ${p.name}">Remover</button></div>`).join("");
+  $("plist").querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    cfg.places = cfg.places.filter(p => p.id !== b.dataset.del); if(cfg.destId === b.dataset.del) cfg.destId = null;
+    save(); renderPlacesList(); renderTrip(); rebuild(); });
+}
+attachCombo($("pl-addr"), $("pl-sugg"), {
+  onPick: (ll, label) => {
+    const name = ($("pl-name").value.trim() || (label || "Lugar").split(",")[0]).slice(0, 30);
+    const id = "p" + Date.now().toString(36);
+    cfg.places = [...(cfg.places || []), { id, name, addr: label, lat: +ll[0].toFixed(5), lon: +ll[1].toFixed(5) }];
+    cfg.destId = id; save(); $("pl-name").value = ""; $("pl-addr").value = "";
+    renderPlacesList(); renderTrip(); st.fitKey = ""; rebuild();
+  } });
+
+/* ---------- Ajustar a rota arrastando a linha ---------- */
+let routeHandle = null, handleTimer = null;
+function showRouteHandle(ll){
+  if(st.ride && st.ride.pos) return;
+  if(routeHandle) map.removeLayer(routeHandle); clearTimeout(handleTimer);
+  routeHandle = L.marker(ll, { draggable: true, zIndexOffset: 900, icon: L.divIcon({ className: "", iconSize: [26, 26], iconAnchor: [13, 13], html: '<div class="rhandle"></div>' }) })
+    .bindTooltip("Arraste para mudar o caminho", { permanent: true, direction: "top", offset: [0, -14] }).addTo(map);
+  routeHandle.on("dragstart", () => { clearTimeout(handleTimer); routeHandle.closeTooltip(); });
+  routeHandle.on("dragend", () => { const p = routeHandle.getLatLng(); map.removeLayer(routeHandle); routeHandle = null; setPoint("via", [p.lat, p.lng]); });
+  handleTimer = setTimeout(() => { if(routeHandle){ map.removeLayer(routeHandle); routeHandle = null; } }, 7000);
+}
+
 /* Rotas alternativas */
 function renderRoutes(depMs){
   const box = $("routes");
@@ -1091,7 +1170,7 @@ function renderRoutes(depMs){
 
 /* Abrir no Google Maps / Waze */
 function renderOpenIn(){
-  const a = st.dir === "ida" ? cfg.home : cfg.work, b = st.dir === "ida" ? cfg.work : cfg.home, f = p => p[0] + "," + p[1];
+  const a = st.dir === "ida" ? cfg.home : destPt(), b = st.dir === "ida" ? destPt() : cfg.home, f = p => p[0] + "," + p[1];
   const g = new URLSearchParams({ api: "1", origin: f(a), destination: f(b), travelmode: "bicycling" });
   if(cfg.via) g.set("waypoints", f(cfg.via));
   $("open-gmaps").href = "https://www.google.com/maps/dir/?" + g;
@@ -1136,6 +1215,41 @@ async function reverseName(k){
   try{ const r = await fetch(`https://photon.komoot.io/reverse?lat=${p[0]}&lon=${p[1]}&limit=1`); const j = await r.json();
     const f = (j.features || [])[0]; if(f && !cfg.names[k]){ cfg.names[k] = areaName(f); save(); renderSettings(); renderTrip(); } }catch(e){}
 }
+/* Campo de endereço com sugestões, reaproveitado em Ajustes, lugares salvos e na primeira abertura */
+var comboSeq = 0;
+function attachCombo(input, list, { onPick, onCoords, restore }){
+  const uid = "c" + (++comboSeq); list.id = list.id || uid + "-list";
+  input.setAttribute("role", "combobox"); input.setAttribute("aria-autocomplete", "list"); input.setAttribute("aria-expanded", "false"); input.setAttribute("aria-controls", list.id);
+  let items = [], sel = -1, timer = null, seq = 0;
+  const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); sel = -1; };
+  const paint = () => {
+    list.innerHTML = items.length ? items.map((f, i) => { const l = featLabel(f);
+      return `<li role="option" id="${uid}-${i}" aria-selected="${i === sel}" data-i="${i}">${PIN_SVG}<div><b>${l.main}</b>${l.sub ? `<small>${l.sub}</small>` : ""}</div></li>`; }).join("")
+      : `<li class="empty">Nada encontrado. Tente outro termo ou marque no mapa.</li>`;
+    list.hidden = false; input.setAttribute("aria-expanded", "true");
+    if(sel >= 0) input.setAttribute("aria-activedescendant", `${uid}-${sel}`); else input.removeAttribute("aria-activedescendant");
+  };
+  const choose = i => { const f = items[i]; if(!f) return; const c = f.geometry.coordinates; input.value = shortName(f); close(); onPick([c[1], c[0]], shortName(f)); };
+  input.addEventListener("input", () => {
+    clearTimeout(timer); const q = input.value.trim();
+    const co = parseCoords(q); if(co){ items = []; close(); (onCoords || onPick)(co, ""); return; }
+    if(q.length < 3){ close(); return; }
+    timer = setTimeout(async () => { const my = ++seq;
+      try{ const res = await photon(q); if(my !== seq) return; items = res; sel = -1; paint(); }
+      catch(e){ items = []; list.innerHTML = `<li class="empty">Busca indisponível agora. Marque no mapa.</li>`; list.hidden = false; } }, 280);
+  });
+  input.addEventListener("keydown", e => {
+    if(list.hidden || !items.length){ if(e.key === "Escape" && !list.hidden){ e.preventDefault(); close(); } return; }
+    if(e.key === "ArrowDown"){ e.preventDefault(); sel = (sel + 1) % items.length; paint(); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); sel = (sel - 1 + items.length) % items.length; paint(); }
+    else if(e.key === "Enter"){ e.preventDefault(); choose(sel < 0 ? 0 : sel); }
+    else if(e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  input.addEventListener("focus", () => input.select());
+  input.addEventListener("blur", () => setTimeout(() => { close(); if(restore) input.value = restore(); }, 150));
+  list.addEventListener("mousedown", e => e.preventDefault());
+  list.addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if(li) choose(+li.dataset.i); });
+}
 function buildPlaces(){
   const box = $("places"); box.innerHTML = "";
   PLACE_DEF.forEach(({ k, label, cap, ph }) => {
@@ -1148,44 +1262,19 @@ function buildPlaces(){
       <button class="mapbtn" type="button" aria-label="Marcar ${label.toLowerCase()} no mapa" title="Marcar no mapa">${TARGET_SVG}</button>`;
     box.appendChild(row);
     const input = row.querySelector("input"), list = row.querySelector(".sugg");
-    let items = [], sel = -1, timer = null, seq = 0;
-    const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); sel = -1; };
-    const paint = () => {
-      list.innerHTML = items.length ? items.map((f, i) => { const l = featLabel(f);
-        return `<li role="option" id="opt-${k}-${i}" aria-selected="${i === sel}" data-i="${i}">${PIN_SVG}<div><b>${l.main}</b>${l.sub ? `<small>${l.sub}</small>` : ""}</div></li>`; }).join("")
-        : `<li class="empty">Nada encontrado. Tente outro termo ou marque no mapa.</li>`;
-      list.hidden = false; input.setAttribute("aria-expanded", "true");
-      if(sel >= 0) input.setAttribute("aria-activedescendant", `opt-${k}-${sel}`); else input.removeAttribute("aria-activedescendant");
-    };
-    const choose = i => { const f = items[i]; if(!f) return; const c = f.geometry.coordinates;
-      input.value = shortName(f); close(); setPoint(k, [c[1], c[0]], shortName(f)); map.setView([c[1], c[0]], Math.max(map.getZoom(), 14)); };
-    input.addEventListener("input", () => {
-      clearTimeout(timer); const q = input.value.trim();
-      const co = parseCoords(q); if(co){ items = []; close(); setPoint(k, co); input.value = "Ponto colado"; return; }
-      if(q.length < 3){ close(); return; }
-      timer = setTimeout(async () => { const my = ++seq;
-        try{ const res = await photon(q); if(my !== seq) return; items = res; sel = -1; paint(); }
-        catch(e){ items = []; list.innerHTML = `<li class="empty">Busca indisponível agora. Marque no mapa.</li>`; list.hidden = false; } }, 280);
-    });
-    input.addEventListener("keydown", e => {
-      if(list.hidden || !items.length){ if(e.key === "Escape" && !list.hidden){ e.preventDefault(); close(); } return; }
-      if(e.key === "ArrowDown"){ e.preventDefault(); sel = (sel + 1) % items.length; paint(); }
-      else if(e.key === "ArrowUp"){ e.preventDefault(); sel = (sel - 1 + items.length) % items.length; paint(); }
-      else if(e.key === "Enter"){ e.preventDefault(); choose(sel < 0 ? 0 : sel); }
-      else if(e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); close(); }
-    });
-    input.addEventListener("focus", () => input.select());
-    input.addEventListener("blur", () => setTimeout(() => { close(); input.value = cfg.names[k] || ""; }, 150));
-    list.addEventListener("mousedown", e => e.preventDefault());
-    list.addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if(li) choose(+li.dataset.i); });
+    attachCombo(input, list, {
+      onPick: (ll, name) => { setPoint(k, ll, name); map.setView(ll, Math.max(map.getZoom(), 14)); },
+      onCoords: ll => { setPoint(k, ll); input.value = "Ponto colado"; },
+      restore: () => cfg.names[k] || "" });
     row.querySelector(".clear").onclick = () => { if(k === "via"){ clearVia(); input.value = ""; } else { input.value = ""; input.focus(); } };
     row.querySelector(".mapbtn").onclick = () => startPick(k);
   });
 }
 function renderTrip(){
-  const nm = k => cfg.names[k] || (k === "home" ? "Casa" : "Trabalho");
+  const nm = k => k === "work" && curPlace() ? curPlace().name : cfg.names[k] || (k === "home" ? "Casa" : "Trabalho");
   $("trip-a").textContent = st.dir === "ida" ? nm("home") : nm("work");
   $("trip-b").textContent = st.dir === "ida" ? nm("work") : nm("home");
+  renderDests();
 }
 
 /* Ajustes + avisos */
@@ -1195,6 +1284,7 @@ const ll = p => p[0].toFixed(5) + "," + p[1].toFixed(5);
 function kvRow(name, value, id){ return `<div><code><em>${name}</em><br><span id="${id}">${value || "(vazio)"}</span></code><button class="btn" type="button" data-copy="${id}">Copiar</button></div>`; }
 function renderSettings(){
   PLACE_DEF.forEach(({ k }) => { const i = $("addr-" + k); if(i && document.activeElement !== i) i.value = cfg[k] ? (cfg.names[k] || "") : ""; });
+  renderPlacesList();
   $("speed").value = cfg.speed; $("batt").value = cfg.batt; $("whkm").value = cfg.whkm;
   $("prof-bike").setAttribute("aria-pressed", cfg.profile !== "main"); $("prof-main").setAttribute("aria-pressed", cfg.profile === "main"); $("t-ida").value = cfg.tIda; $("t-volta").value = cfg.tVolta; $("topic").textContent = cfg.topic;
   const r = repoInfo(); $("gh-secrets").href = `https://github.com/${r.owner}/${r.repo}/settings/secrets/actions`;
@@ -1229,6 +1319,7 @@ function withRoute(i, fn){ const keep = st.sel; useRoute(i); try{ return fn(); }
 function selectRoute(i){ useRoute(i); cfg.routePick = st.routes[i].name; save(); render(); }
 async function rebuild(){
   try{
+    syncMarkers();
     const cands = await fetchRoutes();
     st.routes = cands.map(prepRoute);
     await Promise.all([fetchWeather(), ...st.routes.map(fetchElevation)]);
