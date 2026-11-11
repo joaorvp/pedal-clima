@@ -82,6 +82,7 @@ await page.waitForTimeout(1200);
 assert.match(await page.textContent(".triphead"), /Rua 9|Ponto no mapa/);
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());
 await page.waitForTimeout(500);
+assert.ok(await page.locator(".sc.recent").count() === 1, "o ponto usado vira atalho de destino recente");
 
 // montar o trajeto pelo atalho do trabalho
 await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click());
@@ -112,6 +113,10 @@ await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
 assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike no mapa durante o pedal");
 assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz no pedal");
+await page.evaluate(() => document.getElementById("dash").click()); await page.waitForTimeout(400);
+assert.match(await page.textContent(".dash"), /km\/h.*chegada.*km faltando/s);
+await page.evaluate(() => document.querySelector(".dash-exit").click()); await page.waitForTimeout(300);
+assert.ok(await page.locator(".dash").count() === 0, "sair do modo painel volta para o mapa");
 assert.ok(await page.evaluate(() => !!document.querySelector("body > video")), "o vídeo da janela flutuante fica preparado ao iniciar o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
 // fora da rota por mais de 20 s: oferece recalcular a partir de onde você está

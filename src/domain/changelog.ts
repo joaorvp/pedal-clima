@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.6.0'
+export const CURRENT_APP_VERSION = '2.7.0'
 export const CHANGELOG = [
+  {
+    version: '2.7.0',
+    title: 'Modo painel para o guidão',
+    items: [
+      'No pedal, toque em "Modo painel": números enormes e alto contraste, em pé ou deitado.',
+      'Os últimos destinos que você buscou aparecem como atalhos na tela inicial.',
+      'Lugares salvos: toque no nome para renomear e use as setas para mudar a ordem.',
+    ],
+  },
   {
     version: '2.6.0',
     title: 'Saiu da rota? Recalcula.',

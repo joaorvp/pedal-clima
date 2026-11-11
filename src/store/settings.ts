@@ -39,6 +39,8 @@ export const settingsSchema = z.object({
   installDismissed: z.boolean().catch(false),
   /** avisos falados durante o pedal */
   voice: z.boolean().catch(true),
+  /** últimos destinos buscados ou marcados no mapa (fora os lugares salvos) */
+  recent: z.array(z.object({ name: z.string(), lat: z.number(), lon: z.number(), t: z.number() })).catch([]),
 })
 export type Settings = z.infer<typeof settingsSchema>
 export type Place = z.infer<typeof place>
@@ -68,6 +70,9 @@ interface Actions {
   clearVia: () => void
   addPlace: (name: string, addr: string, ll: LatLon) => void
   removePlace: (id: string) => void
+  renamePlace: (id: string, name: string) => void
+  shiftPlace: (id: string, by: -1 | 1) => void
+  addRecent: (name: string, ll: LatLon) => void
   movePlace: (id: string, ll: LatLon) => void
   addFeedback: (e: FeedbackEntry) => void
   resetFeedback: () => void
@@ -84,6 +89,19 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
   clearVia: () => set(s => ({ via: null, names: { ...s.names, via: '' } })),
   addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },
   removePlace: id => set(s => ({ places: s.places.filter(p => p.id !== id), destId: s.destId === id ? null : s.destId })),
+  renamePlace: (id, name) => set(s => ({ places: s.places.map(p => p.id === id ? { ...p, name: name.trim().slice(0, 30) || p.name } : p) })),
+  shiftPlace: (id, by) => set(s => {
+    const i = s.places.findIndex(p => p.id === id), j = i + by
+    if (i < 0 || j < 0 || j >= s.places.length) return {}
+    const places = s.places.slice(); [places[i], places[j]] = [places[j], places[i]]
+    return { places }
+  }),
+  addRecent: (name, ll) => set(s => {
+    const [lat, lon] = round(ll)
+    const near = (a: { lat: number; lon: number }) => Math.abs(a.lat - lat) + Math.abs(a.lon - lon) < 0.002
+    if (near({ lat: s.home[0], lon: s.home[1] }) || near({ lat: s.work[0], lon: s.work[1] }) || s.places.some(near)) return {}
+    return { recent: [{ name, lat, lon, t: Date.now() }, ...s.recent.filter(r => !near(r))].slice(0, 5) }
+  }),
   movePlace: (id, ll) => { const [lat, lon] = round(ll); set(s => ({ places: s.places.map(p => p.id === id ? { ...p, lat, lon } : p) })) },
   addFeedback: e => { const log = [...get().log, e].slice(-40); set({ log, probTh: calibrate(log) }) },
   resetFeedback: () => set({ log: [], probTh: 50 }),

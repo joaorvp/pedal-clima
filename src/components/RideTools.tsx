@@ -1,4 +1,4 @@
-import { PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
+import { Gauge, PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { rideVerdict } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
@@ -102,6 +102,8 @@ export function RideTools() {
     <div className="ride-tools">
       {pipSupported() && <button className="btn" type="button" id="pip" onClick={async () => { setPipMsg(await openPip() ? '' : 'Não deu para abrir a janela neste navegador.') }}>
         <PictureInPicture2 className="i" />Janela flutuante</button>}
+      <button className="btn" type="button" id="dash" onClick={() => { useTrip.getState().set({ dash: true }); document.documentElement.requestFullscreen?.().catch(() => {}) }}>
+        <Gauge className="i" />Modo painel</button>
       {canSpeak() && <button className="btn" type="button" id="voice" aria-pressed={voice} onClick={() => { const on = !voice; useSettings.getState().patch({ voice: on }); if (on) say('Avisos por voz ligados.') }}>
         {voice ? <Volume2 className="i" /> : <VolumeX className="i" />}{voice ? 'Voz ligada' : 'Voz desligada'}</button>}
       {pipMsg && <span className="note" style={{ margin: 0 }}>{pipMsg}</span>}

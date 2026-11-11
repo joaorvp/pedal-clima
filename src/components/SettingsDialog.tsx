@@ -1,4 +1,4 @@
-import { Crosshair, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Crosshair, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { accuracyText } from '../domain/calibration'
 import { useSettings, type PointKey } from '../store/settings'
@@ -49,9 +49,15 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
         <div className="sec" id="sec-places" ref={el => { if (el && focus === 'places') el.scrollIntoView({ block: 'start' }) }}>
           <h3>Lugares salvos</h3>
           <div className="plist" id="plist">
-            {s.places.map(p => (
-              <div className="prow" key={p.id}><div><b>{p.name}</b><small>{p.addr || 'Ponto marcado'}</small></div>
-                <button className="btn" type="button" aria-label={'Remover ' + p.name} onClick={() => s.removePlace(p.id)}>Remover</button></div>
+            {s.places.map((p, i) => (
+              <div className="prow" key={p.id}>
+                <div className="pname"><input aria-label={'Nome de ' + p.name} defaultValue={p.name} maxLength={30} onBlur={e => s.renamePlace(p.id, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} /><small>{p.addr || 'Ponto marcado'}</small></div>
+                <div className="pact">
+                  <button className="ibtn sm" type="button" aria-label={'Subir ' + p.name} disabled={i === 0} onClick={() => s.shiftPlace(p.id, -1)}><ChevronUp className="i" /></button>
+                  <button className="ibtn sm" type="button" aria-label={'Descer ' + p.name} disabled={i === s.places.length - 1} onClick={() => s.shiftPlace(p.id, 1)}><ChevronDown className="i" /></button>
+                  <button className="ibtn sm" type="button" aria-label={'Remover ' + p.name} onClick={() => s.removePlace(p.id)}><Trash2 className="i" /></button>
+                </div>
+              </div>
             ))}
           </div>
           <div className="padd">
@@ -59,7 +65,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
             <AddressCombo id="pl-addr" label="Endereço do lugar" placeholder="Endereço do lugar" value=""
               onPick={(pt, label) => { s.addPlace((plName.trim() || (label || 'Lugar').split(',')[0]).slice(0, 30), label, pt); setPlName('') }} />
           </div>
-          <p className="note">Os lugares aparecem como destino no card do trajeto. A ida é sempre a partir de casa.</p>
+          <p className="note">Toque no nome para renomear. A ordem aqui é a mesma dos atalhos da tela inicial.</p>
         </div>
 
         <div className="sec">

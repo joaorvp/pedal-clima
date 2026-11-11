@@ -1,4 +1,4 @@
-import { ArrowRight, Briefcase, History, House, MapPinned, Plus, Search, Star } from 'lucide-react'
+import { ArrowRight, Briefcase, Clock, History, House, MapPinned, Plus, Search, Star } from 'lucide-react'
 import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
 import { hhmm } from '../domain/format'
@@ -50,6 +50,7 @@ export function WhereTo({ onAddPlace }: { onAddPlace: () => void }) {
         {s.homeSet && <button type="button" role="listitem" className="sc" onClick={() => go(s.home, 'Casa', 'home')}><House className="i" /><span>Casa</span></button>}
         {s.workSet && <button type="button" role="listitem" className="sc" onClick={() => go(s.work, 'Trabalho', 'work')}><Briefcase className="i" /><span>Trabalho</span></button>}
         {s.places.map(p => <button key={p.id} type="button" role="listitem" className="sc" onClick={() => go([p.lat, p.lon], p.name, p.id)}><Star className="i" /><span>{p.name}</span></button>)}
+        {s.recent.map(r => <button key={r.t} type="button" role="listitem" className="sc recent" onClick={() => go([r.lat, r.lon], r.name)}><Clock className="i" /><span>{r.name.split(',')[0]}</span></button>)}
         {hasLast && <button type="button" role="listitem" className="sc" onClick={() => t().loadSnapshot()}><History className="i" /><span>Último: {last!.dest!.name}</span></button>}
         <button type="button" role="listitem" className="sc" onClick={() => t().set({ pickMode: 'dest', sheet: 'peek' })}><MapPinned className="i" /><span>Escolher no mapa</span></button>
         <button type="button" role="listitem" className="sc add" onClick={onAddPlace}><Plus className="i" /><span>{s.homeSet && s.workSet ? 'Lugar' : !s.homeSet ? 'Casa' : 'Trabalho'}</span></button>

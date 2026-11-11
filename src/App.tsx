@@ -9,6 +9,7 @@ import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Pane
 import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
 import { InstallBanner, UpdatePrompt, WhatsNew } from './components/Pwa'
+import { Dashboard } from './components/Dashboard'
 import { startLocation } from './hooks/location'
 import { useSettings } from './store/settings'
 import { useTrip } from './store/trip'
@@ -65,6 +66,7 @@ export default function App() {
     </main>
     <SettingsDialog open={settings.open} focus={settings.focus} onClose={() => setSettings({ open: false })} />
     <Welcome />
+    <Dashboard />
     <UpdatePrompt />
     <InstallBanner />
     <WhatsNew />

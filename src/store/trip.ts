@@ -64,6 +64,8 @@ interface TripState {
   feedbackPred: Ride['pred']
   arrived: boolean
   summary: RideSummary | null
+  /** modo painel (guidão) aberto */
+  dash: boolean
   pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
@@ -109,13 +111,14 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
   selectRoute: i => { set({ sel: i }); useSettings.getState().patch({ routePick: get().routes[i]?.name }) },
 
   startTrip: (dest, origin) => {
+    if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
     const oll = endpointLL(o, st.me), dll = endpointLL(dest, st.me)
     set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, sheet: 'peek', error: '', arrived: false })
@@ -123,6 +126,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   },
   closeTrip: () => { set({ mode: 'explore', dest: null, routes: [], via: null, dep: null, routeNote: '', error: '', centerNonce: get().centerNonce + 1 }); get().refreshLocal() },
   setEnd: (which, e) => {
+    if (which === 'dest' && e.kind === 'place' && !e.key) useSettings.getState().addRecent(e.name, e.ll)
     const st = get()
     if (st.mode !== 'trip' || !st.dest) { if (which === 'dest') get().startTrip(e); else get().startTrip(st.dest ?? e, e); return }
     const origin = which === 'origin' ? e : st.origin, dest = which === 'dest' ? e : st.dest
