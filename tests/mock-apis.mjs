@@ -34,3 +34,12 @@ export const overpassJson = { elements: [
   { type: "node", id: 12, lat: -15.857, lon: -48.031, tags: { amenity: "fuel", brand: "Posto Exemplo" } },
 ] };
 export const airJson = { current: { us_aqi: 42, pm2_5: 9 } };
+// BRouter: rotas de bicicleta com a fração em ciclovia nas mensagens
+export function brouterJson(url) {
+  const q = new URL(url).searchParams, idx = +q.get("alternativeidx") || 0
+  const pts = q.get("lonlats").split("|").map(p => p.split(",").map(Number))
+  const [a, b] = [pts[0], pts[pts.length - 1]], off = [0.003, 0.015, -0.01][idx] ?? 0, share = [0.7, 0.35, 0.5][idx] ?? 0
+  const coords = []; for (let i = 0; i <= 60; i++) coords.push([a[0] + (b[0] - a[0]) * i / 60, a[1] + (b[1] - a[1]) * i / 60 + off * Math.sin(Math.PI * i / 60)]);
+  const messages = [["Longitude", "Latitude", "Elevation", "Distance", "CostPerKm", "WayTags"], ["0", "0", "0", String(Math.round(share * 1000)), "1000", "highway=cycleway"], ["0", "0", "0", String(Math.round((1 - share) * 1000)), "1300", "highway=secondary"]];
+  return { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "LineString", coordinates: coords }, properties: { messages } }] };
+}

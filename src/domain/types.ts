@@ -28,7 +28,7 @@ export interface PointWeather {
 }
 export interface SunTimes { sunrise: number[]; sunset: number[] }
 
-export interface RouteCandidate { line: LatLon[]; roads: string[]; profile: Profile; viaP: boolean }
+export interface RouteCandidate { line: LatLon[]; roads: string[]; profile: Profile; viaP: boolean; /** fração do caminho em ciclovia (0–1), quando o roteador informa */ cycle?: number | null }
 export interface ElevPoint { km: number; z: number }
 export interface Route extends RouteCandidate {
   name: string

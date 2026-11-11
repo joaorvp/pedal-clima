@@ -1,10 +1,11 @@
 import { ChevronDown, ChevronUp, Crosshair, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { accuracyText } from '../domain/calibration'
-import { useSettings, type PointKey } from '../store/settings'
+import { STOP_FACTOR, useSettings, type PointKey } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { setPointFromMap } from '../store/actions'
 import { buildReport } from '../services/report'
+import { learnedSpeed } from '../domain/speed'
 import { AddressCombo } from './AddressCombo'
 import { Dialog } from './Dialog'
 
@@ -17,6 +18,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
   const s = useSettings()
   const [plName, setPlName] = useState('')
   const [gpsMsg, setGpsMsg] = useState('')
+  const learned = learnedSpeed(s.history)
   const [report, setReport] = useState(''), [reportMsg, setReportMsg] = useState('')
   const pick = (k: PointKey) => { onClose(); useTrip.getState().set({ pickMode: k, sheet: 'peek' }) }
 
@@ -75,15 +77,19 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           <div className="grid2">
             <label className="fld" htmlFor="t-ida">Saída de casa<input type="time" id="t-ida" value={s.tIda} onChange={e => s.patch({ tIda: e.target.value })} /></label>
             <label className="fld" htmlFor="t-volta">Saída do trabalho<input type="time" id="t-volta" value={s.tVolta} onChange={e => s.patch({ tVolta: e.target.value })} /></label>
-            <label className="fld" htmlFor="speed">Média (km/h)<input type="number" id="speed" min={8} max={45} step={1} defaultValue={s.speed} onBlur={e => s.patch({ speed: Math.min(45, Math.max(8, +e.target.value || 22)) })} /></label>
+            <label className="fld" htmlFor="speed">{s.speedAuto ? 'Cruzeiro (km/h)' : 'Média (km/h)'}<input type="number" id="speed" min={8} max={45} step={1} defaultValue={s.speed} onBlur={e => s.patch({ speed: Math.min(45, Math.max(8, +e.target.value || 22)) })} /></label>
           </div>
           <div className="grid2" style={{ marginTop: 10 }}>
             <label className="fld" htmlFor="batt">Bateria (Wh)<input type="number" id="batt" min={150} max={2000} step={10} defaultValue={s.batt} onBlur={e => s.patch({ batt: Math.min(2000, Math.max(150, +e.target.value || 500)) })} /></label>
             <label className="fld" htmlFor="whkm">Consumo (Wh/km)<input type="number" id="whkm" min={3} max={30} step={0.5} defaultValue={s.whkm} onBlur={e => s.patch({ whkm: Math.min(30, Math.max(3, +e.target.value || 10)) })} /></label>
           </div>
+          <label className="toggle" htmlFor="speed-auto">
+            <input type="checkbox" id="speed-auto" checked={s.speedAuto} onChange={e => s.patch({ speedAuto: e.target.checked })} />
+            <span><b>Aprender com meus pedais</b><small>{learned ? `Sua média real, de porta a porta: ${String(learned.kmh).replace('.', ',')} km/h (${learned.n} pedais). É ela que o app usa para prever a chegada.` : `Até você concluir 2 pedais, o app desconta as paradas da velocidade de cruzeiro: prevê com ${String(Math.round(s.speed * STOP_FACTOR * 10) / 10).replace('.', ',')} km/h de porta a porta. Depois, usa a sua média real.`}</small></span>
+          </label>
           <div className="fld" style={{ marginTop: 12 }}>Tipo de rota
             <div className="dirs" role="group" aria-label="Tipo de rota" style={{ margin: '2px 0 0' }}>
-              <button type="button" id="prof-bike" aria-pressed={s.profile !== 'main'} onClick={() => s.setProfile('bike')}>Bike: ruas calmas</button>
+              <button type="button" id="prof-bike" aria-pressed={s.profile !== 'main'} onClick={() => s.setProfile('bike')}>Bike: ciclovias</button>
               <button type="button" id="prof-main" aria-pressed={s.profile === 'main'} onClick={() => s.setProfile('main')}>Vias principais</button>
             </div>
           </div>

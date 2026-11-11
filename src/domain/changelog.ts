@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.12.0'
+export const CURRENT_APP_VERSION = '2.13.0'
 export const CHANGELOG = [
+  {
+    version: '2.13.0',
+    title: 'Rotas por ciclovia e chegada mais certa',
+    items: [
+      'As rotas de bike agora priorizam ciclovias e ciclofaixas, e cada uma mostra quanto do caminho é em ciclovia.',
+      'A hora de chegada usa a sua média real de porta a porta (com semáforos e paradas), aprendida dos seus pedais.',
+      'Pedalando, a chegada usa a média do próprio pedal, em vez da velocidade do momento.',
+    ],
+  },
   {
     version: '2.12.0',
     title: 'Calor, ar seco e qualidade do ar',

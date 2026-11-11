@@ -6,7 +6,7 @@ import { cat } from '../domain/weather'
 import { armPip, disarmPip, openPip, pipSupported, setPipPainter } from '../hooks/pip'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
 import { canSpeak, say, spokenDistance } from '../hooks/voice'
-import { useSettings } from '../store/settings'
+import { baseSpeed, useSettings } from '../store/settings'
 import { endpointName, useTrip } from '../store/trip'
 
 // cores fixas (a janela flutuante não segue o tema do app)
@@ -17,12 +17,12 @@ const LEVEL = { ok: '#5cc47c', warn: '#f0a43a', bad: '#ef6b60' }
 export function RideTools() {
   const view = useTripView()
   const ride = useTrip(s => s.ride), dest = useTrip(s => s.dest), arrived = useTrip(s => s.arrived)
-  const speed = useSettings(s => s.speed), voice = useSettings(s => s.voice)
+  const speed = useSettings(baseSpeed), voice = useSettings(s => s.voice)
   const [pipMsg, setPipMsg] = useState('')
   const spoken = useRef<Set<string>>(new Set())
   const riding = !!ride?.pos && !!view
 
-  const sp = rideSpeed(ride?.ema, speed)
+  const sp = rideSpeed(ride, speed)
   const v = riding ? rideVerdict(view!.ev, view!.ctx, ride!.d, ride!.off, sp) : null
   const left = riding ? Math.max(0, view!.route.total - ride!.d) : 0
   const eta = riding ? (ride!.last?.t ?? 0) + left / sp * 3600e3 : 0

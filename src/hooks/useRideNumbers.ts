@@ -1,13 +1,13 @@
 import { rideVerdict, type Verdict } from '../domain/advice'
-import { useSettings } from '../store/settings'
+import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { rideSpeed, useTripView } from './useTripView'
 
 /** Números do pedal em andamento (os mesmos no veredito, no painel e na janela flutuante). */
 export function useRideNumbers() {
-  const view = useTripView(), ride = useTrip(s => s.ride), speed = useSettings(s => s.speed)
+  const view = useTripView(), ride = useTrip(s => s.ride), speed = useSettings(baseSpeed)
   if (!ride?.pos || !view) return null
-  const sp = rideSpeed(ride.ema, speed)
+  const sp = rideSpeed(ride, speed)
   const v: Verdict = rideVerdict(view.ev, view.ctx, ride.d, ride.off, sp)
   const left = Math.max(0, view.route.total - ride.d)
   const eta = (ride.last?.t ?? 0) + left / sp * 3600e3

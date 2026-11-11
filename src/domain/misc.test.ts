@@ -6,7 +6,7 @@ import { nextCommute } from './commute'
 import { areaName, parseCoords } from './places'
 import { evaluate } from './weather'
 import { sampleRoute } from './testData'
-import { parseSettings } from '../store/settings'
+import { baseSpeed, parseSettings } from '../store/settings'
 
 describe('endereços', () => {
   it('aceita link do Google Maps e coordenadas', () => {
@@ -46,6 +46,17 @@ describe('rotina, bateria e calibragem', () => {
   it('só ajusta a sensibilidade depois de 3 avaliações', () => {
     const fa = { t: 0, dir: 'ida', rainy: true, prob: 70, exp: 1, rained: false }
     expect(calibrate([fa])).toBe(50); expect(calibrate([fa, fa, fa])).toBe(65)
+  })
+})
+
+describe('velocidade das estimativas', () => {
+  it('sem média aprendida, desconta as paradas da velocidade de cruzeiro', () => {
+    expect(baseSpeed(parseSettings({ speed: 22 }))).toBeCloseTo(18, 0)
+    expect(baseSpeed(parseSettings({ speed: 22, speedAuto: false }))).toBe(22)
+  })
+  it('com 2+ pedais, usa a média real', () => {
+    const h = [{ km: 16, mins: 60, avg: 16, rain: 0, wh: null, dest: 'T', at: 2 }, { km: 16, mins: 60, avg: 16, rain: 0, wh: null, dest: 'C', at: 1 }]
+    expect(baseSpeed(parseSettings({ speed: 22, history: h }))).toBe(16)
   })
 })
 

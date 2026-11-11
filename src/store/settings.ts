@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist, type PersistStorage } from 'zustand/middleware'
 import { calibrate, type FeedbackEntry } from '../domain/calibration'
 import { useUndo } from './undo'
+import { learnedSpeed } from '../domain/speed'
 import type { LatLon, Profile } from '../domain/types'
 
 /** Mesma chave do app antigo (index.html único): os dados de quem já usa continuam valendo. */
@@ -19,6 +20,8 @@ export const settingsSchema = z.object({
   via: latLon.nullable().catch(null),
   work: latLon.catch([-15.803, -47.956]),
   speed: z.number().min(8).max(45).catch(22),
+  /** usar a média real dos seus pedais em vez do valor fixo */
+  speedAuto: z.boolean().catch(true),
   batt: z.number().min(150).max(2000).catch(500),
   whkm: z.number().min(3).max(30).catch(10),
   profile: z.enum(['bike', 'main']).catch('bike'),
@@ -130,3 +133,12 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
 export const curPlace = (s: Settings) => s.destId ? s.places.find(p => p.id === s.destId) ?? null : null
 export const destPt = (s: Settings): LatLon => { const p = curPlace(s); return p ? [p.lat, p.lon] : s.work }
 export const destName = (s: Settings) => curPlace(s)?.name ?? 'Trabalho'
+
+/** Desconto típico de semáforos, cruzamentos e paradas no trânsito urbano (cruzeiro → porta a porta). */
+export const STOP_FACTOR = 0.82
+/**
+ * Velocidade base das estimativas (porta a porta):
+ * aprendizado ligado → a média real dos seus pedais (2+) ou, até lá, a velocidade de cruzeiro com o desconto das paradas;
+ * desligado → o valor fixo, exatamente como você digitou.
+ */
+export const baseSpeed = (s: Settings) => s.speedAuto ? learnedSpeed(s.history)?.kmh ?? Math.round(s.speed * STOP_FACTOR * 10) / 10 : s.speed

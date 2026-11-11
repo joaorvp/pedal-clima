@@ -32,6 +32,7 @@ await page.route("**/*", r => {
   if (u.startsWith(APP)) return r.continue();
   if (offline) return r.abort();
   if (u.includes("routed-")) return r.fulfill({ json: M.routeJson(u) });
+  if (u.includes("brouter.de")) return r.fulfill({ json: M.brouterJson(u) });
   if (u.includes("/v1/elevation")) return r.fulfill({ json: M.elevationJson(u) });
   if (u.includes("air-quality-api")) return r.fulfill({ json: M.airJson });
   if (u.includes("overpass-api")) return r.fulfill({ json: M.overpassJson });
@@ -109,6 +110,8 @@ const title = await page.textContent("#v-title");
 assert.ok(title && !/Carregando|Olhando/.test(title), "veredito do trajeto deve aparecer: " + title);
 assert.ok((await page.locator("#timeline li").count()) >= 2, "linha do tempo deve ter trechos");
 assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternativas");
+assert.match(await page.textContent("#routes"), /70% em ciclovia/);
+assert.match(await page.textContent("#routes"), /mais ciclovia/);
 assert.match(await page.textContent("#alert"), /INMET/);
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
 assert.ok((await page.locator(".rlabel").count()) >= 2, "cada rota deve ter etiqueta de tempo e chuva no mapa");

@@ -4,7 +4,7 @@ import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, clearTime, evaluate } from '../domain/weather'
 import { useTripView } from '../hooks/useTripView'
-import { useSettings } from '../store/settings'
+import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { Icon } from './icons'
 
@@ -50,7 +50,7 @@ export function Banners() {
 export function SlotsCard() {
   const view = useTripView()
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), dep = useTrip(s => s.dep), now = useTrip(s => s.now)
-  const speed = useSettings(s => s.speed)
+  const speed = useSettings(baseSpeed)
   const route = routes[sel]
   const data = useMemo(() => {
     if (!route?.wx) return null

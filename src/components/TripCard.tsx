@@ -3,7 +3,7 @@ import { placeName, timelineGroups } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, evaluate, hourlyAt } from '../domain/weather'
 import { useLabels, useTripView } from '../hooks/useTripView'
-import { useSettings } from '../store/settings'
+import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { OpenIn } from './TripHeader'
 
@@ -38,21 +38,23 @@ export function TripCard() {
 function Routes() {
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel)
   const dep = useTrip(s => s.dep), now = useTrip(s => s.now), ride = useTrip(s => s.ride)
-  const speed = useSettings(s => s.speed), lastT = ride?.last?.t
+  const speed = useSettings(baseSpeed), lastT = ride?.last?.t
   const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, 'ida', lastT ?? dep ?? now, speed) : null), [routes, dep, now, lastT, speed])
   if (routes.length < 2 || evs.some(e => !e)) return null
   const ex = evs.map(e => e!.exposure), du = evs.map(e => e!.dur)
   const dryI = ex.indexOf(Math.min(...ex)), fastI = du.indexOf(Math.min(...du))
   const dry = Math.max(...ex) - ex[dryI] >= 0.1 && ex.filter(x => x - ex[dryI] < 0.05).length === 1 ? dryI : -1
   const fast = [...du].sort((a, b) => a - b)[1] - du[fastI] >= 120e3 ? fastI : -1
+  const cy = routes.map(r => r.cycle ?? -1), cycI = cy.indexOf(Math.max(...cy))
+  const most = cy[cycI] >= 0.1 && cy.filter(c => c >= 0).length > 1 && [...cy].sort((a, b) => b - a)[1] <= cy[cycI] - 0.1 ? cycI : -1
   return (
     <div className="routes" id="routes" role="radiogroup" aria-label="Rotas">
       {routes.map((r, i) => { const e = evs[i]!; return (
         <button key={i} className="rt" type="button" role="radio" aria-checked={i === sel} data-i={i} onClick={() => useTrip.getState().selectRoute(i)}>
           <span className="rd" />
-          <span className="nm">{r.name}{(i === dry || i === fast) && <span className="badges">{i === dry && <span className="badge">mais seca</span>}{i === fast && <span className="badge fast">mais rápida</span>}</span>}</span>
+          <span className="nm">{r.name}{(i === dry || i === fast || i === most) && <span className="badges">{i === dry && <span className="badge">mais seca</span>}{i === fast && <span className="badge fast">mais rápida</span>}{i === most && <span className="badge cyc">mais ciclovia</span>}</span>}</span>
           <span className="rain">{e.exposure < 0.05 ? '0 mm' : fmt1(e.exposure) + ' mm'}<small>chuva</small></span>
-          <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.profile === 'main' ? ' · vias principais' : ''}</span>
+          <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
         </button>
       ) })}
     </div>
@@ -60,7 +62,7 @@ function Routes() {
 }
 
 function Timeline() {
-  const view = useTripView()!, ride = useTrip(s => s.ride), speed = useSettings(s => s.speed)
+  const view = useTripView()!, ride = useTrip(s => s.ride), speed = useSettings(baseSpeed)
   const { ev, ctx, route } = view
   const groups = timelineGroups(ev), w0 = route.wx?.[0]
   const temp0 = w0 ? hourlyAt(w0, ev.depMs, 'temperature_2m') : null

@@ -4,7 +4,7 @@ import { accuracyText } from '../domain/calibration'
 import { fmt1, hhmm } from '../domain/format'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
 import { buzz, startRide, stopRide } from '../hooks/location'
-import { useSettings } from '../store/settings'
+import { baseSpeed, useSettings } from '../store/settings'
 import { endpointName, useTrip, type RideSummary } from '../store/trip'
 import { Icon } from './icons'
 import { RideTools } from './RideTools'
@@ -14,7 +14,7 @@ export function Hero() {
   const view = useTripView()
   const dep = useTrip(s => s.dep), ride = useTrip(s => s.ride), dest = useTrip(s => s.dest)
   const arrived = useTrip(s => s.arrived), pred = useTrip(s => s.feedbackPred), error = useTrip(s => s.error), summary = useTrip(s => s.summary)
-  const speed = useSettings(s => s.speed)
+  const speed = useSettings(baseSpeed)
   const warned = useRef(false)
   const tIda = useSettings(st => st.tIda), tVolta = useSettings(st => st.tVolta), now = useTrip(st => st.now)
   // "Amanhã": usa o horário da rotina (volta, se o destino é casa; ida, nos demais) ou 07:00
@@ -24,13 +24,13 @@ export function Hero() {
   const set = useTrip(s => s.set)
 
   let v: Verdict | null = null
-  if (view) v = view.riding ? rideVerdict(view.ev, view.ctx, ride!.d, ride!.off, rideSpeed(ride!.ema, speed)) : verdict(view.ev, view.ctx)
+  if (view) v = view.riding ? rideVerdict(view.ev, view.ctx, ride!.d, ride!.off, rideSpeed(ride, speed)) : verdict(view.ev, view.ctx)
   if (arrived && !view?.riding) v = { level: 'ok', icon: 'check', title: 'Você chegou', sub: thanks || 'Pedal encerrado. Bom trabalho!' }
   const loading = !view
   const riding = !!view?.riding
   const ev = view?.ev
   const left = riding && view ? Math.max(0, view.route.total - ride!.d) : 0
-  const sp = rideSpeed(ride?.ema, speed)
+  const sp = rideSpeed(ride, speed)
 
   // vibração curta quando a chuva estiver a menos de 1 km à frente (uma vez por pedal)
   const rainAhead = riding && view ? view.ev.segs.find(sg => sg.to > ride!.d && sg.rate >= 0.2) : undefined

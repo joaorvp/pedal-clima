@@ -2,13 +2,12 @@ import { useMemo } from 'react'
 import type { TripCtx } from '../domain/advice'
 import { batteryEstimate, elevFor } from '../domain/battery'
 import { evaluate } from '../domain/weather'
-import { useSettings } from '../store/settings'
+import { baseSpeed, useSettings } from '../store/settings'
+import { rideSpeedFrom } from '../domain/speed'
 import { endpointName, useTrip } from '../store/trip'
 
-/** Velocidade usada nos cálculos: a medida pelo GPS durante o pedal, ou a média configurada. */
-export function rideSpeed(ema: number | undefined, configured: number) {
-  return ema && ema > 8 ? Math.min(45, ema) : configured || 22
-}
+/** Velocidade para estimar a chegada no pedal (média do pedal misturada com a sua média). */
+export const rideSpeed = rideSpeedFrom
 
 export function useLabels() {
   const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest)
@@ -27,12 +26,12 @@ export function useLabels() {
 export function useTripView() {
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), mode = useTrip(s => s.mode)
   const dep = useTrip(s => s.dep), now = useTrip(s => s.now), ride = useTrip(s => s.ride)
-  const speed = useSettings(s => s.speed), probTh = useSettings(s => s.probTh)
+  const speed = useSettings(baseSpeed), probTh = useSettings(s => s.probTh)
   const whkm = useSettings(s => s.whkm), batt = useSettings(s => s.batt)
   const labels = useLabels()
   const route = mode === 'trip' ? routes[sel] : undefined
   const riding = !!ride?.pos
-  const sp = riding ? rideSpeed(ride!.ema, speed) : speed
+  const sp = riding ? rideSpeed(ride, speed) : speed
 
   return useMemo(() => {
     if (!route?.wx) return null

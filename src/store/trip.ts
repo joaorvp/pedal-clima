@@ -35,6 +35,8 @@ export interface Ride {
   offSince: number | null
   /** acumulados para o resumo: início, km rodados e chuva prevista nos trechos por onde passou */
   startedAt: number; dist: number; rain: number
+  /** medidos pelo GPS: horas em movimento e ritmo em movimento (km/h, suavizado nos últimos minutos) */
+  moving: number; pace: number
 }
 
 /** Resumo mostrado ao chegar. */
@@ -181,6 +183,8 @@ export const useTrip = create<TripState>()((set, get) => ({
     try {
       const { routes: cands, fallback } = await fetchRoutes(o, via, d, s.profile)
       const routes = cands.map(c => prepRoute(c, via))
+      // nomes únicos (a escolha da rota fica salva pelo nome)
+      routes.forEach((r, i) => { const n = routes.slice(0, i).filter(o => o.name.startsWith(r.name)).length; if (n) r.name += n === 1 ? ' · alternativa' : ` · alternativa ${n}` })
       const [{ perRoute, sun }, elevs] = await Promise.all([fetchWeather(routes), Promise.all(routes.map(fetchElevation))])
       routes.forEach((r, i) => { r.wx = perRoute[i]; r.elev = elevs[i] })
       if (get().mode !== 'trip') return

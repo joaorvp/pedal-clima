@@ -5,6 +5,7 @@ export function routeName(r: RouteCandidate): string {
   const roads = (r.roads || []).filter(x => !/^\d+$/.test(x)).slice(0, 2)
   if (roads.length) return roads.join(' e ')
   if (r.viaP) return 'Passando pelo ponto P'
+  if (r.cycle != null) return r.cycle >= 0.4 ? 'Pelas ciclovias' : 'Por ruas calmas'
   return r.profile === 'main' ? 'Pelas vias principais' : 'Por ruas calmas'
 }
 export function prepRoute(c: RouteCandidate, via: LatLon | null): Route {

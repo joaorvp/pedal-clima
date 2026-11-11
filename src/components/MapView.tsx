@@ -8,7 +8,7 @@ import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
 import { lastView, saveView, startLocation } from '../hooks/location'
 import { useTripView } from '../hooks/useTripView'
-import { useSettings, type PointKey } from '../store/settings'
+import { baseSpeed, useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
 import { setPointFromMap, setTripVia } from '../store/actions'
 import { buzz } from '../hooks/location'
@@ -233,7 +233,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     const draw = () => {
       labels.clearLayers()
       if (routes.length < 2 || ride?.pos) return
-      const sp = useSettings.getState().speed || 22, depMs = useTrip.getState().dep ?? Date.now()
+      const sp = baseSpeed(useSettings.getState()), depMs = useTrip.getState().dep ?? Date.now()
       const evs = routes.map(r => r.wx ? evaluate(r, 'ida', depMs, sp) : null)
       const ex = evs.map(e => e?.exposure ?? 99), driest = ex.indexOf(Math.min(...ex))
       const spread = Math.max(...ex) - Math.min(...ex) >= 0.1
