@@ -67,15 +67,15 @@ export function RideTools() {
       // textos grandes
       const tx = 272, tw = w - tx - 20
       ctx.fillStyle = LEVEL[v.level]; ctx.beginPath(); ctx.roundRect(tx, 26, 8, 104, 4); ctx.fill()
-      ctx.fillStyle = '#fff'; ctx.font = '800 40px Archivo, system-ui, sans-serif'
+      ctx.fillStyle = '#fff'; ctx.font = '800 46px "Barlow Condensed", system-ui, sans-serif'
       wrap(ctx, v.title, tx + 22, 66, tw - 22, 44, 2)
-      ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = '500 21px Inter, system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = '500 22px Barlow, system-ui, sans-serif'
       wrap(ctx, 'até ' + (endpointName(dest) || 'o destino'), tx + 22, 160, tw - 22, 26, 1)
-      ctx.fillStyle = '#82bcff'; ctx.font = '600 21px Inter, system-ui, sans-serif'
+      ctx.fillStyle = '#82bcff'; ctx.font = '600 22px Barlow, system-ui, sans-serif'
       ctx.fillText(`chuva à frente: ${aheadMm < 0.05 ? 'seco' : fmt1(aheadMm) + ' mm'} · ${aheadProb}%`, tx + 22, 196)
-      ctx.fillStyle = '#fff'; ctx.font = '700 30px "JetBrains Mono", ui-monospace, monospace'
+      ctx.fillStyle = '#fff'; ctx.font = '700 36px "Barlow Condensed", system-ui, sans-serif'
       ctx.fillText(hhmm(eta), tx, h - 62); ctx.fillText(fmt1(left) + ' km', tx + 150, h - 62)
-      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '500 17px Inter, system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '500 18px Barlow, system-ui, sans-serif'
       ctx.fillText('chegada', tx, h - 34); ctx.fillText('faltam', tx + 150, h - 34)
       ctx.fillText((ride!.ema > 2 ? Math.round(ride!.ema) : 0) + ' km/h · Pedágua', tx, h - 12)
     }

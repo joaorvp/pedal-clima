@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.14.0'
+export const CURRENT_APP_VERSION = '2.15.0'
 export const CHANGELOG = [
+  {
+    version: '2.15.0',
+    title: 'Fonte nova, com cara de ciclismo',
+    items: [
+      'Títulos e números em Barlow Condensed, no estilo dos ciclocomputadores e das provas de ciclismo.',
+      'A fonte agora vem junto com o app: carrega na hora e funciona sem internet.',
+    ],
+  },
   {
     version: '2.14.0',
     title: 'Mapa bússola e recálculo automático',

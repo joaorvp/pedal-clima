@@ -18,7 +18,8 @@ export default defineConfig({
       srcDir: 'src/pwa',
       filename: 'sw.ts',
       registerType: 'prompt',
-      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'] },
+      // fontes: só o subconjunto latino (cobre todos os acentos do português); os outros nem são usados
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'], globIgnores: ['**/*vietnamese*', '**/*latin-ext*', '**/*cyrillic*', '**/*greek*'] },
       includeAssets: ['icon.svg', 'apple-touch-icon.png', 'favicon-32x32.png'],
       manifest: {
         id: '.',

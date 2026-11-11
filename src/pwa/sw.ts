@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
 declare const self: ServiceWorkerGlobalScope
@@ -16,11 +16,6 @@ registerRoute(new NavigationRoute(createHandlerBoundToURL(new URL('index.html', 
 registerRoute(
   ({ url }) => url.hostname === 'tile.openstreetmap.org' || url.hostname === 'server.arcgisonline.com' || url.hostname.endsWith('tile-cyclosm.openstreetmap.fr'),
   new CacheFirst({ cacheName: 'pedal-tiles', plugins: [new ExpirationPlugin({ maxEntries: 400, maxAgeSeconds: 30 * 24 * 3600 })] }),
-)
-// Fontes do Google
-registerRoute(
-  ({ url }) => url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com',
-  new StaleWhileRevalidate({ cacheName: 'pedal-fonts', plugins: [new ExpirationPlugin({ maxEntries: 20 })] }),
 )
 // APIs de clima, rotas e alertas ficam sempre na rede: a página guarda a última previsão por conta própria.
 
