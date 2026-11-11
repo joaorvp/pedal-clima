@@ -151,15 +151,22 @@ await page.evaluate(() => document.querySelector(".dash-exit").click()); await p
 assert.ok(await page.locator(".dash").count() === 0, "sair do modo painel volta para o mapa");
 assert.ok(await page.evaluate(() => !!document.querySelector("body > video")), "o vídeo da janela flutuante fica preparado ao iniciar o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
-// fora da rota por mais de 20 s: oferece recalcular a partir de onde você está
+// visor do pedal: chuva à frente e chance; bússola girando o mapa com a direção
+assert.ok(await page.locator("#s-ahead").count() === 1 && await page.locator("#s-prob").count() === 1, "o visor mostra a chuva à frente e a chance");
+await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.2, longitude: -48.093 + 0.137 * 0.2 }); await page.waitForTimeout(1200);
+assert.ok(await page.locator("#compass").count() === 1, "botão de bússola no pedal");
+assert.ok(await page.evaluate(() => Math.round(window.__pedaguaMap.getBearing()) !== 0), "no modo bússola o mapa gira com a direção");
+
+// fora da rota por ~12 s: recalcula sozinho a partir de onde você está
 await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.006, longitude: -48.093 + 0.137 * 0.3 - 0.004 });
 await page.waitForTimeout(1500);
-await page.waitForTimeout(21000);
+assert.match(await page.textContent(".offroute"), /recalculando/);
+await page.waitForTimeout(12500);
 await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0062, longitude: -48.093 + 0.137 * 0.3 - 0.004 });
+await page.waitForTimeout(2500);
+await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0063, longitude: -48.093 + 0.137 * 0.3 - 0.0041 });
 await page.waitForTimeout(1500);
-assert.ok(await page.locator("#recalc").count() === 1, "deve oferecer recalcular depois de 20 s fora da rota");
-await page.evaluate(() => document.getElementById("recalc").click());
-await page.waitForTimeout(1500);
+assert.ok(await page.locator(".offroute").count() === 0, "depois do recálculo automático, você volta a estar na rota");
 assert.ok(await page.locator(".bike-disc").count() === 1, "o pedal continua depois de recalcular");
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);
 await ctx.setGeolocation({ latitude: work[0], longitude: work[1] });

@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.13.0'
+export const CURRENT_APP_VERSION = '2.14.0'
 export const CHANGELOG = [
+  {
+    version: '2.14.0',
+    title: 'Mapa bússola e recálculo automático',
+    items: [
+      'Pedalando, o mapa gira conforme a sua direção, como uma bússola. O botão de bússola volta para o norte para cima.',
+      'Saiu da rota? Em poucos segundos o app recalcula sozinho a partir de onde você está.',
+      'O visor do pedal mostra a chuva prevista no que falta e a chance de chuva.',
+    ],
+  },
   {
     version: '2.13.0',
     title: 'Rotas por ciclovia e chegada mais certa',

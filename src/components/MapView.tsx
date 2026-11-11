@@ -1,5 +1,5 @@
-import L from 'leaflet'
-import { Bike, Layers, LocateFixed, Maximize, Play, Route as RouteIcon, Square } from 'lucide-react'
+import L from '../lib/leaflet'
+import { Bike, Compass, Layers, LocateFixed, Maximize, Play, Route as RouteIcon, Square } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { hhmm, fmt1 } from '../domain/format'
 import { placeName } from '../domain/advice'
@@ -53,8 +53,9 @@ const originIcon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [1
 const viaIcon = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: '<div class="pin" style="background:#6b7a93"><b>P</b></div>' })
 const dotIcon = L.divIcon({ className: 'smooth', iconSize: [22, 22], iconAnchor: [11, 11], html: '<div class="me-dot"></div>' })
 const BIKE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3.4"/><circle cx="18" cy="16" r="3.4"/><path d="M6 16l3.6-6.4h5.6L18 16M9.6 9.6L8.6 7H7M15.2 9.6l-1-2.6h2.2M6 16h5.6l3.6-6.4"/></svg>'
-const bikeIcon = (heading: number | null) => L.divIcon({ className: 'smooth', iconSize: [56, 56], iconAnchor: [28, 28],
-  html: `<div class="bike-me">${heading != null ? `<div class="bike-cone" style="transform:rotate(${heading}deg)"></div>` : ''}<div class="bike-disc">${BIKE}</div></div>` })
+// a seta gira na tela: direção do movimento + giro atual do mapa (no modo bússola, aponta sempre para cima)
+const bikeIcon = (heading: number | null, bearing = 0) => L.divIcon({ className: 'smooth', iconSize: [56, 56], iconAnchor: [28, 28],
+  html: `<div class="bike-me">${heading != null ? `<div class="bike-cone" style="transform:rotate(${heading + bearing}deg)"></div>` : ''}<div class="bike-disc">${BIKE}</div></div>` })
 
 const PICK_LABEL: Record<PointKey | 'dest' | 'origin', string> = { home: 'Toque no mapa onde fica a sua casa', via: 'Toque num ponto por onde você passa', work: 'Toque no mapa onde fica o trabalho', dest: 'Toque no mapa para escolher o destino', origin: 'Toque no mapa para escolher de onde sair' }
 
@@ -79,7 +80,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   useEffect(() => {
     if (!el.current) return
     const lv = lastView(), s0 = useSettings.getState()
-    const map = L.map(el.current, { zoomControl: false }).setView(lv?.c ?? s0.home, lv?.z ?? 14)
+    const map = L.map(el.current, { zoomControl: false, rotate: true, bearing: 0, rotateControl: false, touchRotate: false, shiftKeyRotate: false, compassBearing: false }).setView(lv?.c ?? s0.home, lv?.z ?? 14)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     let baseIdx = 0, errors = 0, base: L.TileLayer
     const setBase = (i: number) => {
@@ -121,6 +122,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         useTrip.getState().setEnd(a as 'dest' | 'origin', { kind: 'place', ll, name })
       })
     })
+    ;(globalThis as unknown as { __pedaguaMap?: L.Map }).__pedaguaMap = map // usado nos testes automáticos
     setInst({ map, ly })
     return () => { map.remove(); setInst(null) }
   }, [])
@@ -128,8 +130,10 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   const map = inst?.map, ly = inst?.ly
   const centerOn = useCallback((pos: LatLon, zoom?: number) => {
     if (!map) return
-    const z = zoom ?? Math.max(map.getZoom(), 15), pt = map.project(pos, z).add([0, sheetVisible / 2])
-    map.setView(map.unproject(pt, z), z, { animate: true })
+    // centraliza e sobe o ponto para o meio da área visível (a gaveta cobre a parte de baixo); funciona com o mapa girado
+    const z = zoom ?? Math.max(map.getZoom(), 15)
+    map.setView(pos, z, { animate: false })
+    if (sheetVisible) map.panBy([0, sheetVisible / 2], { animate: false })
   }, [map, sheetVisible])
   const fit = useCallback(() => {
     if (!map || !routes.length) return
@@ -210,8 +214,9 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     const pts = ordered(route, 'ida')
     for (let k = 3; k < pts.length - 1; k += 4) {
       const a = pts[k]
-      L.marker([a.lat, a.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [14, 14], iconAnchor: [7, 7],
-        html: `<svg width="14" height="14" viewBox="0 0 14 14" style="transform:rotate(${a.brg}deg)"><path d="M3 10l4-6 4 6" fill="none" stroke="#0b1a1c" stroke-opacity=".55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 10l4-6 4 6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` }) }).addTo(ly.route)
+      // a seta gira com o mapa (modo bússola): rotação própria + giro do mapa, feita pela extensão
+      L.marker([a.lat, a.lon], { interactive: false, keyboard: false, rotation: a.brg * Math.PI / 180, rotateWithView: true, icon: L.divIcon({ className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+        html: `<svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 10l4-6 4 6" fill="none" stroke="#0b1a1c" stroke-opacity=".55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 10l4-6 4 6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` }) }).addTo(ly.route)
     }
     function showHandle(ll: L.LatLng) {
       if (!map || !ly || useTrip.getState().ride?.pos) return
@@ -283,21 +288,29 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   const riding = !!ride?.pos
   const pos = riding ? ride!.pos! : me?.pos ?? null
   const heading = riding ? ride!.heading : null
+  // modo bússola: no pedal, o mapa gira para a direção do movimento ficar para cima
+  const headingUp = useSettings(s => s.headingUp)
+  const bearing = riding && headingUp && ride!.follow && heading != null ? (360 - heading) % 360 : riding && headingUp && !ride!.follow ? null : 0
+  useEffect(() => {
+    if (!map || bearing == null) return
+    const cur = map.getBearing(), diff = Math.abs(((bearing - cur + 540) % 360) - 180)
+    if (diff > 3) map.setBearing(bearing)
+  }, [map, bearing])
   useEffect(() => {
     if (!map || !ly) return
     if (!pos) { if (slots.current.me) { map.removeLayer(slots.current.me); map.removeLayer(slots.current.acc!); slots.current.me = slots.current.acc = null; slots.current.meBike = null } return }
     const acc = riding ? ride!.acc : me?.acc ?? 0
     if (!slots.current.me) {
       slots.current.acc = L.circle(pos, { radius: acc, color: '#2b7fff', weight: 1, opacity: .4, fillOpacity: .12, interactive: false }).addTo(map)
-      slots.current.me = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: riding ? bikeIcon(heading) : dotIcon }).addTo(map)
+      slots.current.me = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: riding ? bikeIcon(heading, map.getBearing()) : dotIcon }).addTo(map)
       slots.current.meBike = riding
     } else {
       slots.current.me.setLatLng(pos); slots.current.acc!.setLatLng(pos).setRadius(acc)
-      if (riding) slots.current.me.setIcon(bikeIcon(heading)); else if (slots.current.meBike) slots.current.me.setIcon(dotIcon)
+      if (riding) slots.current.me.setIcon(bikeIcon(heading, map.getBearing())); else if (slots.current.meBike) slots.current.me.setIcon(dotIcon)
       slots.current.meBike = riding
     }
     if (riding && ride!.follow) centerOn(pos)
-  }, [map, ly, pos?.[0], pos?.[1], heading, riding, ride?.follow, me?.acc]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [map, ly, pos?.[0], pos?.[1], heading, riding, ride?.follow, me?.acc, bearing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (map) map.getContainer().style.cursor = pickMode ? 'crosshair' : '' }, [map, pickMode])
   useEffect(() => { const id = setTimeout(() => map?.invalidateSize(), 60); return () => clearTimeout(id) }, [map, full])
@@ -312,6 +325,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         <div id="map" ref={el} aria-label="Mapa com a sua posição, o trajeto e o radar de chuva" />
         <div className="mapfab">
           <button className="fab" id="full" type="button" aria-label="Mapa em tela cheia" onClick={onToggleFull}><Maximize className="i" /></button>
+          {riding && <button className="fab" id="compass" type="button" aria-pressed={headingUp} aria-label={headingUp ? 'Mapa com o norte para cima' : 'Mapa girando com a direção'} title="Bússola" onClick={() => useSettings.getState().patch({ headingUp: !headingUp })}><Compass className="i" /></button>}
           <button className="fab" id="cycle-toggle" type="button" aria-pressed={cycleMap} aria-label={cycleMap ? 'Voltar ao mapa comum' : 'Mostrar ciclovias'} title="Ciclovias" onClick={() => useSettings.getState().patch({ cycleMap: !cycleMap })}><Bike className="i" /></button>
           <button className="fab" id="radar-toggle" type="button" aria-pressed={radar.on} aria-label="Mostrar radar" onClick={() => T().set({ radar: { ...radar, on: !radar.on } })}><Layers className="i" /></button>
           <button className="fab" id="radar-play" type="button" aria-label={radar.playing ? 'Parar animação do radar' : 'Animar radar da última hora'}

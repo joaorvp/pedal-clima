@@ -45,6 +45,8 @@ export const settingsSchema = z.object({
   locAllowed: z.boolean().catch(false),
   /** pedais concluídos (resumo de cada um), do mais recente para o mais antigo */
   history: z.array(z.object({ km: z.number(), mins: z.number(), avg: z.number(), rain: z.number(), wh: z.number().nullable(), dest: z.string(), at: z.number() })).catch([]),
+  /** no pedal, o mapa gira conforme a direção (bússola) */
+  headingUp: z.boolean().catch(true),
   /** mapa de ciclovias (CyclOSM) no lugar do mapa comum */
   cycleMap: z.boolean().catch(false),
   /** avisos falados durante o pedal */

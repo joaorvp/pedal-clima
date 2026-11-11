@@ -37,6 +37,8 @@ export interface Ride {
   startedAt: number; dist: number; rain: number
   /** medidos pelo GPS: horas em movimento e ritmo em movimento (km/h, suavizado nos últimos minutos) */
   moving: number; pace: number
+  /** último recálculo automático (fora da rota) */
+  recalcAt: number | null
 }
 
 /** Resumo mostrado ao chegar. */

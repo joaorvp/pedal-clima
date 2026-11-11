@@ -512,3 +512,9 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .toggle input{width:20px;height:20px;margin-top:2px;accent-color:var(--link)}
 .toggle b{display:block;font-weight:600;font-size:14px;color:var(--ink)}
 .toggle small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.fab#compass[aria-pressed="true"]{background:var(--link);color:#fff}
+/* visor do pedal: 6 informações em 3 colunas */
+.hero.riding .meta{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hero.riding .meta b{font-size:18px}
+@media (max-width:460px){.hero.riding .meta{grid-template-columns:repeat(3,minmax(0,1fr))}.hero.riding .meta b{font-size:16px}}
+.dash-grid{grid-template-columns:1fr 1fr}

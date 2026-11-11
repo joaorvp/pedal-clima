@@ -2,6 +2,7 @@ import { bearing, hav, project } from '../domain/geo'
 import { evaluate, isRainy, rateAt } from '../domain/weather'
 import type { LatLon } from '../domain/types'
 import { readJson, writeJson } from '../services/cache'
+import { say } from './voice'
 import { baseSpeed, useSettings } from '../store/settings'
 import { endpointLL, useTrip, type Me, type RideSummary } from '../store/trip'
 
@@ -50,7 +51,7 @@ export function startRide(): string | null {
   const t = useTrip.getState()
   if (t.locStatus === 'denied') return 'Permita o acesso à localização no navegador para usar o modo pedal.'
   if (!navigator.geolocation) return 'Este navegador não fornece localização.'
-  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0 }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
+  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
   startLocation()
   if (t.me) rideStep(t.me, null)
   keepAwake(); buzz(30)
@@ -87,8 +88,16 @@ function rideStep(me: Me, speedMs: number | null) {
     const i = route.samples.findIndex(sm => sm.km >= d), w = route.wx?.[Math.max(0, i)]
     if (w && dt > 0 && dt < 0.05) rain += rateAt(w, now) * dt
   }
-  const offSince = pr.off > 0.2 ? r.offSince ?? now : null
-  t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false, offSince, dist, rain, moving, pace } })
+  const offSince = pr.off > 0.15 ? r.offSince ?? now : null
+  // fora da rota por ~12 s: recalcula sozinho a partir de onde você está (no máximo a cada 45 s)
+  let recalcAt = r.recalcAt
+  if (offSince != null && now - offSince > 12e3 && (!recalcAt || now - recalcAt > 45e3)) {
+    recalcAt = now
+    if (s.voice) say('Recalculando a rota.')
+    buzz(20)
+    queueMicrotask(() => useTrip.getState().setEnd('origin', { kind: 'me' }))
+  }
+  t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false, offSince, dist, rain, moving, pace, recalcAt } })
 }
 
 export function stopRide(arrived = false) {

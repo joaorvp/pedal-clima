@@ -28,6 +28,8 @@ export function Dashboard() {
       <div className="dash-grid">
         <div><b className="num">{hhmm(eta)}</b><span>chegada</span></div>
         <div><b className="num">{fmt1(left)}</b><span>km faltando</span></div>
+        <div><b className="num">{n.aheadMm < 0.05 ? 'seco' : fmt1(n.aheadMm) + ' mm'}</b><span>chuva à frente</span></div>
+        <div><b className="num">{n.aheadProb}%</b><span>chance de chuva</span></div>
       </div>
       <div className="dash-bar" aria-hidden="true">
         {view.ev.segs.map((sg, i) => <i key={i} style={{ flex: sg.to - sg.from, background: sg.to <= r.d ? '#56627d' : `var(${CATS[cat(sg.rate)].color})` }} />)}

@@ -3,6 +3,7 @@ import { rideVerdict, verdict, type Verdict } from '../domain/advice'
 import { accuracyText } from '../domain/calibration'
 import { fmt1, hhmm } from '../domain/format'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
+import { useRideNumbers } from '../hooks/useRideNumbers'
 import { buzz, startRide, stopRide } from '../hooks/location'
 import { baseSpeed, useSettings } from '../store/settings'
 import { endpointName, useTrip, type RideSummary } from '../store/trip'
@@ -12,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export function Hero() {
   const view = useTripView()
+  const rn = useRideNumbers()
   const dep = useTrip(s => s.dep), ride = useTrip(s => s.ride), dest = useTrip(s => s.dest)
   const arrived = useTrip(s => s.arrived), pred = useTrip(s => s.feedbackPred), error = useTrip(s => s.error), summary = useTrip(s => s.summary)
   const speed = useSettings(baseSpeed)
@@ -67,10 +69,10 @@ export function Hero() {
           <p className="sub" id="v-sub">{v?.sub ?? (error || 'Buscando rota, previsão e radar.')}</p>
         </div>
       </div>
-      {riding && ride!.offSince != null && (ride!.last?.t ?? 0) - ride!.offSince > 20e3 && (
-        <div className="offroute" role="alert">
-          <span><b>Você saiu da rota</b><small>Está a {Math.round(ride!.off * 1000)} m do caminho.</small></span>
-          <button className="btn primary" type="button" id="recalc" onClick={() => useTrip.getState().setEnd('origin', { kind: 'me' })}>Recalcular a partir daqui</button>
+      {riding && ride!.offSince != null && ride!.off > 0.15 && (
+        <div className="offroute" role="status">
+          <span><b>Fora da rota · recalculando</b><small>Você está a {Math.round(ride!.off * 1000)} m do caminho. O app refaz a rota a partir de onde você está.</small></span>
+          <button className="btn" type="button" id="recalc" onClick={() => useTrip.getState().setEnd('origin', { kind: 'me' })}>Recalcular agora</button>
         </div>
       )}
       {arrived && summary && !riding ? <Summary s={summary} /> : <>
@@ -79,6 +81,8 @@ export function Hero() {
         <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : 'de viagem'}</span></div>
         <div><b id="s-arr">{!ev ? '–' : hhmm(riding ? (ride!.last?.t ?? ev.depMs) + left / sp * 3600e3 : ev.arr)}</b><span>chegada</span></div>
         <div><b id="s-rain">{!ev ? '–' : riding ? (ride!.ema > 2 ? Math.round(ride!.ema) + ' km/h' : 'parado') : ev.exposure < 0.05 ? '0 mm' : fmt1(ev.exposure) + ' mm'}</b><span id="m-l3">{riding ? 'velocidade' : 'chuva no trajeto'}</span></div>
+        {riding && rn && <div><b id="s-ahead">{rn.aheadMm < 0.05 ? 'seco' : fmt1(rn.aheadMm) + ' mm'}</b><span>chuva à frente</span></div>}
+        {riding && rn && <div><b id="s-prob">{rn.aheadProb}%</b><span>chance de chuva</span></div>}
         <div><b id="s-wind">{!ev ? '–' : Math.abs(ev.head).toFixed(0) + ' km/h'}</b><span id="s-wind-l">{!ev ? 'vento' : Math.abs(ev.head) < 3 ? 'vento fraco' : ev.head > 0 ? 'vento contra' : 'vento a favor'}</span></div>
       </div>
       </>}

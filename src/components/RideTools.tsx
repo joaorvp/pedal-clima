@@ -29,6 +29,8 @@ export function RideTools() {
   const ahead = riding ? view!.ev.segs.find(sg => sg.to > ride!.d && sg.rate >= 0.2) : undefined
   const distRain = ahead ? Math.max(0, ahead.from - ride!.d) : null
   const storm = riding ? view!.ev.segs.some(sg => sg.to > ride!.d && sg.code >= 95) : false
+  let aheadMm = 0, aheadProb = 0
+  if (riding) for (const sg of view!.ev.segs) { if (sg.to <= ride!.d) continue; aheadMm += sg.rate * (sg.to - Math.max(sg.from, ride!.d)) / sp; aheadProb = Math.max(aheadProb, sg.prob) }
 
   // painel da janela flutuante, redesenhado a cada leitura do GPS
   useEffect(() => {
@@ -69,6 +71,8 @@ export function RideTools() {
       wrap(ctx, v.title, tx + 22, 66, tw - 22, 44, 2)
       ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = '500 21px Inter, system-ui, sans-serif'
       wrap(ctx, 'até ' + (endpointName(dest) || 'o destino'), tx + 22, 160, tw - 22, 26, 1)
+      ctx.fillStyle = '#82bcff'; ctx.font = '600 21px Inter, system-ui, sans-serif'
+      ctx.fillText(`chuva à frente: ${aheadMm < 0.05 ? 'seco' : fmt1(aheadMm) + ' mm'} · ${aheadProb}%`, tx + 22, 196)
       ctx.fillStyle = '#fff'; ctx.font = '700 30px "JetBrains Mono", ui-monospace, monospace'
       ctx.fillText(hhmm(eta), tx, h - 62); ctx.fillText(fmt1(left) + ' km', tx + 150, h - 62)
       ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '500 17px Inter, system-ui, sans-serif'
@@ -93,7 +97,6 @@ export function RideTools() {
       else if (distRain <= 0.4) once('rain-300', `Chuva em ${spokenDistance(distRain)}.`)
       else if (distRain <= 1.1) once('rain-1k', `Chuva em ${spokenDistance(distRain)}.`)
     }
-    if (ride!.offSince != null && (ride!.last?.t ?? 0) - ride!.offSince > 20e3) once('off-' + ride!.offSince, 'Você saiu da rota. Se quiser, toque em recalcular.')
   }, [voice, riding, eta, storm, distRain, ride?.offSince, ride?.last?.t]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (arrived && voice) say('Você chegou. Bom trabalho!') }, [arrived, voice])
 
