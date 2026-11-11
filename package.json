@@ -1,0 +1,12 @@
+{
+  "name": "pedal-clima",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/aviso.test.mjs && node tests/app.test.mjs"
+  },
+  "devDependencies": {
+    "leaflet": "1.9.4",
+    "playwright": "1.47.2"
+  }
+}

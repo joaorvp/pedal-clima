@@ -6,6 +6,7 @@ const HOME = parsePt(env.PEDAL_CASA), WORK = parsePt(env.PEDAL_TRABALHO), VIA = 
 const TOPIC = (env.PEDAL_TOPIC || "").trim();
 const SPEED = Math.max(5, +env.PEDAL_VELOCIDADE || 22);
 const LEAD = +env.PEDAL_ANTECEDENCIA || 45;
+const PROB = Math.max(30, Math.min(80, +env.PEDAL_CHANCE || 50));
 const ALWAYS = env.PEDAL_SEMPRE === "1" || env.PEDAL_SEMPRE === "true";
 const FORCE = env.FORCAR === "true";
 const URL_APP = env.PEDAL_URL || "";
@@ -31,12 +32,13 @@ if (!pick && FORCE) {
 if (!pick) { console.log("Fora da janela de aviso."); process.exit(0); }
 const tag = `pedal-${pick.dir}-${dateKey}`;
 
-// Já avisou essa saída hoje?
+// Já avisou essa saída hoje? Guarda o nível enviado para mandar uma atualização só se piorar.
+let prevLevel = 0;
 if (!FORCE) {
   try {
     const r = await fetch(`https://ntfy.sh/${encodeURIComponent(TOPIC)}/json?poll=1&since=4h`);
     const txt = r.ok ? await r.text() : "";
-    if (txt.split("\n").some(l => l.includes(tag))) { console.log("Aviso desta saída já enviado."); process.exit(0); }
+    for (const l of txt.split("\n")) { if (!l.includes(tag)) continue; const m = l.match(new RegExp(tag + "-n(\\d)")); prevLevel = Math.max(prevLevel, m ? +m[1] : 9); }
   } catch { /* segue */ }
 }
 
@@ -96,7 +98,7 @@ S.forEach((s, i) => { const m = W[i].minutely_15; let v = 0; m?.time.forEach((t,
 
 const hhmm = ms => { const d = new Date(ms + OFFSET * 60e3); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
 const f1 = n => n.toFixed(1).replace(".", ",");
-const rainy = exposure >= 0.15 || maxRate >= 0.5 || maxProb >= 50;
+const rainy = exposure >= 0.15 || maxRate >= 0.5 || maxProb >= PROB;
 const arrMs = pick.dep + total / SPEED * 3600e3;
 
 // Pôr / nascer do sol
@@ -141,19 +143,20 @@ if (alert) lines.push(`INMET: ${alert.descricao || alert.evento || "alerta meteo
 if (darkLine) lines.push(darkLine);
 if (!lines.length || (lines.length === 1 && darkLine)) lines.unshift(`Sem chuva prevista até a chegada (~${hhmm(arrMs)}).`);
 
-const send = level >= 3 || ALWAYS || FORCE;
-console.log(`${pick.dir} ${hhmm(pick.dep)}: ${title} (nível ${level})${send ? "" : ". Seco, sem aviso."}`);
+const update = prevLevel > 0;
+const send = FORCE || (update ? level > prevLevel && level >= 3 : (level >= 3 || ALWAYS));
+console.log(`${pick.dir} ${hhmm(pick.dep)}: ${title} (nível ${level})${send ? (update ? ", piorou desde o último aviso" : "") : update ? ". Já avisado." : ". Seco, sem aviso."}`);
 if (!send) process.exit(0);
 
 const res = await fetch("https://ntfy.sh/", {
   method: "POST",
   body: JSON.stringify({
     topic: TOPIC,
-    title: `${pick.dir === "ida" ? "Ida" : "Volta"} ${hhmm(pick.dep)} · ${title}`,
+    title: `${update ? "Atualização: " : ""}${pick.dir === "ida" ? "Ida" : "Volta"} ${hhmm(pick.dep)} · ${title}`,
     message: lines.join("\n"),
     priority: level,
-    tags: [storm ? "zap" : rainy ? "umbrella" : wet.v >= 0.5 ? "droplet" : "sunny", tag],
-    ...(URL_APP ? { click: URL_APP } : {})
+    tags: [storm ? "zap" : rainy ? "umbrella" : wet.v >= 0.5 ? "droplet" : "sunny", tag, `${tag}-n${level}`],
+    ...(URL_APP ? { click: URL_APP, actions: [{ action: "view", label: "Abrir trajeto", url: URL_APP, clear: true }] } : {})
   })
 });
 console.log(res.ok ? "Aviso enviado." : "Falha ao enviar: HTTP " + res.status);

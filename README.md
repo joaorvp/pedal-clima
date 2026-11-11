@@ -13,3 +13,17 @@ Abra `index.html` no navegador ou acesse pelo GitHub Pages. Arraste os marcadore
 Um workflow do GitHub Actions (`.github/workflows/aviso.yml`) roda em dias úteis e, uns 45 min antes de cada saída, envia uma notificação pelo app [ntfy](https://ntfy.sh) quando há chuva, trovoada ou pista molhada no trajeto. O passo a passo, com os valores prontos para copiar, fica em **Ajustes → Avisos no celular**, dentro do app.
 
 Variáveis opcionais: `PEDAL_SEMPRE=1` (avisar também quando estiver seco) e `PEDAL_ANTECEDENCIA` (minutos de antecedência, padrão 45).
+
+## Funciona sem sinal
+
+O app guarda a última previsão e os pedaços de mapa já vistos no aparelho (service worker em `sw.js`). Sem conexão, ele abre com a previsão mais recente e avisa o horário dela.
+
+## Testes
+
+```bash
+npm install
+npx playwright install chromium
+npm test
+```
+
+`tests/aviso.test.mjs` testa o script de avisos e `tests/app.test.mjs` abre o app num navegador com as APIs simuladas (primeira abertura, veredito, rotas, alerta, modo pedal, modo sem conexão). Os testes rodam no GitHub a cada envio (`.github/workflows/testes.yml`).
