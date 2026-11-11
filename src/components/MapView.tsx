@@ -282,40 +282,44 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     map.flyTo(map.unproject(pt, z), z, { duration: reduceMotion() ? 0 : 0.7 })
   }, [map, centerNonce])
 
-  // radar: todos os quadros da última hora ficam carregados (invisíveis) e a animação só troca a opacidade;
-  // recriar a camada a cada quadro deixava o mapa em branco, porque as imagens não davam tempo de carregar
+  // radar: no dia a dia só o quadro mais recente (um pedido por imagem, como sempre foi; o RainViewer gratuito limita
+  // pedidos por aparelho). Ao tocar ▶, os quadros da última hora são carregados e a animação só troca a opacidade.
   const radarLayers = useRef(new Map<string, L.TileLayer>())
+  const [radarErr, setRadarErr] = useState(false)
   useEffect(() => {
     if (!map || !ly) return
     const layers = radarLayers.current
-    if (!radar.on) { layers.forEach(l => map.removeLayer(l)); layers.clear(); return }
-    const keep = new Set(radar.frames.map(f => f.path))
-    layers.forEach((l, k) => { if (!keep.has(k)) { map.removeLayer(l); layers.delete(k) } })
-    for (const f of radar.frames) if (!layers.has(f.path))
-      layers.set(f.path, L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' }).addTo(map))
-  }, [map, ly, radar.on, radar.frames, radar.host])
-  // sem chuva na área visível? (o ▶ do radar não mostraria nada; o aviso explica)
-  const [radarDry, setRadarDry] = useState<{ now: boolean | null; hour: boolean | null }>({ now: null, hour: null })
+    if (!radar.on || !radar.frames.length) { layers.forEach(l => map.removeLayer(l)); layers.clear(); return }
+    const latest = radar.frames[radar.frames.length - 1].path
+    const want = new Set(radar.playing ? radar.frames.map(f => f.path) : [latest])
+    layers.forEach((l, k) => { if (!want.has(k)) { map.removeLayer(l); layers.delete(k) } })
+    for (const f of radar.frames) if (want.has(f.path) && !layers.has(f.path)) {
+      const l = L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' })
+      // o servidor recusou as imagens (fora do ar ou limite de pedidos): avisa no canto do mapa em vez de mostrar um radar vazio
+      if (f.path === latest) l.on('tileerror', () => setRadarErr(true)).on('tileload', () => setRadarErr(false))
+      layers.set(f.path, l.addTo(map))
+    }
+    const cur = radar.playing ? radar.frames[radar.idx]?.path : latest
+    layers.forEach((l, k) => l.setOpacity(k === cur ? .65 : 0))
+  }, [map, ly, radar.on, radar.frames, radar.host, radar.playing, radar.idx])
+  // sem chuva na área visível? Confere só o quadro mais recente, no máximo uma vez por minuto (poupa o limite de pedidos)
+  const [radarDry, setRadarDry] = useState<boolean | null>(null)
   useEffect(() => {
     if (!map || !radar.on || !radar.frames.length) return
-    let alive = true, t = 0
+    let alive = true, t = 0, lastAt = 0
     const check = () => {
       clearTimeout(t)
       t = window.setTimeout(async () => {
-        const bb = map.getBounds(), b = { n: bb.getNorth(), s: bb.getSouth(), e: bb.getEast(), w: bb.getWest() }, z = map.getZoom()
-        const last = radar.frames[radar.frames.length - 1].path
-        const now = await radarHasRain(radar.host, [last], b, z)
-        const hour = now ? true : await radarHasRain(radar.host, radar.frames.map(f => f.path), b, z)
-        if (alive) setRadarDry({ now: now == null ? null : !now, hour: hour == null ? null : !hour })
-      }, 700)
+        if (Date.now() - lastAt < 60e3) return
+        lastAt = Date.now()
+        const bb = map.getBounds(), b = { n: bb.getNorth(), s: bb.getSouth(), e: bb.getEast(), w: bb.getWest() }
+        const rain = await radarHasRain(radar.host, [radar.frames[radar.frames.length - 1].path], b, map.getZoom())
+        if (alive) setRadarDry(rain == null ? null : !rain)
+      }, 1500)
     }
     check(); map.on('moveend', check)
     return () => { alive = false; clearTimeout(t); map.off('moveend', check) }
   }, [map, radar.on, radar.frames, radar.host])
-  useEffect(() => {
-    const cur = radar.frames[radar.idx]?.path
-    radarLayers.current.forEach((l, k) => l.setOpacity(radar.on && k === cur ? .65 : 0))
-  }, [radar.on, radar.idx, radar.frames])
   useEffect(() => {
     if (!radar.playing) return
     // passa pelos quadros e segura um pouco no mais recente, para dar para perceber o "agora"
@@ -325,7 +329,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       useTrip.setState({ radar: { ...s, idx: last ? 0 : s.idx + 1 } })
       id = window.setTimeout(step, s.idx + 1 >= n - 1 ? 1600 : 500)
     }
-    id = window.setTimeout(step, 500)
+    id = window.setTimeout(step, 1500) // tempo para as imagens da última hora carregarem
     return () => clearTimeout(id)
   }, [radar.playing])
 
@@ -361,7 +365,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   useEffect(() => { const id = setTimeout(() => map?.invalidateSize(), 60); return () => clearTimeout(id) }, [map, full])
 
   const f = radar.frames[radar.idx]
-  const radarLabel = !radar.on ? 'radar desligado' : f ? `${radar.playing ? '▶ ' : ''}radar ${hhmm(f.time * 1000)} · ${(radar.playing ? radarDry.hour : radarDry.now) ? 'sem chuva por perto' : `há ${Math.max(0, Math.round((now / 1000 - f.time) / 60))} min`}` : 'radar indisponível'
+  const radarLabel = !radar.on ? 'radar desligado' : f ? `${radar.playing ? '▶ ' : ''}radar ${hhmm(f.time * 1000)} · ${radarErr ? 'servidor do radar sem resposta' : !radar.playing && radarDry ? 'sem chuva por perto' : `há ${Math.max(0, Math.round((now / 1000 - f.time) / 60))} min`}` : 'radar indisponível'
   const T = useTrip.getState
   const lost = riding && !ride!.follow
   return (

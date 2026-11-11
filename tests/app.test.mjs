@@ -73,16 +73,17 @@ assert.ok(await page.locator(".tip").count() === 0, "a dica some ao tirar o mous
 // radar sem chuva na área: o canto do mapa avisa, para o ▶ não parecer quebrado
 await page.waitForTimeout(1200);
 assert.match(await page.textContent("#radar-time"), /sem chuva por perto/);
-// radar: os quadros da última hora ficam carregados e a animação só troca qual aparece
+// radar: no dia a dia só o quadro mais recente (poupa o limite de pedidos do RainViewer); a última hora só ao tocar ▶
 const radarPanes = () => page.evaluate(() => [...document.querySelectorAll(".leaflet-radar-pane .leaflet-layer")].map(l => +getComputedStyle(l).opacity));
-let op = await radarPanes();
-assert.ok(op.length > 1 && op.filter(o => o > 0).length === 1, "todos os quadros carregados, só o mais recente visível: " + op);
+assert.deepEqual(await radarPanes(), [0.65], "sem animação, só a imagem mais recente é carregada");
 const t0 = await page.textContent("#radar-time");
-await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(1300);
+await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(2300);
 assert.match(await page.textContent("#radar-time"), /▶ radar/);
 assert.notEqual(await page.textContent("#radar-time"), t0, "a animação muda o horário do radar");
-assert.equal((await radarPanes()).length, op.length, "animar não recria as camadas");
-await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(200);
+const op = await radarPanes();
+assert.ok(op.length > 1 && op.filter(o => o > 0).length === 1, "tocando ▶, os quadros da última hora ficam carregados e só um aparece: " + op);
+await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(300);
+assert.deepEqual(await radarPanes(), [0.65], "ao parar, volta a só a imagem mais recente");
 
 // no celular: segurar o dedo num botão mostra a dica e não aciona o botão
 await page.evaluate(() => { const b = document.getElementById("open-history"), r = b.getBoundingClientRect(); b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: r.x + 5, clientY: r.y + 5 })); });

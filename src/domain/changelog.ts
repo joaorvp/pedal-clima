@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.20.0'
+export const CURRENT_APP_VERSION = '2.20.1'
 export const CHANGELOG = [
+  {
+    version: '2.20.1',
+    title: 'Radar de volta ao normal',
+    items: [
+      'O radar voltou a carregar só a imagem mais recente no dia a dia; a última hora é carregada só quando você toca ▶. Pedir todas as imagens o tempo todo podia esbarrar no limite do serviço gratuito de radar e deixar o mapa sem a chuva.',
+      'Se o servidor do radar não responder, o canto do mapa avisa, em vez de mostrar um radar vazio.',
+    ],
+  },
   {
     version: '2.20.0',
     title: 'Rotas pelo mapa, resumo da semana e radar mais claro',
