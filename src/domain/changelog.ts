@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.4.0'
+export const CURRENT_APP_VERSION = '2.5.0'
 export const CHANGELOG = [
+  {
+    version: '2.5.0',
+    title: 'Agora o app se chama Pedágua',
+    items: [
+      'Novo nome: Pedágua, pedal com previsão. Tudo o que você salvou continua aqui.',
+      'Janela flutuante: no modo pedal, toque em "Janela flutuante" e saia do app. O painel com a chuva à frente e a chegada continua na tela.',
+      'Avisos por voz: "Chuva em 300 metros", "Você chegou". Dá para desligar no próprio pedal.',
+    ],
+  },
   {
     version: '2.4.0',
     title: 'Mais à mão',

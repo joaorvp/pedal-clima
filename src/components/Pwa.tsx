@@ -48,7 +48,7 @@ export function InstallBanner() {
   return (
     <div className="toast install" role="dialog" aria-label="Instalar o app">
       <Download className="i" />
-      <div><b>Instalar Pedal &amp; Clima</b><small>{evt ? 'Abra pela tela inicial, como um app.' : 'No Safari: Compartilhar → Adicionar à Tela de Início.'}</small></div>
+      <div><b>Instalar o Pedágua</b><small>{evt ? 'Abra pela tela inicial, como um app.' : 'No Safari: Compartilhar → Adicionar à Tela de Início.'}</small></div>
       {evt && <button className="btn primary" type="button" onClick={async () => { await evt.prompt(); await evt.userChoice; setEvt(null); close() }}>Instalar</button>}
       <button className="ibtn" type="button" aria-label="Fechar" onClick={close}><X className="i" /></button>
     </div>

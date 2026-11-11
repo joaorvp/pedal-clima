@@ -111,6 +111,8 @@ assert.match(await page.textContent(".triphead"), /Trabalho/);
 await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
 assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike no mapa durante o pedal");
+assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz no pedal");
+assert.ok(await page.evaluate(() => !!document.querySelector("body > video")), "o vídeo da janela flutuante fica preparado ao iniciar o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);
 await ctx.setGeolocation({ latitude: work[0], longitude: work[1] });

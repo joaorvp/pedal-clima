@@ -7,6 +7,7 @@ import { buzz, startRide, stopRide } from '../hooks/location'
 import { useSettings } from '../store/settings'
 import { endpointName, useTrip } from '../store/trip'
 import { Icon } from './icons'
+import { RideTools } from './RideTools'
 import { useEffect, useRef, useState } from 'react'
 
 export function Hero() {
@@ -78,6 +79,7 @@ export function Hero() {
           </div>
         </div>
       )}
+      {riding && <RideTools />}
       {riding && rideButton}
       <div className="when">
         <span>Saída</span>

@@ -22,8 +22,8 @@ export default defineConfig({
       includeAssets: ['icon.svg', 'apple-touch-icon.png', 'favicon-32x32.png'],
       manifest: {
         id: '.',
-        name: 'Pedal & Clima',
-        short_name: 'Pedal',
+        name: 'Pedágua: pedal com previsão',
+        short_name: 'Pedágua',
         description: 'Chuva ao longo do trajeto de bike, no horário em que você passa por cada trecho.',
         lang: 'pt-BR',
         start_url: '.',

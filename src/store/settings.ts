@@ -37,6 +37,8 @@ export const settingsSchema = z.object({
   routePick: z.string().optional().catch(undefined),
   seenVersion: z.string().optional().catch(undefined),
   installDismissed: z.boolean().catch(false),
+  /** avisos falados durante o pedal */
+  voice: z.boolean().catch(true),
 })
 export type Settings = z.infer<typeof settingsSchema>
 export type Place = z.infer<typeof place>

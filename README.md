@@ -1,4 +1,6 @@
-# Pedal & Clima
+# Pedágua
+
+_Pedal com previsão._ (Antes chamado Pedal & Clima; o endereço continua `joaorvp.github.io/pedal-clima`.)
 
 App (PWA) para quem vai de bike ao trabalho. Abra na hora de sair e toque em **Iniciar pedal**: a tela fica acesa e o app mostra no mapa a chuva ao longo do trajeto **no horário em que você passa por cada trecho**, com radar, rotas alternativas, modo pedal com GPS, relevo e bateria da e-bike, pôr do sol e alertas do INMET.
 

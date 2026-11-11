@@ -16,7 +16,7 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
     <header className="appbar">
       <div className="in">
         <img className="logo" src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={32} height={32} />
-        <p className="brand">Pedal &amp; Clima</p>
+        <p className="brand">Pedágua</p>
         <span className="upd" id="updated">{label}</span>
         <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
         <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes" onClick={onSettings}><SlidersHorizontal className="i" /></button>
