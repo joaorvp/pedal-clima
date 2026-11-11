@@ -176,6 +176,7 @@ assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz 
 assert.ok(await page.locator("#dash").count() === 0, "o modo painel saiu: o mapa fica sempre visível");
 assert.match(await page.textContent("#speedo"), /\d+\s*km\/h/, "velocímetro sobre o mapa durante o pedal");
 assert.match(await page.textContent(".speedo-wind"), /contra|a favor|vento fraco/);
+assert.match(await page.textContent("#next-turn"), /\d+(,\d)? (m|km).*(siga em frente|até Trabalho|vire|mantenha-se)/s, "cartão da próxima manobra no pedal");
 assert.ok(await page.locator("#radar-play").count() === 0, "no pedal, sem a animação do radar para não poluir o mapa");
 assert.ok(await page.evaluate(() => { const r = document.getElementById("ride").getBoundingClientRect(); return r.bottom <= innerHeight && r.top > 0; }), "o botão de encerrar fica visível sem abrir a gaveta");
 // encerrar pede confirmação: "Continuar pedalando" mantém o pedal

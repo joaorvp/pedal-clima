@@ -8,6 +8,7 @@ import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
 import { lastView, saveView, startLocation } from '../hooks/location'
 import { Speedometer } from './Speedometer'
+import { NextTurn } from './NextTurn'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
@@ -362,7 +363,8 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
             else t.set({ error: t.locStatus === 'denied' ? 'A localização está bloqueada. Libere nas permissões do navegador para ver onde você está.' : 'Procurando sua localização…' })
           }}><LocateFixed className="i" /></button>
         <Speedometer />
-        <div className="radarpill num" id="radar-time">{radarLabel}</div>
+        <NextTurn />
+        {!riding && <div className="radarpill num" id="radar-time">{radarLabel}</div>}
         {pickMode && <div className="picking" id="picking">{PICK_LABEL[pickMode]}</div>}
       </div>
     </section>

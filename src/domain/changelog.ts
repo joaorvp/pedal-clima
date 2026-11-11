@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.18.0'
+export const CURRENT_APP_VERSION = '2.19.0'
 export const CHANGELOG = [
+  {
+    version: '2.19.0',
+    title: 'Avisos de curva',
+    items: [
+      'No pedal, um cartão no topo do mapa mostra a próxima manobra: "250 m · vire à direita". Fica amarelo na hora de virar.',
+      'Com a voz ligada, o app avisa "Em 250 metros, vire à direita" e "Agora, vire à direita", com uma vibração curta.',
+      'Os avisos de curva têm prioridade: interrompem outro aviso que esteja sendo falado.',
+    ],
+  },
   {
     version: '2.18.0',
     title: 'Pedal que não se perde e desktop em tela cheia',

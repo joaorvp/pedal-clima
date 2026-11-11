@@ -8,10 +8,11 @@ if (typeof speechSynthesis !== 'undefined') { pickVoice(); speechSynthesis.addEv
 
 export const canSpeak = () => typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined'
 
-export function say(text: string) {
+/** Fala o texto em seguida aos que já estão na fila; urgent interrompe o que estiver falando (curva agora). */
+export function say(text: string, urgent = false) {
   if (!canSpeak()) return
   try {
-    speechSynthesis.cancel()
+    if (urgent) speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'pt-BR'; u.rate = 1.05
     if (ptVoice) u.voice = ptVoice

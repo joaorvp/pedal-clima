@@ -553,3 +553,15 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .resume .row .btn{min-height:44px;justify-content:center}
 .resume .row .btn.primary{flex:1 1 180px}
 .err-text{color:var(--bad)!important;font-weight:600}
+/* próxima curva no topo do mapa (no pedal) */
+.nextturn{position:absolute;z-index:6;top:10px;left:calc(10px + env(safe-area-inset-left,0px));right:calc(66px + env(safe-area-inset-right,0px));max-width:340px;
+  display:flex;align-items:center;gap:12px;background:var(--head);color:var(--head-ink);border-radius:16px;padding:10px 14px 10px 10px;box-shadow:var(--shadow);pointer-events:none}
+.nt-ic{flex:none;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.12)}
+.nt-ic .i{width:32px;height:32px;stroke-width:2.4}
+.nt-txt{display:grid;min-width:0}
+.nt-txt b{font:700 30px/1 var(--font-data);font-variant-numeric:tabular-nums}
+.nt-txt small{font:600 15px/1.25 var(--font-body);opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nextturn[data-now]{background:var(--accent);color:var(--accent-ink)}
+.nextturn[data-now] .nt-ic{background:rgba(0,0,0,.1)}
+.mapcard.full .nextturn{top:calc(10px + env(safe-area-inset-top,0px))}
+@media (max-width:999px){.nextturn{top:24px;right:calc(12px + env(safe-area-inset-right,0px))}}

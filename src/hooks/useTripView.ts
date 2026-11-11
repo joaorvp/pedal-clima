@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { TripCtx } from '../domain/advice'
 import { batteryEstimate, elevFor } from '../domain/battery'
 import { evaluate } from '../domain/weather'
+import { findTurns } from '../domain/turns'
 import { baseSpeed, useSettings } from '../store/settings'
 import { rideSpeedFrom } from '../domain/speed'
 import { endpointName, useTrip } from '../store/trip'
@@ -33,6 +34,8 @@ export function useTripView() {
   const riding = !!ride?.pos
   const sp = riding ? rideSpeed(ride, speed) : speed
 
+  // curvas do trajeto: dependem só do desenho da rota
+  const turns = useMemo(() => route ? findTurns(route.line, route.cum) : [], [route?.line, route?.cum]) // eslint-disable-line react-hooks/exhaustive-deps
   return useMemo(() => {
     if (!route?.wx) return null
     const depMs = riding ? (ride!.last?.t ?? now) - ride!.d / sp * 3600e3 : dep ?? now
@@ -40,6 +43,6 @@ export function useTripView() {
     const ctx: TripCtx = { route, dir: 'ida', speed: sp, probTh, depLabel: labels.dep, arrLabel: labels.arr, now }
     const prof = elevFor(route, 'ida')
     const battery = batteryEstimate(ev, route.total, prof, whkm, batt)
-    return { route, ev, ctx, prof, battery, riding }
-  }, [route, dep, now, riding, ride, sp, probTh, labels, whkm, batt])
+    return { route, ev, ctx, prof, battery, riding, turns }
+  }, [route, dep, now, riding, ride, sp, probTh, labels, whkm, batt, turns])
 }

@@ -6,6 +6,8 @@ import { cat } from '../domain/weather'
 import { armPip, disarmPip, openPip, pipSupported, setPipPainter } from '../hooks/pip'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
 import { canSpeak, say, spokenDistance } from '../hooks/voice'
+import { buzz } from '../hooks/location'
+import { nextTurn, turnText } from '../domain/turns'
 import { baseSpeed, useSettings } from '../store/settings'
 import { endpointName, useTrip } from '../store/trip'
 
@@ -89,9 +91,16 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
   // avisos falados: uma vez cada, na hora certa
   useEffect(() => {
     if (!voice || !riding) return
-    const once = (key: string, text: string) => { if (spoken.current.has(key)) return; spoken.current.add(key); say(text) }
+    const once = (key: string, text: string, urgent = false) => { if (spoken.current.has(key)) return; spoken.current.add(key); say(text, urgent) }
     once('start', `Pedal iniciado. Chegada prevista às ${hhmm(eta)}.`)
     if (storm) once('storm', 'Atenção: previsão de trovoada no caminho.')
+    // curvas: aviso a ~250 m e outro na hora (não avisa fora da rota, porque ali o app está recalculando)
+    const nt = ride!.off < 0.05 ? nextTurn(view!.turns, ride!.d) : undefined
+    if (nt) {
+      const dist = nt.km - ride!.d, key = nt.at[0].toFixed(4) + ',' + nt.at[1].toFixed(4)
+      if (dist <= 0.05) { if (!spoken.current.has('turn-now-' + key)) buzz([40, 50, 40]); once('turn-now-' + key, `Agora, ${turnText(nt)}.`, true) }
+      else if (dist <= 0.25) once('turn-near-' + key, `Em ${spokenDistance(dist)}, ${turnText(nt)}.`)
+    }
     if (distRain != null) {
       if (distRain < 0.05) once('in-rain', 'Chovendo neste trecho. Cuidado com a frenagem.')
       else if (distRain <= 0.4) once('rain-300', `Chuva em ${spokenDistance(distRain)}.`)
