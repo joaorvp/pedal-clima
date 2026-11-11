@@ -74,6 +74,8 @@ interface TripState {
   shelters: { state: 'loading' | 'ok' | 'empty' | 'error'; list: Shelter[] } | null
   /** nome do ponto de passagem quando ele é um abrigo */
   viaName: string
+  /** tela "Seus pedais" aberta */
+  historyOpen: boolean
   pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
@@ -119,7 +121,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, shelters: null, viaName: '', pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, shelters: null, viaName: '', historyOpen: false, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 

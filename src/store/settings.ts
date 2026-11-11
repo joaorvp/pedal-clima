@@ -40,6 +40,8 @@ export const settingsSchema = z.object({
   installDismissed: z.boolean().catch(false),
   /** a pessoa já tocou em "Permitir localização" no card de explicação */
   locAllowed: z.boolean().catch(false),
+  /** pedais concluídos (resumo de cada um), do mais recente para o mais antigo */
+  history: z.array(z.object({ km: z.number(), mins: z.number(), avg: z.number(), rain: z.number(), wh: z.number().nullable(), dest: z.string(), at: z.number() })).catch([]),
   /** mapa de ciclovias (CyclOSM) no lugar do mapa comum */
   cycleMap: z.boolean().catch(false),
   /** avisos falados durante o pedal */
@@ -78,6 +80,7 @@ interface Actions {
   renamePlace: (id: string, name: string) => void
   shiftPlace: (id: string, by: -1 | 1) => void
   addRecent: (name: string, ll: LatLon) => void
+  addHistory: (h: Settings['history'][number]) => void
   movePlace: (id: string, ll: LatLon) => void
   addFeedback: (e: FeedbackEntry) => void
   resetFeedback: () => void
@@ -92,7 +95,7 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
   setPoint: (k, ll, name) => set(s => ({ [k]: round(ll), customized: k === 'via' ? s.customized : true, ...(k === 'home' ? { homeSet: true } : k === 'work' ? { workSet: true } : {}), names: { ...s.names, [k]: name ?? '' } })),
   setName: (k, name) => set(s => ({ names: { ...s.names, [k]: name } })),
   clearVia: () => set(s => ({ via: null, names: { ...s.names, via: '' } })),
-  addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },
+  addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },
   removePlace: id => {
     const s = get(), i = s.places.findIndex(p => p.id === id), place = s.places[i]
     if (!place) return
@@ -106,6 +109,7 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
     const places = s.places.slice(); [places[i], places[j]] = [places[j], places[i]]
     return { places }
   }),
+  addHistory: h => set(s => ({ history: [h, ...s.history].slice(0, 300) })),
   addRecent: (name, ll) => set(s => {
     const [lat, lon] = round(ll)
     const near = (a: { lat: number; lon: number }) => Math.abs(a.lat - lat) + Math.abs(a.lon - lon) < 0.002

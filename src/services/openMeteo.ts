@@ -11,7 +11,8 @@ export async function fetchWeather(routes: Route[]): Promise<{ perRoute: PointWe
   const p = new URLSearchParams({
     latitude: all.map(x => x.lat.toFixed(4)).join(','), longitude: all.map(x => x.lon.toFixed(4)).join(','),
     minutely_15: 'precipitation', past_minutely_15: '12', forecast_minutely_15: '96', hourly: HOURLY,
-    past_hours: '2', forecast_hours: '24', daily: 'sunrise,sunset', forecast_days: '2', timeformat: 'unixtime', timezone: 'America/Sao_Paulo',
+    // 36 h: dá para planejar a saída de amanhã cedo ainda hoje à noite (e de manhã para a manhã seguinte)
+    past_hours: '2', forecast_hours: '36', daily: 'sunrise,sunset', forecast_days: '3', timeformat: 'unixtime', timezone: 'America/Sao_Paulo',
   })
   const r = await fetch('https://api.open-meteo.com/v1/forecast?' + p)
   if (!r.ok) throw new Error('previsão indisponível (HTTP ' + r.status + ')')

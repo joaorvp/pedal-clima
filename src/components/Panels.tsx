@@ -1,4 +1,4 @@
-import { CloudLightning, CloudRain, MapPin, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import { useMemo } from 'react'
 import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
@@ -19,6 +19,7 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
         <p className="brand">Pedágua</p>
         <span className="upd" id="updated">{label}</span>
         <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
+        <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais" onClick={() => useTrip.getState().set({ historyOpen: true })}><History className="i" /></button>
         <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes" onClick={onSettings}><SlidersHorizontal className="i" /></button>
       </div>
     </header>

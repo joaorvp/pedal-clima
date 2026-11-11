@@ -16,6 +16,10 @@ export function Hero() {
   const arrived = useTrip(s => s.arrived), pred = useTrip(s => s.feedbackPred), error = useTrip(s => s.error), summary = useTrip(s => s.summary)
   const speed = useSettings(s => s.speed)
   const warned = useRef(false)
+  const tIda = useSettings(st => st.tIda), tVolta = useSettings(st => st.tVolta), now = useTrip(st => st.now)
+  // "Amanhã": usa o horário da rotina (volta, se o destino é casa; ida, nos demais) ou 07:00
+  const tomorrowTime = (dest?.kind === 'place' && dest.key === 'home' ? tVolta : tIda) || '07:00'
+  const tomorrow = dep != null && new Date(dep).toDateString() !== new Date(now).toDateString() && dep > now
   const [thanks, setThanks] = useState('')
   const set = useTrip(s => s.set)
 
@@ -92,6 +96,7 @@ export function Hero() {
       <div className="when">
         <span>Saída</span>
         <button className="chip" type="button" id="dep-now" aria-pressed={dep == null} onClick={() => set({ dep: null })}>Agora</button>
+        <button className="chip" type="button" id="dep-tomorrow" aria-pressed={tomorrow} onClick={() => set({ dep: tomorrowAt(tomorrowTime) })}>Amanhã {tomorrowTime}</button>
         <input type="time" id="dep" step={300} aria-label="Horário de saída" value={ev ? hhmm(ev.depMs) : ''}
           onChange={e => {
             const [H, M] = e.target.value.split(':').map(Number); if (Number.isNaN(H)) return
@@ -122,7 +127,15 @@ function Summary({ s }: { s: RideSummary }) {
       </div>
       {s.wh != null && <p className="note" style={{ margin: '8px 0 0' }}>Bateria usada: ~{Math.round(s.wh)} Wh (estimativa).</p>}
       <button className="btn" type="button" id="share" onClick={share} style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}><Share2 className="i" />Compartilhar resumo</button>
+      <button className="linkbtn" type="button" style={{ marginTop: 10 }} onClick={() => useTrip.getState().set({ historyOpen: true })}>Ver histórico de pedais</button>
       {msg && <p className="note" style={{ margin: '6px 0 0' }}>{msg}</p>}
     </div>
   )
+}
+
+/** Horário de amanhã (HH:MM) em milissegundos. */
+function tomorrowAt(hm: string) {
+  const [h, m] = hm.split(':').map(Number), d = new Date()
+  d.setDate(d.getDate() + 1); d.setHours(h || 7, m || 0, 0, 0)
+  return d.getTime()
 }

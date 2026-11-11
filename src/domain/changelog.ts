@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.10.0'
+export const CURRENT_APP_VERSION = '2.11.0'
 export const CHANGELOG = [
+  {
+    version: '2.11.0',
+    title: 'Seus pedais e o trajeto de amanhã',
+    items: [
+      'Novo botão de histórico no topo: totais da semana e do mês (km, pedais, tempo e pedais secos) e a lista dos seus pedais.',
+      'No trajeto, toque em "Amanhã" para ver a chuva no caminho da manhã seguinte, no horário da sua rotina.',
+    ],
+  },
   {
     version: '2.10.0',
     title: 'Onde me abrigar',

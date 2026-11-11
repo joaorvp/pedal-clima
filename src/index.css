@@ -486,3 +486,19 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .shelters small{display:block;color:var(--muted);font-size:12.5px}
 .shelter-pin{width:30px;height:30px;border-radius:50%;background:var(--link);color:#fff;border:3px solid #fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .linkbtn{border:0;background:none;color:var(--link);font-weight:600;padding:0;cursor:pointer;text-decoration:underline}
+
+/* ---------- Seus pedais ---------- */
+.hist-empty{display:grid;justify-items:center;gap:8px;text-align:center;color:var(--muted);padding:20px 0}
+.hist-empty svg{width:40px;height:40px;color:var(--link)}
+.hist-totals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist-box{background:var(--surface-2);border-radius:14px;padding:12px 14px;display:grid;gap:2px}
+.hist-box .lb{font:600 11px var(--font-data);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.hist-box b{font-size:24px;font-weight:600}
+.hist-box small{color:var(--muted);font-size:13px}
+.hist-list{list-style:none;margin:0;padding:0;display:grid}
+.hist-list li{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.hist-list .when b{display:block;font-size:13px;font-weight:600;text-transform:capitalize}
+.hist-list .when small,.hist-list .txt small{display:block;color:var(--muted);font-size:12.5px}
+.hist-list .txt b{display:block;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-list .rain{font:600 12px var(--font-data);color:var(--ok)}
+.hist-list .rain.wet{color:var(--r2)}

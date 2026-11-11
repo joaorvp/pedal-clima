@@ -7,6 +7,7 @@ import { TripHeader } from './components/TripHeader'
 import { LocalCard, LocationAsk, RoutineCard, WhereTo } from './components/Explore'
 import { UndoToast } from './components/UndoToast'
 import { ShelterCard } from './components/ShelterCard'
+import { HistoryDialog } from './components/HistoryDialog'
 import { localSummary } from './domain/local'
 import { rainStopped } from './hooks/alerts'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
@@ -107,6 +108,7 @@ export default function App() {
     <Welcome />
     <Dashboard />
     <UndoToast />
+    <HistoryDialog />
     <UpdatePrompt />
     <InstallBanner />
     <WhatsNew />

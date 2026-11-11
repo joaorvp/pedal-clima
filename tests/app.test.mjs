@@ -121,6 +121,11 @@ assert.match(await page.textContent(".triphead"), /Casa/);
 await pickDest("Trabalho");
 assert.match(await page.textContent(".triphead"), /Trabalho/);
 
+// planejar amanhã: o botão "Amanhã" muda a saída para o dia seguinte
+await page.evaluate(() => document.getElementById("dep-tomorrow").click()); await page.waitForTimeout(400);
+assert.equal(await page.getAttribute("#dep-tomorrow", "aria-pressed"), "true");
+await page.evaluate(() => document.getElementById("dep-now").click()); await page.waitForTimeout(300);
+
 // modo pedal: a bike aparece no mapa e o pedal termina ao chegar
 await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
@@ -149,6 +154,11 @@ assert.equal(await page.textContent("#v-title"), "Você chegou");
 assert.ok(await page.evaluate(() => !!document.getElementById("fb")), "deve perguntar se a previsão acertou");
 assert.match(await page.textContent(".summary"), /\d+,\d km.*\d+ min/s);
 assert.ok(await page.locator("#share").count() === 1, "deve ter o botão de compartilhar o resumo");
+// o pedal concluído entra no histórico
+await page.click("#open-history"); await page.waitForTimeout(400);
+assert.ok((await page.locator(".hist-list li").count()) >= 1, "o pedal deve aparecer em Seus pedais");
+assert.match(await page.textContent(".hist-totals"), /Esta semana.*1 pedal/s);
+await page.evaluate(() => [...document.querySelectorAll("#history .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 
 // fechar o trajeto volta para a tela inicial
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());

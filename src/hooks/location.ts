@@ -98,5 +98,6 @@ export function stopRide(arrived = false) {
     const s = useSettings.getState()
     summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now() }
   }
+  if (summary) useSettings.getState().addHistory(summary)
   t.set({ ride: null, dep: null, arrived, summary, feedbackPred: arrived ? r?.pred ?? null : null })
 }
