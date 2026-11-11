@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.15.0'
+export const CURRENT_APP_VERSION = '2.16.0'
 export const CHANGELOG = [
+  {
+    version: '2.16.0',
+    title: 'Velocímetro e mais mapa no pedal',
+    items: [
+      'Velocímetro sobre o mapa, com o vento contra ou a favor logo abaixo.',
+      'O painel do pedal ficou mais enxuto: sobra mais mapa, e o "Encerrar pedal" fica sempre à vista, junto da voz e da janela flutuante.',
+      'Com o mapa bússola, a bike fica mais para baixo na tela, mostrando mais do caminho à frente.',
+      'O modo painel saiu: o mapa fica sempre visível.',
+    ],
+  },
   {
     version: '2.15.0',
     title: 'Fonte nova, com cara de ciclismo',

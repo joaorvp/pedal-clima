@@ -29,14 +29,15 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
 export function Banners() {
   const error = useTrip(s => s.error), routeNote = useTrip(s => s.routeNote), alerts = useTrip(s => s.alerts)
   const loc = useTrip(s => s.locStatus), mode = useTrip(s => s.mode), now = useTrip(s => s.now)
+  const riding = useTrip(s => !!s.ride?.pos)
   const a = alerts?.[0]
   const when = a ? (!isNaN(a.start) && a.start > now ? `a partir de ${hhmm(a.start)}` : !isNaN(a.end) ? `até ${new Date(a.end).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : '') : ''
   return <>
     {(error || routeNote) && <div id="error" className="err">{error || routeNote}</div>}
     {a && (
-      <a id="alert" className="alert" href="https://portal.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}>
+      <a id="alert" className={'alert' + (riding ? ' compact' : '')} href="https://portal.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}>
         <span className="ic">{a.level >= 2 ? <CloudLightning className="i" /> : <CloudRain className="i" />}</span>
-        <div><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b><small>Alerta oficial para o DF {when}{alerts!.length > 1 ? ` · +${alerts!.length - 1} alerta(s)` : ''}. Toque para ver.</small></div>
+        <div><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b>{!riding && <small>Alerta oficial para o DF {when}{alerts!.length > 1 ? ` · +${alerts!.length - 1} alerta(s)` : ''}. Toque para ver.</small>}</div>
       </a>
     )}
     {loc === 'denied' && mode === 'explore' && (

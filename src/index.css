@@ -418,42 +418,36 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
   dialog{margin:auto 0 0;width:100%;max-width:100%;border-radius:20px 20px 0 0;max-height:92dvh;animation:sheet-up .3s cubic-bezier(.2,.8,.2,1)}
   @keyframes sheet-up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
 }
-.ride-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
-.ride-tools .btn{flex:1;justify-content:center;min-height:44px}
+/* pedal: encerrar + voz + janela numa linha só, ao alcance do polegar */
+.ride-tools{display:flex;gap:8px;align-items:stretch;margin-top:12px}
+.hero.riding .ride-tools .ride-btn{flex:1;width:auto;min-width:0}
+.ride-tools .tool{flex:none;width:60px;min-height:52px;padding:6px 4px;flex-direction:column;justify-content:center;gap:2px;font-size:11.5px;line-height:1}
+.ride-tools .tool .i{width:20px;height:20px}
 .ride-tools .btn[aria-pressed="false"]{color:var(--muted)}
+.alert.compact{padding:8px 12px;grid-template-columns:28px minmax(0,1fr)}
+.alert.compact .ic{width:28px;height:28px;border-radius:8px}
+.alert.compact .ic .i{width:18px;height:18px}
+/* velocímetro sobre o mapa */
+.speedo{position:absolute;z-index:6;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(var(--sheet,0px) + 14px);display:grid;justify-items:center;gap:6px;pointer-events:none;transition:bottom .34s cubic-bezier(.2,.8,.2,1)}
+.speedo-dial{position:relative;width:92px;height:92px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);display:grid;place-items:center;align-content:center}
+.speedo-dial svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(135deg)}
+.speedo-dial circle{fill:none;stroke-width:7;stroke-linecap:round}
+.speedo-track{stroke:var(--line)}
+.speedo-val{stroke:var(--accent);transition:stroke-dasharray .6s ease-out}
+.speedo-dial b{font:700 36px/1 var(--font-data);font-variant-numeric:tabular-nums;color:var(--ink);margin-top:4px}
+.speedo-dial span{font:600 11.5px/1 var(--font-body);color:var(--muted);letter-spacing:.02em}
+.speedo-wind{display:flex;align-items:center;gap:4px;background:var(--surface);box-shadow:var(--shadow);border-radius:999px;padding:4px 9px;font:600 12.5px var(--font-data);color:var(--muted);white-space:nowrap}
+.speedo-wind .i{width:14px;height:14px}
+.speedo-wind[data-head="contra"]{color:var(--warn)}
+.speedo-wind[data-head="favor"]{color:var(--ok,#2f9e5b)}
+.mapcard.full .speedo{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+@media (min-width:1000px){.speedo{bottom:64px}}
 .offroute{display:grid;gap:10px;margin-top:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--warn) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 50%,transparent)}
 .offroute b{display:block;font-weight:600}
 .offroute small{display:block;color:var(--muted);font-size:13px}
 .offroute .btn{justify-content:center;min-height:44px}
 .summary{margin-top:14px}
 
-/* ---------- Modo painel (guidão) ---------- */
-.dash{position:fixed;inset:0;z-index:80;background:#0b1222;color:#fff;display:grid;grid-template-rows:auto 1fr auto auto auto;gap:14px;
-  padding:calc(14px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
-.dash-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.dash-to{font:600 15px var(--font-body);opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dash-exit{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#fff;border-radius:999px;padding:10px 16px;font-weight:600;min-height:44px}
-.dash-main{display:flex;align-items:center;gap:18px;align-self:end}
-.dash-ic{width:84px;height:84px;flex:none;border-radius:24px;display:grid;place-items:center;background:rgba(255,255,255,.08);color:var(--c,#5cc47c)}
-.dash[data-level="warn"]{--c:#f0a43a} .dash[data-level="bad"]{--c:#ef6b60}
-.dash-ic svg{width:48px;height:48px;stroke-width:1.8}
-.dash-title{font:800 clamp(34px,9vw,64px)/1.02 var(--font-display);margin:0;color:var(--c,#fff);text-wrap:balance}
-.dash-speed{display:flex;align-items:baseline;gap:10px}
-.dash-speed b{font-size:clamp(84px,26vw,160px);font-weight:600;line-height:.9}
-.dash-speed span{font-size:22px;opacity:.7}
-.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.dash-grid div{background:rgba(255,255,255,.07);border-radius:16px;padding:12px 14px}
-.dash-grid b{display:block;font-size:clamp(34px,10vw,56px);font-weight:600;line-height:1}
-.dash-grid span{font-size:14px;opacity:.7}
-.dash-bar{position:relative;display:flex;height:14px;border-radius:999px;overflow:visible;background:#26344e}
-.dash-bar i{height:100%}
-.dash-bar i:first-child{border-radius:999px 0 0 999px} .dash-bar i:last-child{border-radius:0 999px 999px 0}
-.dash-bar em{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#ffc43d;border:3px solid #fff}
-@media (orientation:landscape) and (max-height:600px){
-  .dash{grid-template-columns:1.2fr 1fr;grid-template-rows:auto 1fr auto;column-gap:24px}
-  .dash-top{grid-column:1 / -1} .dash-main{grid-column:1} .dash-speed{grid-column:2;grid-row:2;align-self:center;justify-self:center}
-  .dash-grid{grid-column:1} .dash-bar{grid-column:2;align-self:center}
-}
 /* lugares salvos: renomear e reordenar */
 .prow .pname{min-width:0}
 .prow .pname input{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:4px 6px;margin:-4px -6px;border-radius:8px}
@@ -515,7 +509,14 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .toggle small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .fab#compass[aria-pressed="true"]{background:var(--link);color:#fff}
 /* visor do pedal: 6 informações em 3 colunas */
-.hero.riding .meta{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hero.riding .meta{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:12px}
 .hero.riding .meta b{font-size:22px}
-@media (max-width:460px){.hero.riding .meta{grid-template-columns:repeat(3,minmax(0,1fr))}.hero.riding .meta b{font-size:20px}}
-.dash-grid{grid-template-columns:1fr 1fr}
+@media (max-width:460px){.hero.riding .meta{grid-template-columns:repeat(4,minmax(0,1fr))}.hero.riding .meta div{padding:8px 8px}.hero.riding .meta b{font-size:19px}.hero.riding .meta span{font-size:11.5px}}
+/* pedal: cartão mais enxuto para sobrar mais mapa */
+.hero.riding{padding-top:14px}
+.hero.riding .livebadge{margin-bottom:8px}
+.hero.riding .hero-main{grid-template-columns:52px minmax(0,1fr);gap:12px}
+.hero.riding .wx{width:52px;height:52px;border-radius:15px}
+.hero.riding .wx svg{width:30px;height:30px}
+.hero.riding h1{font-size:28px}
+.hero.riding .sub{margin-top:3px;font-size:14px}

@@ -145,10 +145,11 @@ await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
 assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike no mapa durante o pedal");
 assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz no pedal");
-await page.evaluate(() => document.getElementById("dash").click()); await page.waitForTimeout(400);
-assert.match(await page.textContent(".dash"), /km\/h.*chegada.*km faltando/s);
-await page.evaluate(() => document.querySelector(".dash-exit").click()); await page.waitForTimeout(300);
-assert.ok(await page.locator(".dash").count() === 0, "sair do modo painel volta para o mapa");
+assert.ok(await page.locator("#dash").count() === 0, "o modo painel saiu: o mapa fica sempre visível");
+assert.match(await page.textContent("#speedo"), /\d+\s*km\/h/, "velocímetro sobre o mapa durante o pedal");
+assert.match(await page.textContent(".speedo-wind"), /contra|a favor|vento fraco/);
+assert.ok(await page.locator("#radar-play").count() === 0, "no pedal, sem a animação do radar para não poluir o mapa");
+assert.ok(await page.evaluate(() => { const r = document.getElementById("ride").getBoundingClientRect(); return r.bottom <= innerHeight && r.top > 0; }), "o botão de encerrar fica visível sem abrir a gaveta");
 assert.ok(await page.evaluate(() => !!document.querySelector("body > video")), "o vídeo da janela flutuante fica preparado ao iniciar o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
 // visor do pedal: chuva à frente e chance; bússola girando o mapa com a direção
@@ -156,6 +157,7 @@ assert.ok(await page.locator("#s-ahead").count() === 1 && await page.locator("#s
 await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.2, longitude: -48.093 + 0.137 * 0.2 }); await page.waitForTimeout(1200);
 assert.ok(await page.locator("#compass").count() === 1, "botão de bússola no pedal");
 assert.ok(await page.evaluate(() => Math.round(window.__pedaguaMap.getBearing()) !== 0), "no modo bússola o mapa gira com a direção");
+assert.ok(await page.evaluate(() => { const b = document.querySelector(".bike-disc").getBoundingClientRect(), m = document.getElementById("map").getBoundingClientRect(), vis = m.height - parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet") || "0"); return b.top + b.height / 2 - m.top > vis * 0.55; }), "no mapa bússola a bike fica mais para baixo, mostrando o caminho à frente");
 
 // fora da rota por ~12 s: recalcula sozinho a partir de onde você está
 await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.006, longitude: -48.093 + 0.137 * 0.3 - 0.004 });

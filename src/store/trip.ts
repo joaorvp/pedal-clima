@@ -71,7 +71,6 @@ interface TripState {
   arrived: boolean
   summary: RideSummary | null
   /** modo painel (guidão) aberto */
-  dash: boolean
   /** avisar quando parar de chover onde você está */
   watchClear: boolean
   /** abrigos cobertos encontrados para o trecho com chuva */
@@ -127,7 +126,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, shelters: null, viaName: '', historyOpen: false, air: null, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, shelters: null, viaName: '', historyOpen: false, air: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 

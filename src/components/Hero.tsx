@@ -80,10 +80,10 @@ export function Hero() {
       <div className="meta">
         <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : 'de viagem'}</span></div>
         <div><b id="s-arr">{!ev ? '–' : hhmm(riding ? (ride!.last?.t ?? ev.depMs) + left / sp * 3600e3 : ev.arr)}</b><span>chegada</span></div>
-        <div><b id="s-rain">{!ev ? '–' : riding ? (ride!.ema > 2 ? Math.round(ride!.ema) + ' km/h' : 'parado') : ev.exposure < 0.05 ? '0 mm' : fmt1(ev.exposure) + ' mm'}</b><span id="m-l3">{riding ? 'velocidade' : 'chuva no trajeto'}</span></div>
-        {riding && rn && <div><b id="s-ahead">{rn.aheadMm < 0.05 ? 'seco' : fmt1(rn.aheadMm) + ' mm'}</b><span>chuva à frente</span></div>}
-        {riding && rn && <div><b id="s-prob">{rn.aheadProb}%</b><span>chance de chuva</span></div>}
-        <div><b id="s-wind">{!ev ? '–' : Math.abs(ev.head).toFixed(0) + ' km/h'}</b><span id="s-wind-l">{!ev ? 'vento' : Math.abs(ev.head) < 3 ? 'vento fraco' : ev.head > 0 ? 'vento contra' : 'vento a favor'}</span></div>
+        {!riding && <div><b id="s-rain">{!ev ? '–' : ev.exposure < 0.05 ? '0 mm' : fmt1(ev.exposure) + ' mm'}</b><span id="m-l3">chuva no trajeto</span></div>}
+        {riding && rn && <div><b id="s-ahead">{rn.aheadMm < 0.05 ? 'seco' : fmt1(rn.aheadMm) + ' mm'}</b><span>à frente</span></div>}
+        {riding && rn && <div><b id="s-prob">{rn.aheadProb}%</b><span>chance</span></div>}
+        {!riding && <div><b id="s-wind">{!ev ? '–' : Math.abs(ev.head).toFixed(0) + ' km/h'}</b><span id="s-wind-l">{!ev ? 'vento' : Math.abs(ev.head) < 3 ? 'vento fraco' : ev.head > 0 ? 'vento contra' : 'vento a favor'}</span></div>}
       </div>
       </>}
       {arrived && pred && (
@@ -95,8 +95,7 @@ export function Hero() {
           </div>
         </div>
       )}
-      {riding && <RideTools />}
-      {riding && rideButton}
+      {riding && <RideTools endButton={rideButton} />}
       <div className="when">
         <span>Saída</span>
         <button className="chip" type="button" id="dep-now" aria-pressed={dep == null} onClick={() => set({ dep: null })}>Agora</button>

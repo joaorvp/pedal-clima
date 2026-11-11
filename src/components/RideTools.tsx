@@ -1,5 +1,5 @@
-import { Gauge, PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { rideVerdict } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { cat } from '../domain/weather'
@@ -13,8 +13,8 @@ import { endpointName, useTrip } from '../store/trip'
 const RAIN = ['#f0ad1c', '#79c2e6', '#2e84d4', '#7c5cf0', '#e24aa6']
 const LEVEL = { ok: '#5cc47c', warn: '#f0a43a', bad: '#ef6b60' }
 
-/** Durante o pedal: janela flutuante com o painel ao vivo e avisos falados. */
-export function RideTools() {
+/** Durante o pedal: botão de encerrar, janela flutuante com o painel ao vivo e avisos falados. */
+export function RideTools({ endButton }: { endButton: ReactNode }) {
   const view = useTripView()
   const ride = useTrip(s => s.ride), dest = useTrip(s => s.dest), arrived = useTrip(s => s.arrived)
   const speed = useSettings(baseSpeed), voice = useSettings(s => s.voice)
@@ -74,10 +74,10 @@ export function RideTools() {
       ctx.fillStyle = '#82bcff'; ctx.font = '600 22px Barlow, system-ui, sans-serif'
       ctx.fillText(`chuva à frente: ${aheadMm < 0.05 ? 'seco' : fmt1(aheadMm) + ' mm'} · ${aheadProb}%`, tx + 22, 196)
       ctx.fillStyle = '#fff'; ctx.font = '700 36px "Barlow Condensed", system-ui, sans-serif'
-      ctx.fillText(hhmm(eta), tx, h - 62); ctx.fillText(fmt1(left) + ' km', tx + 150, h - 62)
+      ctx.fillText(hhmm(eta), tx, h - 50); ctx.fillText(fmt1(left) + ' km', tx + 118, h - 50)
+      ctx.fillStyle = '#ffc43d'; ctx.fillText(String(ride!.ema > 2 ? Math.round(ride!.ema) : 0), tx + 246, h - 50)
       ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '500 18px Barlow, system-ui, sans-serif'
-      ctx.fillText('chegada', tx, h - 34); ctx.fillText('faltam', tx + 150, h - 34)
-      ctx.fillText((ride!.ema > 2 ? Math.round(ride!.ema) : 0) + ' km/h · Pedágua', tx, h - 12)
+      ctx.fillText('chegada', tx, h - 22); ctx.fillText('faltam', tx + 118, h - 22); ctx.fillText('km/h', tx + 246, h - 22)
     }
     setPipPainter(painter)
     armPip(painter)
@@ -102,15 +102,18 @@ export function RideTools() {
 
   if (!ride) return null
   return (
-    <div className="ride-tools">
-      {pipSupported() && <button className="btn" type="button" id="pip" onClick={async () => { setPipMsg(await openPip() ? '' : 'Não deu para abrir a janela neste navegador.') }}>
-        <PictureInPicture2 className="i" />Janela flutuante</button>}
-      <button className="btn" type="button" id="dash" onClick={() => { useTrip.getState().set({ dash: true }); document.documentElement.requestFullscreen?.().catch(() => {}) }}>
-        <Gauge className="i" />Modo painel</button>
-      {canSpeak() && <button className="btn" type="button" id="voice" aria-pressed={voice} onClick={() => { const on = !voice; useSettings.getState().patch({ voice: on }); if (on) say('Avisos por voz ligados.') }}>
-        {voice ? <Volume2 className="i" /> : <VolumeX className="i" />}{voice ? 'Voz ligada' : 'Voz desligada'}</button>}
-      {pipMsg && <span className="note" style={{ margin: 0 }}>{pipMsg}</span>}
-    </div>
+    <>
+      <div className="ride-tools">
+        {endButton}
+        {canSpeak() && <button className="btn tool" type="button" id="voice" aria-pressed={voice} aria-label={voice ? 'Desligar avisos por voz' : 'Ligar avisos por voz'} title={voice ? 'Voz ligada' : 'Voz desligada'}
+          onClick={() => { const on = !voice; useSettings.getState().patch({ voice: on }); if (on) say('Avisos por voz ligados.') }}>
+          {voice ? <Volume2 className="i" /> : <VolumeX className="i" />}<span>{voice ? 'Voz' : 'Mudo'}</span></button>}
+        {pipSupported() && <button className="btn tool" type="button" id="pip" aria-label="Abrir janela flutuante" title="Janela flutuante: o painel continua visível fora do app"
+          onClick={async () => { setPipMsg(await openPip() ? '' : 'Não deu para abrir a janela neste navegador.') }}>
+          <PictureInPicture2 className="i" /><span>Janela</span></button>}
+      </div>
+      {pipMsg && <p className="note" style={{ margin: '6px 0 0' }}>{pipMsg}</p>}
+    </>
   )
 }
 

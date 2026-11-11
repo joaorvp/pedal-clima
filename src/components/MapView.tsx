@@ -7,6 +7,7 @@ import { ordered, CATS, cat, evaluate } from '../domain/weather'
 import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
 import { lastView, saveView, startLocation } from '../hooks/location'
+import { Speedometer } from './Speedometer'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
@@ -128,12 +129,14 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   }, [])
 
   const map = inst?.map, ly = inst?.ly
-  const centerOn = useCallback((pos: LatLon, zoom?: number) => {
+  const centerOn = useCallback((pos: LatLon, zoom?: number, ahead = false) => {
     if (!map) return
-    // centraliza e sobe o ponto para o meio da área visível (a gaveta cobre a parte de baixo); funciona com o mapa girado
+    // centraliza e sobe o ponto para o meio da área visível (a gaveta cobre a parte de baixo); funciona com o mapa girado.
+    // ahead: no pedal com o mapa bússola, a bike fica mais para baixo, para mostrar mais do caminho à frente
     const z = zoom ?? Math.max(map.getZoom(), 15)
     map.setView(pos, z, { animate: false })
-    if (sheetVisible) map.panBy([0, sheetVisible / 2], { animate: false })
+    const dy = sheetVisible / 2 - (ahead ? (map.getSize().y - sheetVisible) * 0.22 : 0)
+    if (Math.abs(dy) >= 1) map.panBy([0, dy], { animate: false })
   }, [map, sheetVisible])
   const fit = useCallback(() => {
     if (!map || !routes.length) return
@@ -309,8 +312,8 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       if (riding) slots.current.me.setIcon(bikeIcon(heading, map.getBearing())); else if (slots.current.meBike) slots.current.me.setIcon(dotIcon)
       slots.current.meBike = riding
     }
-    if (riding && ride!.follow) centerOn(pos)
-  }, [map, ly, pos?.[0], pos?.[1], heading, riding, ride?.follow, me?.acc, bearing]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (riding && ride!.follow) centerOn(pos, undefined, headingUp)
+  }, [map, ly, pos?.[0], pos?.[1], heading, riding, ride?.follow, me?.acc, bearing, headingUp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (map) map.getContainer().style.cursor = pickMode ? 'crosshair' : '' }, [map, pickMode])
   useEffect(() => { const id = setTimeout(() => map?.invalidateSize(), 60); return () => clearTimeout(id) }, [map, full])
@@ -328,20 +331,21 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
           {riding && <button className="fab" id="compass" type="button" aria-pressed={headingUp} aria-label={headingUp ? 'Mapa com o norte para cima' : 'Mapa girando com a direção'} title="Bússola" onClick={() => useSettings.getState().patch({ headingUp: !headingUp })}><Compass className="i" /></button>}
           <button className="fab" id="cycle-toggle" type="button" aria-pressed={cycleMap} aria-label={cycleMap ? 'Voltar ao mapa comum' : 'Mostrar ciclovias'} title="Ciclovias" onClick={() => useSettings.getState().patch({ cycleMap: !cycleMap })}><Bike className="i" /></button>
           <button className="fab" id="radar-toggle" type="button" aria-pressed={radar.on} aria-label="Mostrar radar" onClick={() => T().set({ radar: { ...radar, on: !radar.on } })}><Layers className="i" /></button>
-          <button className="fab" id="radar-play" type="button" aria-label={radar.playing ? 'Parar animação do radar' : 'Animar radar da última hora'}
+          {!riding && <button className="fab" id="radar-play" type="button" aria-label={radar.playing ? 'Parar animação do radar' : 'Animar radar da última hora'}
             onClick={() => T().set({ radar: radar.playing ? { ...radar, playing: false, idx: Math.max(0, radar.frames.length - 1) } : { ...radar, on: true, playing: radar.frames.length > 0, idx: 0 } })}>
             {radar.playing ? <Square className="i" /> : <Play className="i" />}
-          </button>
+          </button>}
           {mode === 'trip' && !riding && <button className="fab" id="fit" type="button" aria-label="Ver o trajeto inteiro" onClick={fit}><RouteIcon className="i" /></button>}
         </div>
         <button className={'fab locate' + (lost ? ' lost' : '')} id="locate" type="button" aria-label={riding ? 'Voltar a seguir você' : 'Mostrar onde estou'}
           onClick={() => {
             const t = T(), r = t.ride
-            if (r?.pos) { t.set({ ride: { ...r, follow: true } }); centerOn(r.pos); return }
+            if (r?.pos) { t.set({ ride: { ...r, follow: true } }); centerOn(r.pos, undefined, headingUp); return }
             if (t.me) centerOn(t.me.pos, Math.max(map?.getZoom() ?? 15, 15))
             else if (t.locStatus === 'idle') { useSettings.getState().patch({ locAllowed: true }); startLocation() }
             else t.set({ error: t.locStatus === 'denied' ? 'A localização está bloqueada. Libere nas permissões do navegador para ver onde você está.' : 'Procurando sua localização…' })
           }}><LocateFixed className="i" /></button>
+        <Speedometer />
         <div className="radarpill num" id="radar-time">{radarLabel}</div>
         {pickMode && <div className="picking" id="picking">{PICK_LABEL[pickMode]}</div>}
       </div>
