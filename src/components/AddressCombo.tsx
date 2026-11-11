@@ -13,10 +13,11 @@ interface Props {
   onClear?: () => void
   caption?: string
   autoFocus?: boolean
+  onFocusField?: () => void
 }
 
 /** Campo de endereço com sugestões enquanto digita (Photon), link do Google Maps ou coordenadas. */
-export function AddressCombo({ id, value, placeholder, label, onPick, onClear, caption, autoFocus }: Props) {
+export function AddressCombo({ id, value, placeholder, label, onPick, onClear, caption, autoFocus, onFocusField }: Props) {
   const [text, setText] = useState(value)
   const [items, setItems] = useState<PhotonFeature[]>([])
   const [open, setOpen] = useState(false)
@@ -48,7 +49,7 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
       <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder={placeholder} aria-label={label} value={text} autoFocus={autoFocus}
         role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={sel >= 0 ? `${listId}-${sel}` : undefined}
         onChange={e => onInput(e.target.value)}
-        onFocus={e => { focused.current = true; e.target.select() }}
+        onFocus={e => { focused.current = true; e.target.select(); onFocusField?.() }}
         onBlur={() => setTimeout(() => { focused.current = false; setOpen(false); setText(value) }, 150)}
         onKeyDown={e => {
           if (!open || !items.length) { if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false) } return }

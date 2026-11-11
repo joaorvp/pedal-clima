@@ -58,6 +58,20 @@ assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azu
 assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
 assert.match(await page.textContent(".local-where"), /Onde você está/);
 
+// rotina: com a saída daqui a 20 min, a tela inicial sugere o trajeto
+const soon = await page.evaluate(() => { const d = new Date(Date.now() + 20 * 60e3); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); });
+await page.click("#open-settings"); await page.waitForTimeout(300);
+await page.fill("#t-ida", soon);
+await page.click("#settings-done"); await page.waitForTimeout(400);
+assert.match(await page.textContent(".routine"), /Indo para o Trabalho\?.*em (19|20|21) min/);
+await page.evaluate(() => document.querySelector(".routine").click());
+await page.waitForTimeout(1200);
+assert.match(await page.textContent(".triphead"), /Trabalho/);
+assert.equal(await page.inputValue("#dep"), soon, "o trajeto da rotina já vem com o horário da saída");
+// botão voltar do celular fecha o trajeto em vez de sair do app
+await page.goBack(); await page.waitForTimeout(600);
+assert.ok(await page.locator(".whereto").count() === 1, "voltar deve fechar o trajeto");
+
 // tocar e segurar no mapa (clique direito no computador): "Ir para cá" monta o trajeto até o ponto
 const mapBox = await page.locator("#map").boundingBox();
 await page.mouse.click(mapBox.x + mapBox.width * 0.7, mapBox.y + 120, { button: "right" });

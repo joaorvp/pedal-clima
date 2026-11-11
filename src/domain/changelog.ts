@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.3.0'
+export const CURRENT_APP_VERSION = '2.4.0'
 export const CHANGELOG = [
+  {
+    version: '2.4.0',
+    title: 'Mais à mão',
+    items: [
+      'Perto do seu horário, o app pergunta "Indo para o Trabalho?" e já monta o trajeto com a hora da saída.',
+      'Botões do mapa e o Pronto dos Ajustes ficam ao alcance do polegar.',
+      'O botão voltar do celular fecha o trajeto em vez de sair do app.',
+      'Transições mais suaves entre a tela inicial e o trajeto.',
+    ],
+  },
   {
     version: '2.3.0',
     title: 'Monte o trajeto do seu jeito',

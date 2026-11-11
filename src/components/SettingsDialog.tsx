@@ -89,6 +89,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
         </div>
 
       </div>
+      <div className="dlg-foot"><button className="btn primary" type="button" id="settings-done" onClick={onClose}>Pronto</button></div>
     </Dialog>
   )
 }

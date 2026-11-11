@@ -33,6 +33,7 @@ async function pickPoint(which: 'origin' | 'dest', ll: LatLon) {
   useTrip.getState().setEnd(which, { kind: 'place', ll, name: name ?? 'Ponto no mapa' })
 }
 
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const css = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
 const BASES = [
   { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap' },
@@ -128,7 +129,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   }, [map, sheetVisible])
   const fit = useCallback(() => {
     if (!map || !routes.length) return
-    map.fitBounds(L.latLngBounds(routes.flatMap(r => r.line)).pad(0.06), { paddingTopLeft: [16, 40], paddingBottomRight: [56, useTrip.getState().sheetVisible + 16] })
+    map.flyToBounds(L.latLngBounds(routes.flatMap(r => r.line)).pad(0.06), { paddingTopLeft: [16, 40], paddingBottomRight: [56, useTrip.getState().sheetVisible + 16], duration: reduceMotion() ? 0 : 0.7 })
   }, [map, routes])
 
   // lugares salvos (só na tela inicial): um toque monta o trajeto
@@ -235,7 +236,11 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   const fitRef = useRef(fit), centerRef = useRef(centerOn)
   useEffect(() => { fitRef.current = fit; centerRef.current = centerOn }, [fit, centerOn])
   useEffect(() => { if (!useTrip.getState().ride?.pos && useTrip.getState().mode === 'trip') fitRef.current() }, [map, fitNonce])
-  useEffect(() => { const p = useTrip.getState().me?.pos; if (map && p && useTrip.getState().mode === 'explore') centerRef.current(p, 15) }, [map, centerNonce])
+  useEffect(() => {
+    const p = useTrip.getState().me?.pos; if (!map || !p || useTrip.getState().mode !== 'explore') return
+    const z = 15, pt = map.project(p, z).add([0, useTrip.getState().sheetVisible / 2])
+    map.flyTo(map.unproject(pt, z), z, { duration: reduceMotion() ? 0 : 0.7 })
+  }, [map, centerNonce])
 
   // radar
   useEffect(() => {

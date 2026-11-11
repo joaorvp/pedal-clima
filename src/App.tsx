@@ -4,7 +4,7 @@ import { Sheet } from './components/Sheet'
 import { Hero } from './components/Hero'
 import { TripCard } from './components/TripCard'
 import { TripHeader } from './components/TripHeader'
-import { LocalCard, WhereTo } from './components/Explore'
+import { LocalCard, RoutineCard, WhereTo } from './components/Explore'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
@@ -32,6 +32,16 @@ export default function App() {
     return () => { clearInterval(refresh); clearInterval(tick); document.removeEventListener('visibilitychange', vis) }
   }, [])
   useEffect(() => { document.body.style.overflow = full ? 'hidden' : '' }, [full])
+  // botão voltar: com um trajeto aberto, volta para a tela inicial em vez de sair do app
+  useEffect(() => {
+    if (mode === 'trip' && !history.state?.pedalTrip) history.pushState({ pedalTrip: true }, '')
+    if (mode === 'explore' && history.state?.pedalTrip) history.back()
+  }, [mode])
+  useEffect(() => {
+    const onPop = () => { const t = useTrip.getState(); if (t.mode === 'trip' && !t.ride) t.closeTrip(); else if (t.ride) history.pushState({ pedalTrip: true }, '') }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   return <>
     <AppBar onSettings={() => setSettings({ open: true })} />
@@ -40,6 +50,7 @@ export default function App() {
       <Sheet contentKey={view}>
         <Banners />
         {mode === 'explore' ? <>
+          <RoutineCard />
           <WhereTo onAddPlace={() => setSettings({ open: true, focus: 'places' })} />
           <LocalCard />
         </> : <>

@@ -1,4 +1,5 @@
-import { Briefcase, History, House, MapPinned, Plus, Search, Star } from 'lucide-react'
+import { ArrowRight, Briefcase, History, House, MapPinned, Plus, Search, Star } from 'lucide-react'
+import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
 import { hhmm } from '../domain/format'
 import { useSettings } from '../store/settings'
@@ -42,7 +43,8 @@ export function WhereTo({ onAddPlace }: { onAddPlace: () => void }) {
     <section className="card whereto">
       <div className="search">
         <Search className="i" aria-hidden="true" />
-        <AddressCombo id="where" label="Para onde vamos?" placeholder="Para onde vamos?" value="" onPick={(ll, name) => go(ll, name || 'Ponto colado')} />
+        <AddressCombo id="where" label="Para onde vamos?" placeholder="Para onde vamos?" value="" onPick={(ll, name) => go(ll, name || 'Ponto colado')}
+          onFocusField={() => t().set({ sheet: 'full' })} />
       </div>
       <div className="shortcuts" role="list" aria-label="Atalhos">
         {s.homeSet && <button type="button" role="listitem" className="sc" onClick={() => go(s.home, 'Casa', 'home')}><House className="i" /><span>Casa</span></button>}
@@ -53,5 +55,29 @@ export function WhereTo({ onAddPlace }: { onAddPlace: () => void }) {
         <button type="button" role="listitem" className="sc add" onClick={onAddPlace}><Plus className="i" /><span>{s.homeSet && s.workSet ? 'Lugar' : !s.homeSet ? 'Casa' : 'Trabalho'}</span></button>
       </div>
     </section>
+  )
+}
+
+/** Perto dos horários da rotina: "Indo para o Trabalho?" monta o trajeto já com o horário da saída. */
+export function RoutineCard() {
+  const s = useSettings(), now = useTrip(st => st.now)
+  const n = nextCommute(s.tIda, s.tVolta, new Date(now))
+  if (!n || n.diff > 90 || n.diff < -20) return null
+  const toWork = n.d === 'ida'
+  if (toWork ? !s.workSet : !s.homeSet) return null
+  const depAt = now + Math.max(0, n.diff) * 60e3
+  const when = n.diff > 2 ? `em ${n.diff} min` : n.diff >= -2 ? 'agora' : `era há ${-n.diff} min`
+  const go = () => {
+    const t = useTrip.getState()
+    t.startTrip(toWork ? { kind: 'place', ll: s.work, name: 'Trabalho', key: 'work' } : { kind: 'place', ll: s.home, name: 'Casa', key: 'home' })
+    if (n.diff > 2) t.set({ dep: depAt - (depAt % 60e3) })
+  }
+  return (
+    <button type="button" className="card routine" onClick={go}>
+      {toWork ? <Briefcase className="i" /> : <House className="i" />}
+      <span className="txt"><b>{toWork ? 'Indo para o Trabalho?' : 'Voltando para casa?'}</b>
+        <small>Saída às {toWork ? s.tIda : s.tVolta} · {when}. Toque para ver a chuva no caminho.</small></span>
+      <ArrowRight className="i go" />
+    </button>
   )
 }
