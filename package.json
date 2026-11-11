@@ -9,7 +9,6 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "test": "vitest run",
-    "test:aviso": "node tests/aviso.test.mjs",
     "test:e2e": "node tests/app.test.mjs"
   },
   "dependencies": {

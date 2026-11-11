@@ -1,6 +1,6 @@
 # Pedal & Clima
 
-App (PWA) para quem vai de bike ao trabalho: mostra no mapa a chuva ao longo do trajeto **no horário em que você passa por cada trecho**, com radar, rotas alternativas, modo pedal com GPS, relevo e bateria da e-bike, pôr do sol e alertas do INMET.
+App (PWA) para quem vai de bike ao trabalho. Abra na hora de sair e toque em **Iniciar pedal**: a tela fica acesa e o app mostra no mapa a chuva ao longo do trajeto **no horário em que você passa por cada trecho**, com radar, rotas alternativas, modo pedal com GPS, relevo e bateria da e-bike, pôr do sol e alertas do INMET.
 
 Funciona offline, instala pela tela inicial e guarda tudo só no aparelho (sem conta).
 
@@ -13,7 +13,7 @@ Funciona offline, instala pela tela inicial e guarda tudo só no aparelho (sem c
 - vite-plugin-pwa (service worker próprio em `src/pwa/sw.ts`, atualização com aviso)
 - Vitest + Playwright
 
-APIs usadas, todas gratuitas e sem chave: Open-Meteo (previsão e altitude), OSRM (rotas de bike), Photon (busca de endereço), RainViewer (radar), INMET (alertas) e ntfy (avisos no celular).
+APIs usadas, todas gratuitas e sem chave: Open-Meteo (previsão e altitude), OSRM (rotas de bike), Photon (busca de endereço), RainViewer (radar) e INMET (alertas).
 
 ## Como rodar
 
@@ -27,7 +27,6 @@ npm run dev
 ```bash
 npm run lint
 npm test               # testes unitários (src/domain)
-npm run test:aviso     # script de avisos
 npm run build
 npm run test:e2e       # abre o build num navegador com APIs simuladas
 ```
@@ -45,17 +44,9 @@ src/
 .github/
   workflows/ci.yml            lint, testes, build e teste de ponta a ponta
   workflows/deploy-pages.yml  publica no GitHub Pages a cada push na main
-  workflows/aviso.yml         avisos de chuva pelo ntfy antes de cada saída
-  scripts/aviso.mjs
-tests/         teste de ponta a ponta e do script de avisos
+tests/         teste de ponta a ponta
 ```
 
 ## Dados salvos
 
 As configurações ficam no `localStorage`, na chave `pedalclima.v1` (a mesma da versão antiga, de arquivo único), validadas com Zod. A última previsão fica em `pedalclima.last` para o app abrir sem sinal.
-
-## Avisos no celular
-
-O workflow `aviso.yml` roda em dias úteis e, uns 45 min antes de cada saída, envia uma notificação pelo app [ntfy](https://ntfy.sh) quando há chuva, trovoada, pista molhada ou alerta do INMET. O passo a passo, com os valores prontos para copiar, fica em **Ajustes → Avisos no celular**.
-
-Variáveis opcionais: `PEDAL_SEMPRE=1` (avisar também quando estiver seco), `PEDAL_ANTECEDENCIA` (minutos, padrão 45) e `PEDAL_CHANCE` (sensibilidade calibrada pelo app).

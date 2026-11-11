@@ -15,9 +15,3 @@ export async function fetchAlerts(): Promise<InmetAlert[] | null> {
     return filterAlerts(await r.json(), Date.now())
   } catch { return null }
 }
-export async function sendTestPush(topic: string): Promise<boolean> {
-  try {
-    const r = await fetch('https://ntfy.sh/', { method: 'POST', body: JSON.stringify({ topic, title: 'Pedal & Clima', message: 'Teste: os avisos de chuva vão chegar assim.', tags: ['bike'] }) })
-    return r.ok
-  } catch { return false }
-}

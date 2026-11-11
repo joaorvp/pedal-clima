@@ -12,11 +12,6 @@ const place = z.object({ id: z.string(), name: z.string(), addr: z.string().opti
 const feedback = z.object({ t: z.number(), dir: z.string(), rainy: z.boolean(), prob: z.number(), exp: z.number(), rained: z.boolean() })
 const names = z.object({ home: z.string().catch(''), via: z.string().catch(''), work: z.string().catch('') })
 
-function newTopic() {
-  const a = new Uint8Array(12); crypto.getRandomValues(a)
-  return 'pedal-' + Array.from(a, b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('')
-}
-
 export const settingsSchema = z.object({
   home: latLon.catch([-15.876, -48.093]),
   via: latLon.nullable().catch([-15.8395, -48.0265]),
@@ -29,7 +24,6 @@ export const settingsSchema = z.object({
   onboarded: z.boolean().catch(false),
   tIda: z.string().catch(''),
   tVolta: z.string().catch(''),
-  topic: z.string().min(8).catch(() => newTopic()),
   names: names.catch({ home: '', via: '', work: '' }),
   nameVer: z.number().catch(0),
   places: z.array(place).catch([]),

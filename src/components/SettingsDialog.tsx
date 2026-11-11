@@ -1,7 +1,6 @@
 import { Crosshair, X } from 'lucide-react'
 import { useState } from 'react'
 import { accuracyText } from '../domain/calibration'
-import { sendTestPush } from '../services/external'
 import { useSettings, type PointKey } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { setPointFromMap } from '../store/actions'
@@ -9,33 +8,14 @@ import { AddressCombo } from './AddressCombo'
 import { Dialog } from './Dialog'
 
 const PLACE_DEF: { k: PointKey; label: string; caption: string; ph: string; color: string; letter: string }[] = [
-  { k: 'home', label: 'Casa', caption: 'Casa', ph: 'Endereço de casa', color: '#0b7a70', letter: 'C' },
-  { k: 'via', label: 'Passar por', caption: 'Passar por (opcional)', ph: 'Nenhum (rota direta)', color: '#6f8285', letter: 'P' },
-  { k: 'work', label: 'Trabalho', caption: 'Trabalho', ph: 'Endereço do trabalho', color: '#b5562b', letter: 'T' },
+  { k: 'home', label: 'Casa', caption: 'Casa', ph: 'Endereço de casa', color: '#1b2b4b', letter: 'C' },
+  { k: 'via', label: 'Passar por', caption: 'Passar por (opcional)', ph: 'Nenhum (rota direta)', color: '#6b7a93', letter: 'P' },
+  { k: 'work', label: 'Trabalho', caption: 'Trabalho', ph: 'Endereço do trabalho', color: '#e2662a', letter: 'T' },
 ]
-const ll = (p: [number, number]) => p[0].toFixed(5) + ',' + p[1].toFixed(5)
-
-function repoInfo() {
-  const h = location.hostname, seg = location.pathname.split('/').filter(Boolean)[0]
-  return h.endsWith('.github.io') ? { owner: h.split('.')[0], repo: seg || h } : { owner: 'joaorvp', repo: 'pedal-clima' }
-}
-
-function CopyRow({ name, value }: { name: string; value: string }) {
-  const [state, setState] = useState('Copiar')
-  return (
-    <div><code><em>{name}</em><br /><span>{value || '(vazio)'}</span></code>
-      <button className="btn" type="button" onClick={async () => {
-        try { await navigator.clipboard.writeText(value); setState('Copiado') } catch { setState('Copie manualmente') }
-        setTimeout(() => setState('Copiar'), 1600)
-      }}>{state}</button></div>
-  )
-}
-
 export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClose: () => void; focus?: string }) {
   const s = useSettings()
   const [plName, setPlName] = useState('')
-  const [test, setTest] = useState('')
-  const r = repoInfo()
+  const [gpsMsg, setGpsMsg] = useState('')
   const pick = (k: PointKey) => { onClose(); useTrip.getState().set({ pickMode: k, sheet: 'peek' }) }
 
   return (
@@ -60,7 +40,8 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           </div>
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn" type="button" id="gps" onClick={() => navigator.geolocation?.getCurrentPosition(
-              pos => { onClose(); setPointFromMap('home', [pos.coords.latitude, pos.coords.longitude]) }, () => setTest('Não consegui sua localização.'))}>Estou em casa agora</button>
+              pos => { onClose(); setPointFromMap('home', [pos.coords.latitude, pos.coords.longitude]) }, () => setGpsMsg('Não consegui sua localização. Permita o acesso no navegador.'))}>Estou em casa agora</button>
+            {gpsMsg && <span className="note" style={{ margin: 0 }}>{gpsMsg}</span>}
           </div>
           <p className="note">Digite um endereço, um lugar ou cole um link do Google Maps. Se não achar, toque no ícone de alvo e marque no mapa. Tudo fica salvo só neste aparelho.</p>
         </div>
@@ -107,31 +88,6 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           {s.log.length > 0 && <button className="btn" type="button" id="acc-reset" onClick={() => s.resetFeedback()}>Zerar avaliações</button>}
         </div>
 
-        <div className="sec">
-          <h3>Avisos no celular</h3>
-          <ol className="steps">
-            <li>Instale o app gratuito <b>ntfy</b> (Android ou iPhone), toque em <b>+</b> e assine este tópico:
-              <div className="kv"><CopyRow name="Tópico" value={s.topic} /></div>
-              <div className="row" style={{ marginTop: 8 }}>
-                <button className="btn" type="button" id="test-push" onClick={async () => { setTest('enviando…'); setTest(await sendTestPush(s.topic) ? 'Enviado. Chegou no celular?' : 'Não consegui enviar.') }}>Enviar notificação de teste</button>
-                <span id="test-res" className="note ok-text" style={{ margin: 0 }}>{test}</span>
-              </div>
-            </li>
-            <li>No GitHub, abra <a href={`https://github.com/${r.owner}/${r.repo}/settings/secrets/actions`} target="_blank" rel="noopener">Settings → Secrets and variables → Actions</a> e crie estes <b>secrets</b> (aba <i>Secrets</i>, botão <i>New repository secret</i>):
-              <div className="kv" id="kv-secrets">
-                <CopyRow name="PEDAL_TOPIC" value={s.topic} /><CopyRow name="PEDAL_CASA" value={ll(s.home)} />
-                <CopyRow name="PEDAL_PASSAR" value={s.via ? ll(s.via) : ''} /><CopyRow name="PEDAL_TRABALHO" value={ll(s.work)} />
-              </div>
-            </li>
-            <li>Na aba <i>Variables</i>, crie estas <b>variables</b>:
-              <div className="kv" id="kv-vars">
-                <CopyRow name="PEDAL_IDA" value={s.tIda} /><CopyRow name="PEDAL_VOLTA" value={s.tVolta} />
-                <CopyRow name="PEDAL_VELOCIDADE" value={String(s.speed)} /><CopyRow name="PEDAL_CHANCE" value={String(s.probTh)} />
-              </div>
-            </li>
-            <li>Pronto. Em dias úteis, uns 45 min antes de cada saída, você recebe um aviso quando houver chuva ou pista molhada no trajeto. Para testar na hora: aba <i>Actions</i> → <i>Aviso de chuva</i> → <i>Run workflow</i>.</li>
-          </ol>
-        </div>
       </div>
     </Dialog>
   )

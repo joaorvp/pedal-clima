@@ -36,7 +36,7 @@ export function Welcome() {
         </div>}
         {step === 3 && <div className="wl-step">
           <h2 id="welcome-title">Sua rotina</h2>
-          <p className="note">Com os horários, o app abre já no sentido certo e pode avisar antes de cada saída.</p>
+          <p className="note">Com os horários, o app abre já no sentido certo e com a previsão da sua próxima saída.</p>
           <div className="grid2">
             <label className="fld" htmlFor="wl-ida">Saída de casa<input type="time" id="wl-ida" value={s.tIda} onChange={e => s.patch({ tIda: e.target.value })} /></label>
             <label className="fld" htmlFor="wl-volta">Saída do trabalho<input type="time" id="wl-volta" value={s.tVolta} onChange={e => s.patch({ tVolta: e.target.value })} /></label>

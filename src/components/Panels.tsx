@@ -14,11 +14,11 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
   return (
     <header className="appbar">
       <div className="in">
-        <div className="logo" aria-hidden="true"><svg className="i" viewBox="0 0 24 24"><circle cx="6" cy="16" r="3.5" /><circle cx="18" cy="16" r="3.5" /><path d="M6 16l4-7h5l3 7M10 9l-1-3h-2M15 9l-1.5 3.5" /></svg></div>
+        <img className="logo" src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={32} height={32} />
         <p className="brand">Pedal &amp; Clima</p>
         <span className="upd" id="updated">{label}</span>
         <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar" onClick={() => useTrip.getState().refresh()}><RefreshCw className="i" /></button>
-        <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes e avisos" onClick={onSettings}><SlidersHorizontal className="i" /></button>
+        <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes" onClick={onSettings}><SlidersHorizontal className="i" /></button>
       </div>
     </header>
   )

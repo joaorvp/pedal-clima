@@ -15,7 +15,7 @@ const BASES = [
   { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap' },
   { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attribution: 'Esri, &copy; OpenStreetMap' },
 ]
-const PIN = { home: { letter: 'C', color: '#0b7a70' }, via: { letter: 'P', color: '#6f8285' }, work: { letter: 'T', color: '#b5562b' } } as const
+const PIN = { home: { letter: 'C', color: '#1b2b4b' }, via: { letter: 'P', color: '#6b7a93' }, work: { letter: 'T', color: '#e2662a' } } as const
 const pinIcon = (k: PointKey) => L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: `<div class="pin" style="background:${PIN[k].color}"><b>${PIN[k].letter}</b></div>` })
 interface Layers { route: L.LayerGroup; markers: Record<PointKey, L.Marker>; radar: L.TileLayer | null; me: L.Marker | null; acc: L.Circle | null; handle: L.Marker | null }
 const PICK_LABEL: Record<PointKey, string> = { home: 'Toque no mapa onde fica a sua casa', via: 'Toque num ponto por onde você passa', work: 'Toque no mapa onde fica o trabalho' }

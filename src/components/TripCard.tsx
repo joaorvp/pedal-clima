@@ -123,8 +123,8 @@ function Elevation() {
       <svg id="elev-svg" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Perfil de altitude do trajeto">
         {[zmin, zmax].map((z, i) => <g key={z}><line x1={L0} x2={W - R0} y1={y(z)} y2={y(z)} stroke="var(--line)" strokeDasharray="2 4" /><text x={L0 - 6} y={y(z) + (i ? 9 : -2)} textAnchor="end">{z} m</text></g>)}
         {ticks.map(d => <text key={d} x={x(d)} y={H - 5} textAnchor="middle">{d}</text>)}
-        <polygon points={`${x(0)},${y(zmin)} ${line} ${x(total)},${y(zmin)}`} fill="var(--accent)" fillOpacity=".14" />
-        <polyline points={line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" />
+        <polygon points={`${x(0)},${y(zmin)} ${line} ${x(total)},${y(zmin)}`} fill="var(--link)" fillOpacity=".12" />
+        <polyline points={line} fill="none" stroke="var(--link)" strokeWidth={2} strokeLinejoin="round" />
         {here && ride && <circle cx={x(ride.d)} cy={y(here.z)} r={5} fill="#2b7fff" stroke="#fff" strokeWidth={2} />}
       </svg>
       <div className="batt"><div className="batt-bar"><i id="batt-fill" className={bt.pct >= 95 ? 'bad' : bt.pct >= 70 ? 'warn' : ''} style={{ width: pct + '%' }} /></div><span className="num" id="batt-txt">~{bt.pct}% da bateria · {Math.round(bt.wh)} Wh</span></div>

@@ -23,8 +23,6 @@ jobs:
         run: npm run lint
       - name: Testes unitários
         run: npm test
-      - name: Teste do script de avisos
-        run: npm run test:aviso
       - name: Build
         run: npm run build
         env:

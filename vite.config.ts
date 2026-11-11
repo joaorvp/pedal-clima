@@ -30,8 +30,8 @@ export default defineConfig({
         scope: '.',
         display: 'standalone',
         // Sem `orientation`: declarar faz o Android ignorar a trava de rotação do sistema.
-        background_color: '#0e2b2f',
-        theme_color: '#0e2b2f',
+        background_color: '#1b2b4b',
+        theme_color: '#1b2b4b',
         categories: ['weather', 'navigation', 'travel'],
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
