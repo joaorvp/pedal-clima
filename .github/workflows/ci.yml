@@ -28,7 +28,13 @@ jobs:
         env:
           VITE_BASE_PATH: /pedal-clima/
       - name: Teste de ponta a ponta (build de produção)
+        timeout-minutes: 10
         run: |
-          # as dependências de sistema vêm do apt do Ubuntu; se o espelho estiver fora, a imagem do runner já traz quase tudo
-          npx playwright install --with-deps chromium || npx playwright install chromium
+          # usa o Chrome que já vem na máquina do GitHub: sem baixar navegador nem depender do apt do Ubuntu.
+          # Se ele faltar ou não funcionar com esta versão do Playwright, baixa o Chromium e roda de novo.
+          if command -v google-chrome >/dev/null; then
+            PW_CHROMIUM="$(command -v google-chrome)" npm run test:e2e && exit 0
+            echo "::warning::Chrome do sistema falhou; tentando com o Chromium do Playwright"
+          fi
+          npx playwright install chromium
           npm run test:e2e

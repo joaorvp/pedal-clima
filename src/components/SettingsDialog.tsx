@@ -11,7 +11,6 @@ import { Dialog } from './Dialog'
 
 const PLACE_DEF: { k: PointKey; label: string; caption: string; ph: string; color: string; letter: string }[] = [
   { k: 'home', label: 'Casa', caption: 'Casa', ph: 'Endereço de casa', color: '#1b2b4b', letter: 'C' },
-  { k: 'via', label: 'Passar por', caption: 'Passar por (opcional)', ph: 'Nenhum (rota direta)', color: '#6b7a93', letter: 'P' },
   { k: 'work', label: 'Trabalho', caption: 'Trabalho', ph: 'Endereço do trabalho', color: '#e2662a', letter: 'T' },
 ]
 export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClose: () => void; focus?: string }) {
@@ -36,8 +35,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
               <div className="place" key={p.k}>
                 <span className="tag" style={{ background: p.color }} aria-hidden="true">{p.letter}</span>
                 <AddressCombo id={'addr-' + p.k} caption={p.caption} label={p.label} placeholder={p.ph} value={s[p.k] ? s.names[p.k] || 'Ponto marcado no mapa' : ''}
-                  onPick={(pt, name) => { if (name) s.setPoint(p.k, pt, name); else setPointFromMap(p.k, pt) }}
-                  onClear={p.k === 'via' ? () => s.clearVia() : undefined} />
+                  onPick={(pt, name) => { if (name) s.setPoint(p.k, pt, name); else setPointFromMap(p.k, pt) }} />
                 <button className="mapbtn" type="button" aria-label={`Marcar ${p.label.toLowerCase()} no mapa`} onClick={() => pick(p.k)}><Crosshair /></button>
               </div>
             ))}

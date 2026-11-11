@@ -57,6 +57,7 @@ function Routes() {
           <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
         </button>
       ) })}
+      {!ride && <p className="routes-hint">No mapa: toque numa rota para escolher. Para ir por outro caminho, toque na rota escolhida e arraste o ponto.</p>}
     </div>
   )
 }

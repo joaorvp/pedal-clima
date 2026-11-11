@@ -8,6 +8,7 @@ import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
 import { lastView, saveView, startLocation } from '../hooks/location'
 import { Speedometer } from './Speedometer'
+import { radarHasRain } from '../services/radarProbe'
 import { NextTurn } from './NextTurn'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings, type PointKey } from '../store/settings'
@@ -199,8 +200,11 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     routes.forEach((r, i) => {
       if (i === sel) return
       L.polyline(r.line, { ...base, color: '#0b1a1c', weight: 9, opacity: .18 }).addTo(ly.route)
-      L.polyline(r.line, { ...base, interactive: true, color: '#8fa3a6', weight: 6, opacity: .9 })
-        .bindTooltip(r.name + ' · toque para usar', { sticky: true }).on('click', () => useTrip.getState().selectRoute(i)).addTo(ly.route)
+      L.polyline(r.line, { ...base, color: '#8fa3a6', weight: 6, opacity: .9 }).addTo(ly.route)
+      // faixa invisível e larga por cima: fácil de acertar com o dedo
+      L.polyline(r.line, { ...base, interactive: true, className: 'route-hit', color: '#000', weight: 28, opacity: 0.001 })
+        .bindTooltip(r.name + ' · toque para usar', { sticky: true })
+        .on('click', e => { L.DomEvent.stopPropagation(e); buzz(15); useTrip.getState().selectRoute(i) }).addTo(ly.route)
     })
     if (!view) return
     const { route, ev, ctx } = view, line = route.line
@@ -215,6 +219,9 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         .on('click', e => { L.DomEvent.stopPropagation(e); showHandle(e.latlng) })
         .addTo(ly.route)
     }
+    // rota escolhida: faixa larga invisível para tocar e arrastar o caminho
+    if (!ride?.pos) L.polyline(line, { ...base, interactive: true, className: 'route-hit', color: '#000', weight: 24, opacity: 0.001 })
+      .on('click', e => { L.DomEvent.stopPropagation(e); showHandle(e.latlng) }).addTo(ly.route)
     const pts = ordered(route, 'ida')
     for (let k = 3; k < pts.length - 1; k += 4) {
       const a = pts[k]
@@ -287,6 +294,24 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     for (const f of radar.frames) if (!layers.has(f.path))
       layers.set(f.path, L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' }).addTo(map))
   }, [map, ly, radar.on, radar.frames, radar.host])
+  // sem chuva na área visível? (o ▶ do radar não mostraria nada; o aviso explica)
+  const [radarDry, setRadarDry] = useState<{ now: boolean | null; hour: boolean | null }>({ now: null, hour: null })
+  useEffect(() => {
+    if (!map || !radar.on || !radar.frames.length) return
+    let alive = true, t = 0
+    const check = () => {
+      clearTimeout(t)
+      t = window.setTimeout(async () => {
+        const bb = map.getBounds(), b = { n: bb.getNorth(), s: bb.getSouth(), e: bb.getEast(), w: bb.getWest() }, z = map.getZoom()
+        const last = radar.frames[radar.frames.length - 1].path
+        const now = await radarHasRain(radar.host, [last], b, z)
+        const hour = now ? true : await radarHasRain(radar.host, radar.frames.map(f => f.path), b, z)
+        if (alive) setRadarDry({ now: now == null ? null : !now, hour: hour == null ? null : !hour })
+      }, 700)
+    }
+    check(); map.on('moveend', check)
+    return () => { alive = false; clearTimeout(t); map.off('moveend', check) }
+  }, [map, radar.on, radar.frames, radar.host])
   useEffect(() => {
     const cur = radar.frames[radar.idx]?.path
     radarLayers.current.forEach((l, k) => l.setOpacity(radar.on && k === cur ? .65 : 0))
@@ -336,7 +361,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   useEffect(() => { const id = setTimeout(() => map?.invalidateSize(), 60); return () => clearTimeout(id) }, [map, full])
 
   const f = radar.frames[radar.idx]
-  const radarLabel = !radar.on ? 'radar desligado' : f ? `${radar.playing ? '▶ ' : ''}radar ${hhmm(f.time * 1000)} · há ${Math.max(0, Math.round((now / 1000 - f.time) / 60))} min` : 'radar indisponível'
+  const radarLabel = !radar.on ? 'radar desligado' : f ? `${radar.playing ? '▶ ' : ''}radar ${hhmm(f.time * 1000)} · ${(radar.playing ? radarDry.hour : radarDry.now) ? 'sem chuva por perto' : `há ${Math.max(0, Math.round((now / 1000 - f.time) / 60))} min`}` : 'radar indisponível'
   const T = useTrip.getState
   const lost = riding && !ride!.follow
   return (

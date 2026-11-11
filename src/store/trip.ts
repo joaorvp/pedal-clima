@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import type { InmetAlert } from '../domain/alerts'
-import { hav } from '../domain/geo'
 import { prepRoute } from '../domain/routes'
 import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import type { Shelter } from '../domain/shelter'
@@ -113,13 +112,6 @@ const SNAP_KEY = 'pedalclima.last'
 const LOCAL_KEY = 'pedalclima.local'
 const round3 = (ll: LatLon | null) => ll ? ll.map(v => v.toFixed(3)).join(',') : '-'
 
-/** O ponto P vale para o trajeto casa ⇄ trabalho (saindo de perto de um e indo para o outro). */
-function commuteVia(o: LatLon, d: LatLon): LatLon | null {
-  const s = useSettings.getState(); if (!s.via) return null
-  const near = (a: LatLon, b: LatLon) => hav(a, b) < 1.5
-  return (near(o, s.home) && near(d, s.work)) || (near(o, s.work) && near(d, s.home)) ? s.via : null
-}
-
 export const useTrip = create<TripState>()((set, get) => ({
   mode: 'explore', origin: { kind: 'me' }, dest: null, via: null, dep: null,
   me: null, locStatus: 'idle', local: null,
@@ -135,8 +127,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   startTrip: (dest, origin) => {
     if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
-    const oll = endpointLL(o, st.me), dll = endpointLL(dest, st.me)
-    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: null, viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
     get().refresh()
   },
   closeTrip: () => {
@@ -150,8 +141,9 @@ export const useTrip = create<TripState>()((set, get) => ({
     const st = get()
     if (st.mode !== 'trip' || !st.dest) { if (which === 'dest') get().startTrip(e); else get().startTrip(st.dest ?? e, e); return }
     const origin = which === 'origin' ? e : st.origin, dest = which === 'dest' ? e : st.dest
-    const oll = endpointLL(origin, st.me), dll = endpointLL(dest, st.me)
-    set({ origin, dest, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, viaName: '', shelters: null, error: '' })
+    // recálculo no pedal (nova origem = você) mantém o ponto de passagem, como um abrigo escolhido
+    const keepVia = which === 'origin' && !!st.ride
+    set({ origin, dest, routes: [], via: keepVia ? st.via : null, viaName: keepVia ? st.viaName : '', shelters: null, error: '' })
     get().refresh()
   },
   swap: () => {

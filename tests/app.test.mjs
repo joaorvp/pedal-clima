@@ -41,6 +41,7 @@ await page.route("**/*", r => {
   if (u.includes("photon.komoot.io/reverse")) return r.fulfill({ json: M.reverseJson });
   if (u.includes("inmet")) return r.fulfill({ json: M.inmetJson });
   if (u.includes("weather-maps.json")) return r.fulfill({ json: M.radarJson() });
+  if (u.includes("tilecache.rainviewer.com")) return r.fulfill({ status: 200, contentType: "image/png", headers: { "access-control-allow-origin": "*" }, body: M.emptyTile });
   return r.fulfill({ status: 204, body: "" });
 });
 
@@ -69,6 +70,9 @@ assert.match(await page.textContent(".tip"), /Seus pedais/);
 await page.mouse.move(200, 400); await page.waitForTimeout(200);
 assert.ok(await page.locator(".tip").count() === 0, "a dica some ao tirar o mouse");
 
+// radar sem chuva na área: o canto do mapa avisa, para o ▶ não parecer quebrado
+await page.waitForTimeout(1200);
+assert.match(await page.textContent("#radar-time"), /sem chuva por perto/);
 // radar: os quadros da última hora ficam carregados e a animação só troca qual aparece
 const radarPanes = () => page.evaluate(() => [...document.querySelectorAll(".leaflet-radar-pane .leaflet-layer")].map(l => +getComputedStyle(l).opacity));
 let op = await radarPanes();
@@ -139,6 +143,12 @@ assert.ok((await page.locator("#timeline li").count()) >= 2, "linha do tempo dev
 assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternativas");
 assert.match(await page.textContent("#routes"), /70% em ciclovia/);
 assert.match(await page.textContent("#routes"), /mais ciclovia/);
+// escolher a rota tocando nela no mapa (faixa larga, fácil de acertar com o dedo)
+const before = await page.getAttribute('.rt[aria-checked="true"]', "data-i");
+await page.evaluate(() => { const hits = [...document.querySelectorAll("path.route-hit")]; hits[0].dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 0, clientY: 0 })); });
+await page.waitForTimeout(500);
+assert.notEqual(await page.getAttribute('.rt[aria-checked="true"]', "data-i"), before, "tocar numa rota alternativa no mapa escolhe ela");
+await page.evaluate(i => document.querySelector(`.rt[data-i="${i}"]`).click(), before); await page.waitForTimeout(400);
 assert.match(await page.textContent("#alert"), /INMET/);
 assert.ok(await page.evaluate(() => !document.getElementById("alert").classList.contains("compact")), "na primeira vez, o alerta aparece por inteiro");
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
@@ -223,6 +233,9 @@ assert.ok(await page.locator("#share").count() === 1, "deve ter o botão de comp
 await page.click("#open-history"); await page.waitForTimeout(400);
 assert.ok((await page.locator(".hist-list li").count()) >= 1, "o pedal deve aparecer em Seus pedais");
 assert.match(await page.textContent(".hist-totals"), /Esta semana.*1 pedal/s);
+assert.equal(await page.locator(".weeks-bars .wbar").count(), 8, "gráfico das últimas 8 semanas");
+assert.match(await page.textContent(".weeks-sel"), /Esta semana: \d+,\d km · 1 pedal/);
+assert.ok(await page.locator("#share-week").count() === 1, "botão de compartilhar a semana");
 await page.evaluate(() => [...document.querySelectorAll("#history .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 
 // fechar o trajeto volta para a tela inicial

@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.19.0'
+export const CURRENT_APP_VERSION = '2.20.0'
 export const CHANGELOG = [
+  {
+    version: '2.20.0',
+    title: 'Rotas pelo mapa, resumo da semana e radar mais claro',
+    items: [
+      'Escolha a rota tocando nela no mapa; para ir por outro caminho, toque na rota escolhida e arraste o ponto. O "Passar por" saiu dos Ajustes.',
+      'Em "Seus pedais": km das últimas 8 semanas, sua média comparada com as semanas anteriores e o resumo da semana para compartilhar.',
+      'Quando não há chuva na área do mapa, o canto do radar avisa "sem chuva por perto".',
+    ],
+  },
   {
     version: '2.19.0',
     title: 'Avisos de curva',

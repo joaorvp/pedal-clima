@@ -80,3 +80,25 @@ describe('configurações salvas', () => {
     expect(s.speed).toBe(22); expect(s.home).toHaveLength(2)
   })
 })
+
+describe('resumo da semana', async () => {
+  const { weekly, avgSpeed, speedTrend } = await import('./history')
+  const now = new Date(2026, 10, 11, 18) // quarta, 11/11
+  const at = (d: number, h = 8, m = 10) => new Date(2026, m, d, h).getTime()
+  const rec = (d: number, km: number, mins: number, rain = 0, m = 10) => ({ km, mins, avg: km / (mins / 60), rain, wh: null, dest: 'Trabalho', at: at(d, 8, m) })
+  const list = [rec(10, 12, 40), rec(11, 12, 36, 0.5), rec(3, 12, 48), rec(27, 6, 20, 0, 9)]
+  it('km por semana, da mais antiga para a atual', () => {
+    const w = weekly(list, now, 3)
+    expect(w.map(x => +x.km.toFixed(1))).toEqual([6, 12, 24])
+    expect(w[2].rides).toBe(2); expect(w[2].wet).toBe(1)
+    expect(new Date(w[2].start).getDay()).toBe(1)
+  })
+  it('média de porta a porta pesa pelos km', () => {
+    expect(avgSpeed(list, at(10, 0))!).toBeCloseTo(24 / (76 / 60), 5)
+    expect(avgSpeed([], 0)).toBeNull()
+  })
+  it('tendência compara com as 4 semanas anteriores', () => {
+    const t = speedTrend(list, now)
+    expect(t.diff!).toBeGreaterThan(0)
+  })
+})
