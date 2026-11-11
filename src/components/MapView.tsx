@@ -82,7 +82,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     if (!el.current) return
     const lv = lastView(), s0 = useSettings.getState()
     const map = L.map(el.current, { zoomControl: false, rotate: true, bearing: 0, rotateControl: false, touchRotate: false, shiftKeyRotate: false, compassBearing: false }).setView(lv?.c ?? s0.home, lv?.z ?? 14)
-    L.control.zoom({ position: 'bottomright' }).addTo(map)
+    L.control.zoom({ position: 'bottomright', zoomInTitle: 'Aproximar', zoomOutTitle: 'Afastar' }).addTo(map)
     let baseIdx = 0, errors = 0, base: L.TileLayer
     const setBase = (i: number) => {
       if (base) map.removeLayer(base)
@@ -327,10 +327,10 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       <div className="mapwrap">
         <div id="map" ref={el} aria-label="Mapa com a sua posição, o trajeto e o radar de chuva" />
         <div className="mapfab">
-          <button className="fab" id="full" type="button" aria-label="Mapa em tela cheia" onClick={onToggleFull}><Maximize className="i" /></button>
-          {riding && <button className="fab" id="compass" type="button" aria-pressed={headingUp} aria-label={headingUp ? 'Mapa com o norte para cima' : 'Mapa girando com a direção'} title="Bússola" onClick={() => useSettings.getState().patch({ headingUp: !headingUp })}><Compass className="i" /></button>}
-          <button className="fab" id="cycle-toggle" type="button" aria-pressed={cycleMap} aria-label={cycleMap ? 'Voltar ao mapa comum' : 'Mostrar ciclovias'} title="Ciclovias" onClick={() => useSettings.getState().patch({ cycleMap: !cycleMap })}><Bike className="i" /></button>
-          <button className="fab" id="radar-toggle" type="button" aria-pressed={radar.on} aria-label="Mostrar radar" onClick={() => T().set({ radar: { ...radar, on: !radar.on } })}><Layers className="i" /></button>
+          <button className="fab" id="full" type="button" aria-label={full ? 'Sair da tela cheia' : 'Mapa em tela cheia'} onClick={onToggleFull}><Maximize className="i" /></button>
+          {riding && <button className="fab" id="compass" type="button" aria-pressed={headingUp} aria-label={headingUp ? 'Bússola ligada: toque para deixar o norte para cima' : 'Girar o mapa com a sua direção (bússola)'} onClick={() => useSettings.getState().patch({ headingUp: !headingUp })}><Compass className="i" /></button>}
+          <button className="fab" id="cycle-toggle" type="button" aria-pressed={cycleMap} aria-label={cycleMap ? 'Voltar ao mapa comum' : 'Mostrar ciclovias no mapa'} onClick={() => useSettings.getState().patch({ cycleMap: !cycleMap })}><Bike className="i" /></button>
+          <button className="fab" id="radar-toggle" type="button" aria-pressed={radar.on} aria-label={radar.on ? 'Esconder radar de chuva' : 'Mostrar radar de chuva'} onClick={() => T().set({ radar: { ...radar, on: !radar.on } })}><Layers className="i" /></button>
           {!riding && <button className="fab" id="radar-play" type="button" aria-label={radar.playing ? 'Parar animação do radar' : 'Animar radar da última hora'}
             onClick={() => T().set({ radar: radar.playing ? { ...radar, playing: false, idx: Math.max(0, radar.frames.length - 1) } : { ...radar, on: true, playing: radar.frames.length > 0, idx: 0 } })}>
             {radar.playing ? <Square className="i" /> : <Play className="i" />}

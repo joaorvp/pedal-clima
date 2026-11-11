@@ -347,17 +347,6 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .sc.add{border-style:dashed;color:var(--link)}
 
 /* ---------- Cabeçalho do trajeto ---------- */
-.triphead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 8px;align-items:center}
-.triphead .ends{display:grid;gap:10px;position:relative;padding-left:24px}
-.triphead .ends::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;border-left:2px dotted var(--line)}
-.triphead .end{display:flex;align-items:center;min-width:0}
-.triphead .end .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
-.triphead .end .nm b{font-weight:600}
-.triphead i{position:absolute;left:0;width:14px;height:14px;border-radius:50%}
-.triphead .dot-o{background:#fff;border:4px solid var(--head)}
-.triphead .dot-d{background:#e2662a;border:3px solid #fff;box-shadow:0 0 0 1px #e2662a}
-.triphead .actions{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
-.triphead .actions .ibtn{width:44px;height:44px}
 .triphead .open-in{grid-column:1 / -1;margin:0}
 .card > .open-in:last-child{margin:14px 0 0}
 
@@ -367,11 +356,6 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .hero.riding .when{display:none}
 
 /* ---------- Etapa 2: editar o trajeto, alfinete e etiquetas de rota ---------- */
-.triphead .end{border:0;background:transparent;color:var(--ink);padding:6px 4px;margin:-6px -4px;border-radius:10px;text-align:left;cursor:pointer;min-height:40px;gap:6px}
-.triphead button.end:hover,.triphead button.end[aria-expanded="true"]{background:var(--surface-2)}
-.triphead .end.via{cursor:default;color:var(--muted);font-size:14px}
-.triphead .end.via .nm{flex:1}
-.triphead .dot-v{width:16px!important;height:16px!important;left:-1px!important;background:#6b7a93;color:#fff;font:800 9px/16px var(--font-display);text-align:center;font-style:normal}
 .ibtn.sm{width:32px;height:32px;color:var(--muted)}
 .endpick{grid-column:1 / -1;display:grid;gap:10px;border-top:1px solid var(--line);padding-top:12px}
 .endpick .combo input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:12px 16px;color:var(--ink);font-size:16px}
@@ -527,3 +511,31 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .confirm-actions .btn{width:100%;justify-content:center;min-height:52px;font-size:16px}
 .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 @media (max-width:999px){.confirm-end{margin:auto auto calc(12px + env(safe-area-inset-bottom,0px))}}
+
+/* cabeçalho do trajeto numa linha: [Você] → [Destino]  ⇄ × */
+.triphead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 4px;align-items:center;padding:6px 6px 6px 10px}
+.triphead .ends{display:flex;align-items:center;gap:2px;min-width:0}
+.triphead .end{display:flex;align-items:center;gap:7px;min-width:0;border:0;background:transparent;color:var(--ink);padding:0 8px;border-radius:10px;text-align:left;cursor:pointer;min-height:44px}
+.triphead .ends .end:first-child{flex:0 1 auto;max-width:42%}
+.triphead .ends .end:last-child{flex:1 1 0}
+.triphead button.end:hover,.triphead button.end[aria-expanded="true"]{background:var(--surface-2)}
+.triphead .end .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.triphead .end .nm b{font-weight:600}
+.triphead .to{flex:none;width:16px;height:16px;color:var(--muted)}
+.triphead i{flex:none;width:12px;height:12px;border-radius:50%}
+.triphead .dot-o{background:#fff;border:3px solid var(--head)}
+.triphead .dot-d{background:#e2662a;border:2px solid #fff;box-shadow:0 0 0 1px #e2662a}
+.triphead .actions{display:flex;gap:0;color:var(--muted)}
+.triphead .actions .ibtn{width:44px;height:44px}
+.triphead .end.via{grid-column:1 / -1;cursor:default;color:var(--muted);font-size:14px;min-height:40px;padding:0 0 0 8px}
+.triphead .end.via .nm{flex:1}
+.triphead .dot-v{width:16px!important;height:16px!important;background:#6b7a93;color:#fff;font:800 9px/16px var(--font-display);text-align:center;font-style:normal}
+.triphead .endpick{margin:4px 4px 6px}
+.alert.compact .one{display:flex;align-items:baseline;gap:8px;min-width:0}
+.alert.compact .one b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alert.compact .one small{flex:none;white-space:nowrap}
+/* dicas ao passar o mouse nos botões */
+.tip{position:fixed;z-index:200;pointer-events:none;width:max-content;max-width:min(260px,calc(100vw - 16px));background:#16233f;color:#fff;font:500 13px/1.35 var(--font-body);padding:6px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);animation:tipin .12s ease-out;text-wrap:balance}
+@keyframes tipin{from{opacity:0}}
+:root[data-theme="dark"] .tip{background:#e9eef7;color:#16233f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tip{background:#e9eef7;color:#16233f}}

@@ -53,6 +53,8 @@ export const settingsSchema = z.object({
   voice: z.boolean().catch(true),
   /** últimos destinos buscados ou marcados no mapa (fora os lugares salvos) */
   recent: z.array(z.object({ name: z.string(), lat: z.number(), lon: z.number(), t: z.number() })).catch([]),
+  /** alertas do INMET já mostrados por inteiro (depois aparecem numa linha só) */
+  seenAlerts: z.array(z.string()).catch([]),
 })
 export type Settings = z.infer<typeof settingsSchema>
 export type Place = z.infer<typeof place>

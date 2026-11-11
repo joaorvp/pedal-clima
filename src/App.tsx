@@ -6,6 +6,7 @@ import { TripCard } from './components/TripCard'
 import { TripHeader } from './components/TripHeader'
 import { LocalCard, LocationAsk, RoutineCard, WhereTo } from './components/Explore'
 import { UndoToast } from './components/UndoToast'
+import { Tooltips } from './components/Tooltips'
 import { ShelterCard } from './components/ShelterCard'
 import { HistoryDialog } from './components/HistoryDialog'
 import { localSummary } from './domain/local'
@@ -106,6 +107,7 @@ export default function App() {
     <SettingsDialog open={settings.open} focus={settings.focus} onClose={() => setSettings({ open: false })} />
     <Welcome />
     <UndoToast />
+    <Tooltips />
     <HistoryDialog />
     <UpdatePrompt />
     <InstallBanner />

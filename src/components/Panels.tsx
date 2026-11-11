@@ -1,5 +1,5 @@
 import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, clearTime, evaluate } from '../domain/weather'
@@ -18,26 +18,41 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
         <img className="logo" src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={32} height={32} />
         <p className="brand">Pedágua</p>
         <span className="upd" id="updated">{label}</span>
-        <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
-        <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais" onClick={() => useTrip.getState().set({ historyOpen: true })}><History className="i" /></button>
-        <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes" onClick={onSettings}><SlidersHorizontal className="i" /></button>
+        <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
+        <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais: histórico e totais" onClick={() => useTrip.getState().set({ historyOpen: true })}><History className="i" /></button>
+        <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes: lugares, velocidade e rotina" onClick={onSettings}><SlidersHorizontal className="i" /></button>
       </div>
     </header>
   )
 }
 
+/** alertas mostrados por inteiro nesta abertura do app (na próxima, ficam numa linha só) */
+const fullThisSession = new Set<string>()
+const alertKey = (a: { title: string; start: number }) => a.title + '|' + a.start
+
 export function Banners() {
   const error = useTrip(s => s.error), routeNote = useTrip(s => s.routeNote), alerts = useTrip(s => s.alerts)
   const loc = useTrip(s => s.locStatus), mode = useTrip(s => s.mode), now = useTrip(s => s.now)
   const riding = useTrip(s => !!s.ride?.pos)
+  const seen = useSettings(s => s.seenAlerts)
   const a = alerts?.[0]
+  const key = a ? alertKey(a) : ''
+  // primeira vez que o alerta aparece: mostra por inteiro nesta abertura e anota como visto
+  if (key && !seen.includes(key)) fullThisSession.add(key)
+  useEffect(() => {
+    if (key && !useSettings.getState().seenAlerts.includes(key)) useSettings.getState().patch({ seenAlerts: [key, ...useSettings.getState().seenAlerts].slice(0, 20) })
+  }, [key])
+  const full = !!key && fullThisSession.has(key) && !riding
   const when = a ? (!isNaN(a.start) && a.start > now ? `a partir de ${hhmm(a.start)}` : !isNaN(a.end) ? `até ${new Date(a.end).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : '') : ''
   return <>
     {(error || routeNote) && <div id="error" className="err">{error || routeNote}</div>}
     {a && (
-      <a id="alert" className={'alert' + (riding ? ' compact' : '')} href="https://portal.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}>
+      <a id="alert" className={'alert' + (full ? '' : ' compact')} href="https://portal.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}
+        aria-label={`Alerta do INMET: ${a.title}${a.sev ? ', ' + a.sev : ''} ${when}. Abrir no site do INMET.`}>
         <span className="ic">{a.level >= 2 ? <CloudLightning className="i" /> : <CloudRain className="i" />}</span>
-        <div><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b>{!riding && <small>Alerta oficial para o DF {when}{alerts!.length > 1 ? ` · +${alerts!.length - 1} alerta(s)` : ''}. Toque para ver.</small>}</div>
+        {full
+          ? <div><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b><small>Alerta oficial para o DF {when}{alerts!.length > 1 ? ` · +${alerts!.length - 1} alerta(s)` : ''}. Toque para ver.</small></div>
+          : <div className="one"><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b>{!riding && when && <small>{when.replace('a partir de', 'às')}{alerts!.length > 1 ? ` · +${alerts!.length - 1}` : ''}</small>}</div>}
       </a>
     )}
     {loc === 'denied' && mode === 'explore' && (

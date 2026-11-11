@@ -105,10 +105,10 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
     <>
       <div className="ride-tools">
         {endButton}
-        {canSpeak() && <button className="btn tool" type="button" id="voice" aria-pressed={voice} aria-label={voice ? 'Desligar avisos por voz' : 'Ligar avisos por voz'} title={voice ? 'Voz ligada' : 'Voz desligada'}
+        {canSpeak() && <button className="btn tool" type="button" id="voice" aria-pressed={voice} aria-label={voice ? 'Desligar avisos por voz' : 'Ligar avisos por voz'}
           onClick={() => { const on = !voice; useSettings.getState().patch({ voice: on }); if (on) say('Avisos por voz ligados.') }}>
           {voice ? <Volume2 className="i" /> : <VolumeX className="i" />}<span>{voice ? 'Voz' : 'Mudo'}</span></button>}
-        {pipSupported() && <button className="btn tool" type="button" id="pip" aria-label="Abrir janela flutuante" title="Janela flutuante: o painel continua visível fora do app"
+        {pipSupported() && <button className="btn tool" type="button" id="pip" aria-label="Janela flutuante: o painel continua visível quando você sai do app"
           onClick={async () => { setPipMsg(await openPip() ? '' : 'Não deu para abrir a janela neste navegador.') }}>
           <PictureInPicture2 className="i" /><span>Janela</span></button>}
       </div>

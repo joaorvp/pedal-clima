@@ -63,6 +63,12 @@ assert.match(await page.textContent(".local-where"), /Onde você está/);
 assert.match(await page.textContent(".local-meta"), /24% umidade.*ar bom/s);
 assert.match(await page.textContent(".comfort"), /Umidade em 24%/);
 
+// passar o mouse num botão de ícone mostra o que ele faz
+await page.hover("#open-history"); await page.waitForTimeout(600);
+assert.match(await page.textContent(".tip"), /Seus pedais/);
+await page.mouse.move(200, 400); await page.waitForTimeout(200);
+assert.ok(await page.locator(".tip").count() === 0, "a dica some ao tirar o mouse");
+
 // relatar problema: relatório técnico sem coordenadas
 await page.click("#open-settings"); await page.waitForTimeout(300);
 await page.evaluate(() => document.getElementById("report").click()); await page.waitForTimeout(400);
@@ -105,7 +111,8 @@ await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]'
 // montar o trajeto pelo atalho do trabalho
 await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click());
 await page.waitForTimeout(1200);
-assert.match(await page.textContent(".triphead"), /Sua localização/);
+assert.match(await page.textContent(".triphead"), /Você.*Trabalho/s);
+assert.ok((await page.locator(".triphead").boundingBox()).height < 80, "o cabeçalho do trajeto cabe numa linha");
 const title = await page.textContent("#v-title");
 assert.ok(title && !/Carregando|Olhando/.test(title), "veredito do trajeto deve aparecer: " + title);
 assert.ok((await page.locator("#timeline li").count()) >= 2, "linha do tempo deve ter trechos");
@@ -113,6 +120,7 @@ assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternati
 assert.match(await page.textContent("#routes"), /70% em ciclovia/);
 assert.match(await page.textContent("#routes"), /mais ciclovia/);
 assert.match(await page.textContent("#alert"), /INMET/);
+assert.ok(await page.evaluate(() => !document.getElementById("alert").classList.contains("compact")), "na primeira vez, o alerta aparece por inteiro");
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
 assert.ok((await page.locator(".rlabel").count()) >= 2, "cada rota deve ter etiqueta de tempo e chuva no mapa");
 
@@ -198,6 +206,7 @@ assert.ok(await page.locator(".whereto").count() === 1, "deve voltar para a tela
 await page.goto(APP + "?ir=trabalho"); await page.waitForTimeout(2000);
 assert.match(await page.textContent(".triphead"), /Trabalho/);
 assert.ok(!page.url().includes("ir="), "o endereço fica limpo depois do atalho");
+assert.ok(await page.evaluate(() => document.getElementById("alert").classList.contains("compact")), "alerta do INMET já visto aparece numa linha só na próxima abertura");
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
 
 // ciclovias: liga o mapa CyclOSM e a escolha fica salva

@@ -38,7 +38,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
                 <AddressCombo id={'addr-' + p.k} caption={p.caption} label={p.label} placeholder={p.ph} value={s[p.k] ? s.names[p.k] || 'Ponto marcado no mapa' : ''}
                   onPick={(pt, name) => { if (name) s.setPoint(p.k, pt, name); else setPointFromMap(p.k, pt) }}
                   onClear={p.k === 'via' ? () => s.clearVia() : undefined} />
-                <button className="mapbtn" type="button" aria-label={`Marcar ${p.label.toLowerCase()} no mapa`} title="Marcar no mapa" onClick={() => pick(p.k)}><Crosshair /></button>
+                <button className="mapbtn" type="button" aria-label={`Marcar ${p.label.toLowerCase()} no mapa`} onClick={() => pick(p.k)}><Crosshair /></button>
               </div>
             ))}
           </div>

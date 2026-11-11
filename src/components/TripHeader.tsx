@@ -1,4 +1,4 @@
-import { ArrowUpDown, Briefcase, House, LocateFixed, MapPinned, Star, X } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Briefcase, House, LocateFixed, MapPinned, Star, X } from 'lucide-react'
 import { useState } from 'react'
 import { useSettings } from '../store/settings'
 import { endpointLL, endpointName, useTrip, type Endpoint } from '../store/trip'
@@ -15,19 +15,20 @@ export function TripHeader() {
   return (
     <section className="card triphead" aria-label="Trajeto">
       <div className="ends">
-        <button type="button" className="end" aria-label={'Trocar origem: ' + endpointName(origin)} aria-expanded={editing === 'origin'} onClick={() => setEditing(editing === 'origin' ? null : 'origin')}>
-          <i className="dot-o" aria-hidden="true" /><span className="nm">{endpointName(origin)}</span>
+        <button type="button" className="end" aria-label={'Trocar origem: ' + endpointName(origin)} aria-expanded={editing === 'origin'} data-tip="Trocar o ponto de saída" onClick={() => setEditing(editing === 'origin' ? null : 'origin')}>
+          <i className="dot-o" aria-hidden="true" /><span className="nm">{origin.kind === 'me' ? 'Você' : endpointName(origin)}</span>
         </button>
-        {via && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">{viaName ? 'Passando por ' + viaName : 'Passando pelo ponto P'}</span>
-          <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => { t().set({ via: null, viaName: '', routes: [] }); t().refresh() }}><X className="i" /></button></div>}
-        <button type="button" className="end" aria-label={'Trocar destino: ' + endpointName(dest)} aria-expanded={editing === 'dest'} onClick={() => setEditing(editing === 'dest' ? null : 'dest')}>
+        <ArrowRight className="i to" aria-hidden="true" />
+        <button type="button" className="end" aria-label={'Trocar destino: ' + endpointName(dest)} aria-expanded={editing === 'dest'} data-tip="Trocar o destino" onClick={() => setEditing(editing === 'dest' ? null : 'dest')}>
           <i className="dot-d" aria-hidden="true" /><span className="nm"><b>{endpointName(dest)}</b></span>
         </button>
       </div>
       <div className="actions">
-        <button className="ibtn" type="button" aria-label="Inverter origem e destino" onClick={() => { setEditing(null); t().swap() }}><ArrowUpDown className="i" /></button>
+        <button className="ibtn" type="button" aria-label="Inverter origem e destino" onClick={() => { setEditing(null); t().swap() }}><ArrowLeftRight className="i" /></button>
         <button className="ibtn" type="button" aria-label="Fechar trajeto" onClick={() => t().closeTrip()}><X className="i" /></button>
       </div>
+      {via && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">{viaName ? 'Passando por ' + viaName : 'Passando pelo ponto P'}</span>
+        <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => { t().set({ via: null, viaName: '', routes: [] }); t().refresh() }}><X className="i" /></button></div>}
       {editing && <EndPicker which={editing} onDone={() => setEditing(null)} />}
     </section>
   )

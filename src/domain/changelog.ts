@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.16.0'
+export const CURRENT_APP_VERSION = '2.17.0'
 export const CHANGELOG = [
+  {
+    version: '2.17.0',
+    title: 'Telas mais limpas e dicas nos botões',
+    items: [
+      'O trajeto cabe numa linha só ("Você → Trabalho"), e o "Iniciar pedal" aparece logo de cara.',
+      'Alertas do INMET aparecem por inteiro só na primeira vez; depois ficam numa linha, sem ocupar a tela.',
+      'No computador, passe o mouse sobre um botão para ver o que ele faz.',
+    ],
+  },
   {
     version: '2.16.0',
     title: 'Velocímetro e mais mapa no pedal',
