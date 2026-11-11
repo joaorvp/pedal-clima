@@ -654,3 +654,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
   .ld-grid .ld-ic{grid-row:span 2}
   .ld-grid .ld-card h3{margin:2px 0 2px}
 }
+/* desktop: atalhos quebram linha dentro do cartão (sem rolagem lateral, que é ruim com mouse) */
+@media (min-width:1000px){
+  .shortcuts{flex-wrap:wrap;overflow:visible;margin:0;padding:2px 0}
+}

@@ -1,6 +1,11 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.21.0'
+export const CURRENT_APP_VERSION = '2.21.1'
 export const CHANGELOG = [
+  {
+    version: '2.21.1',
+    title: 'Atalhos arrumados no computador',
+    items: ['No computador, os atalhos de destino (Casa, Trabalho, lugares) quebram linha dentro do cartão, sem cortar nem precisar rolar para o lado.'],
+  },
   {
     version: '2.21.0',
     title: 'Página de apresentação, privacidade e backup',
