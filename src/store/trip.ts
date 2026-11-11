@@ -56,7 +56,7 @@ interface TripState {
   ride: Ride | null
   feedbackPred: Ride['pred']
   arrived: boolean
-  pickMode: PointKey | 'dest' | null
+  pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
   fitNonce: number
@@ -70,6 +70,8 @@ interface TripState {
   startTrip: (dest: Endpoint, origin?: Endpoint) => void
   closeTrip: () => void
   swap: () => void
+  /** troca a origem ou o destino do trajeto aberto (ou abre um trajeto, se ainda não houver) */
+  setEnd: (which: 'origin' | 'dest', e: Endpoint) => void
 }
 
 /** Coordenada de um ponto do trajeto (a posição atual, se for "Sua localização"). */
@@ -112,6 +114,14 @@ export const useTrip = create<TripState>()((set, get) => ({
     get().refresh()
   },
   closeTrip: () => { set({ mode: 'explore', dest: null, routes: [], via: null, dep: null, routeNote: '', error: '', centerNonce: get().centerNonce + 1 }); get().refreshLocal() },
+  setEnd: (which, e) => {
+    const st = get()
+    if (st.mode !== 'trip' || !st.dest) { if (which === 'dest') get().startTrip(e); else get().startTrip(st.dest ?? e, e); return }
+    const origin = which === 'origin' ? e : st.origin, dest = which === 'dest' ? e : st.dest
+    const oll = endpointLL(origin, st.me), dll = endpointLL(dest, st.me)
+    set({ origin, dest, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, error: '' })
+    get().refresh()
+  },
   swap: () => {
     const { origin, dest, me } = get(); if (!dest) return
     // "Sua localização" vira um ponto fixo ao ir para o destino: a volta parte de onde você estava.

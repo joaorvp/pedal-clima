@@ -12,10 +12,11 @@ interface Props {
   onPick: (ll: LatLon, name: string) => void
   onClear?: () => void
   caption?: string
+  autoFocus?: boolean
 }
 
 /** Campo de endereço com sugestões enquanto digita (Photon), link do Google Maps ou coordenadas. */
-export function AddressCombo({ id, value, placeholder, label, onPick, onClear, caption }: Props) {
+export function AddressCombo({ id, value, placeholder, label, onPick, onClear, caption, autoFocus }: Props) {
   const [text, setText] = useState(value)
   const [items, setItems] = useState<PhotonFeature[]>([])
   const [open, setOpen] = useState(false)
@@ -44,7 +45,7 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
   return (
     <div className="combo">
       {caption && <label className="cap" htmlFor={id}>{caption}</label>}
-      <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder={placeholder} aria-label={label} value={text}
+      <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder={placeholder} aria-label={label} value={text} autoFocus={autoFocus}
         role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={sel >= 0 ? `${listId}-${sel}` : undefined}
         onChange={e => onInput(e.target.value)}
         onFocus={e => { focused.current = true; e.target.select() }}

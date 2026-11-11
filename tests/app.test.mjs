@@ -58,6 +58,17 @@ assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azu
 assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
 assert.match(await page.textContent(".local-where"), /Onde você está/);
 
+// tocar e segurar no mapa (clique direito no computador): "Ir para cá" monta o trajeto até o ponto
+const mapBox = await page.locator("#map").boundingBox();
+await page.mouse.click(mapBox.x + mapBox.width * 0.7, mapBox.y + 120, { button: "right" });
+await page.waitForTimeout(500);
+assert.ok(await page.locator(".drop").count() === 1, "deve abrir o alfinete com as opções");
+await page.evaluate(() => document.querySelector('.drop [data-a="dest"]').click());
+await page.waitForTimeout(1200);
+assert.match(await page.textContent(".triphead"), /Rua 9|Ponto no mapa/);
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());
+await page.waitForTimeout(500);
+
 // montar o trajeto pelo atalho do trabalho
 await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click());
 await page.waitForTimeout(1200);
@@ -68,6 +79,19 @@ assert.ok((await page.locator("#timeline li").count()) >= 2, "linha do tempo dev
 assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternativas");
 assert.match(await page.textContent("#alert"), /INMET/);
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
+assert.ok((await page.locator(".rlabel").count()) >= 2, "cada rota deve ter etiqueta de tempo e chuva no mapa");
+
+// trocar o destino pelo cabeçalho e voltar para o trabalho
+const pickDest = async name => {
+  await page.evaluate(() => document.querySelector('.triphead button.end[aria-label^="Trocar destino"]').click());
+  await page.waitForTimeout(300);
+  await page.evaluate(n => [...document.querySelectorAll(".endpick .sc")].find(b => b.textContent.includes(n)).click(), name);
+  await page.waitForTimeout(1200);
+};
+await pickDest("Casa");
+assert.match(await page.textContent(".triphead"), /Casa/);
+await pickDest("Trabalho");
+assert.match(await page.textContent(".triphead"), /Trabalho/);
 
 // modo pedal: a bike aparece no mapa e o pedal termina ao chegar
 await page.evaluate(() => document.getElementById("ride").click());

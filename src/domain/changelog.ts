@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.2.0'
+export const CURRENT_APP_VERSION = '2.3.0'
 export const CHANGELOG = [
+  {
+    version: '2.3.0',
+    title: 'Monte o trajeto do seu jeito',
+    items: [
+      'Toque na origem ou no destino para trocar: busca, seus lugares, sua localização ou escolher no mapa.',
+      'Toque e segure no mapa para ir até aquele ponto, sair dele ou salvá-lo como lugar.',
+      'Cada rota mostra no mapa o tempo e a chuva prevista; toque na etiqueta para escolher.',
+      'O ponto de passagem aparece no trajeto e pode ser removido.',
+    ],
+  },
   {
     version: '2.2.0',
     title: 'Comece de onde você está',

@@ -3,13 +3,35 @@ import { Layers, LocateFixed, Maximize, Play, Route as RouteIcon, Square } from 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { hhmm, fmt1 } from '../domain/format'
 import { placeName } from '../domain/advice'
-import { ordered, CATS, cat } from '../domain/weather'
-import type { LatLon } from '../domain/types'
+import { ordered, CATS, cat, evaluate } from '../domain/weather'
+import { hav, pointAt } from '../domain/geo'
+import type { LatLon, Route } from '../domain/types'
 import { lastView, saveView } from '../hooks/location'
 import { useTripView } from '../hooks/useTripView'
 import { useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
 import { setPointFromMap, setTripVia } from '../store/actions'
+import { buzz } from '../hooks/location'
+import { reverseName } from '../services/places'
+
+/** Onde pôr a etiqueta de uma rota: no ponto em que ela mais se afasta das outras (lá se vê a diferença). */
+function labelSpot(r: Route, others: Route[], fallback: number): LatLon {
+  if (!others.length) return pointAt(r.line, r.cum, r.total * fallback)
+  const pts = others.flatMap(o => o.line.filter((_, k) => k % Math.max(1, Math.floor(o.line.length / 150)) === 0))
+  let best = fallback, bestD = -1
+  for (let f = 0.2; f <= 0.8; f += 0.04) {
+    const p = pointAt(r.line, r.cum, r.total * f)
+    const d = Math.min(...pts.map(q => hav(p, q)))
+    if (d > bestD) { bestD = d; best = f }
+  }
+  return pointAt(r.line, r.cum, r.total * best)
+}
+
+/** Origem ou destino escolhido tocando no mapa, com o nome da rua quando der. */
+async function pickPoint(which: 'origin' | 'dest', ll: LatLon) {
+  const name = await reverseName(ll)
+  useTrip.getState().setEnd(which, { kind: 'place', ll, name: name ?? 'Ponto no mapa' })
+}
 
 const css = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
 const BASES = [
@@ -32,7 +54,7 @@ const BIKE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke
 const bikeIcon = (heading: number | null) => L.divIcon({ className: 'smooth', iconSize: [56, 56], iconAnchor: [28, 28],
   html: `<div class="bike-me">${heading != null ? `<div class="bike-cone" style="transform:rotate(${heading}deg)"></div>` : ''}<div class="bike-disc">${BIKE}</div></div>` })
 
-const PICK_LABEL: Record<PointKey | 'dest', string> = { home: 'Toque no mapa onde fica a sua casa', via: 'Toque num ponto por onde você passa', work: 'Toque no mapa onde fica o trabalho', dest: 'Toque no mapa para escolher o destino' }
+const PICK_LABEL: Record<PointKey | 'dest' | 'origin', string> = { home: 'Toque no mapa onde fica a sua casa', via: 'Toque num ponto por onde você passa', work: 'Toque no mapa onde fica o trabalho', dest: 'Toque no mapa para escolher o destino', origin: 'Toque no mapa para escolher de onde sair' }
 
 interface Lyr { route: L.LayerGroup; ends: L.LayerGroup; places: L.LayerGroup; radar: L.TileLayer | null; me: L.Marker | null; acc: L.Circle | null; handle: L.Marker | null; meBike: boolean | null }
 
@@ -71,8 +93,28 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       const t = useTrip.getState(), k = t.pickMode; if (!k) return
       const ll: LatLon = [e.latlng.lat, e.latlng.lng]
       t.set({ pickMode: null })
-      if (k === 'dest') t.startTrip({ kind: 'place', ll, name: 'Ponto no mapa' })
+      if (k === 'dest' || k === 'origin') pickPoint(k, ll)
       else setPointFromMap(k, ll)
+    })
+    // tocar e segurar (ou clique direito): alfinete com "Ir para cá", "Sair daqui" e "Salvar lugar"
+    map.on('contextmenu', e => {
+      if (useTrip.getState().ride?.pos || useTrip.getState().pickMode) return
+      buzz(15)
+      const ll: LatLon = [+e.latlng.lat.toFixed(5), +e.latlng.lng.toFixed(5)]
+      const box = document.createElement('div'); box.className = 'drop'
+      box.innerHTML = `<b class="drop-name">Ponto no mapa</b><small class="num">${ll[0].toFixed(4)}, ${ll[1].toFixed(4)}</small>
+        <div class="drop-actions"><button type="button" data-a="dest" class="btn primary">Ir para cá</button><button type="button" data-a="origin" class="btn">Sair daqui</button><button type="button" data-a="save" class="btn">Salvar lugar</button></div>`
+      let name = 'Ponto no mapa'
+      const pop = L.popup({ className: 'drop-pop', closeButton: true, autoPanPaddingTopLeft: [16, 120], autoPanPaddingBottomRight: [64, useTrip.getState().sheetVisible + 20], offset: [0, -4] }).setLatLng(e.latlng).setContent(box).openOn(map)
+      const pin = L.marker(e.latlng, { icon: destIcon, interactive: false, keyboard: false, opacity: .85 }).addTo(map)
+      pop.on('remove', () => map.removeLayer(pin))
+      reverseName(ll).then(n => { if (n) { name = n; box.querySelector('.drop-name')!.textContent = n } })
+      box.addEventListener('click', ev => {
+        const a = (ev.target as HTMLElement).closest('button')?.dataset.a; if (!a) return
+        map.closePopup(pop)
+        if (a === 'save') { useSettings.getState().addPlace(name.split(',')[0].slice(0, 30), name, ll); return }
+        useTrip.getState().setEnd(a as 'dest' | 'origin', { kind: 'place', ll, name })
+      })
     })
     setInst({ map, ly })
     return () => { map.remove(); setInst(null) }
@@ -157,6 +199,37 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       ly.handle = h
     }
   }, [map, ly, mode, routes, sel, view, ride?.pos, ride?.d])
+
+  // etiquetas das rotas: tempo e chuva de cada uma, direto no mapa (tocar troca a rota);
+  // reposicionadas a cada zoom para nunca ficarem uma em cima da outra
+  useEffect(() => {
+    if (!map || mode !== 'trip') return
+    const labels = L.layerGroup().addTo(map)
+    const draw = () => {
+      labels.clearLayers()
+      if (routes.length < 2 || ride?.pos) return
+      const sp = useSettings.getState().speed || 22, depMs = useTrip.getState().dep ?? Date.now()
+      const evs = routes.map(r => r.wx ? evaluate(r, 'ida', depMs, sp) : null)
+      const ex = evs.map(e => e?.exposure ?? 99), driest = ex.indexOf(Math.min(...ex))
+      const spread = Math.max(...ex) - Math.min(...ex) >= 0.1
+      const placed: L.Point[] = []
+      routes.forEach((r, i) => {
+        const e = evs[i]; if (!e) return
+        const at = labelSpot(r, routes.filter((_, j) => j !== i), [0.5, 0.36, 0.64][i % 3])
+        // se cair em cima de outra etiqueta, desce até ficar livre
+        const px = map.latLngToContainerPoint(at); let dy = 0
+        while (placed.some(q => Math.abs(q.x - px.x) < 76 && Math.abs(q.y - (px.y + dy)) < 40)) dy += 42
+        placed.push(L.point(px.x, px.y + dy))
+        const rain = e.exposure < 0.05 ? 'seco' : fmt1(e.exposure) + ' mm'
+        const html = `<div class="rlabel${i === sel ? ' on' : ''}${spread && i === driest ? ' dry' : ''}" style="margin-top:${dy}px"><b>${Math.round(e.dur / 60000)} min</b><span>${rain}</span></div>`
+        L.marker(at, { icon: L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 0], html }), zIndexOffset: i === sel ? 800 : 700, keyboard: false })
+          .on('click', () => useTrip.getState().selectRoute(i)).addTo(labels)
+      })
+    }
+    draw()
+    map.on('zoomend', draw)
+    return () => { map.off('zoomend', draw); map.removeLayer(labels) }
+  }, [map, mode, routes, sel, ride?.pos])
 
   // enquadra a rota quando ela muda; centraliza em você ao abrir e ao voltar para a tela inicial
   const fitRef = useRef(fit), centerRef = useRef(centerOn)
