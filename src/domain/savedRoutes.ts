@@ -1,4 +1,4 @@
-import { cumulative, hav, project } from './geo'
+import { cumulative, hav } from './geo'
 import type { LatLon } from './types'
 
 /** Rota que você salvou com nome (desenhada no mapa ou gravada num pedal). */
@@ -42,13 +42,6 @@ export function matchSaved(list: SavedRoute[], o: LatLon, d: LatLon, maxKm = 0.6
     else if (hav(b, o) <= maxKm && hav(a, d) <= maxKm) out.push({ route: r, line: r.line.slice().reverse() })
   }
   return out
-}
-
-/** Encaixa um ponto de passagem novo na ordem certa, pela posição dele ao longo da rota atual. */
-export function insertVia(vias: LatLon[], ll: LatLon, line: LatLon[]): LatLon[] {
-  if (line.length < 2) return [...vias, ll]
-  const cum = cumulative(line), at = (p: LatLon) => project(p, line, cum).d
-  return [...vias, ll].map(p => ({ p, d: at(p) })).sort((a, b) => a.d - b.d).map(x => x.p)
 }
 
 /**

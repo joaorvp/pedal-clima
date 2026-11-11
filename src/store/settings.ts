@@ -45,7 +45,9 @@ export const settingsSchema = z.object({
   /** a pessoa já tocou em "Permitir localização" no card de explicação */
   locAllowed: z.boolean().catch(false),
   /** pedais concluídos (resumo de cada um), do mais recente para o mais antigo */
-  history: z.array(z.object({ km: z.number(), mins: z.number(), avg: z.number(), rain: z.number(), wh: z.number().nullable(), dest: z.string(), at: z.number() })).catch([]),
+  history: z.array(z.object({ km: z.number(), mins: z.number(), avg: z.number(), rain: z.number(), wh: z.number().nullable(), dest: z.string(), at: z.number(),
+    /** caminho percorrido (simplificado); guardado só nos 30 pedais mais recentes */
+    track: z.array(latLon).optional().catch(undefined) })).catch([]),
   /** no pedal, o mapa gira conforme a direção (bússola) */
   headingUp: z.boolean().catch(true),
   /** mapa de ciclovias (CyclOSM) no lugar do mapa comum */
@@ -131,7 +133,8 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
     const places = s.places.slice(); [places[i], places[j]] = [places[j], places[i]]
     return { places }
   }),
-  addHistory: h => set(s => ({ history: [h, ...s.history].slice(0, 300) })),
+  // o caminho fica só nos 30 pedais mais recentes (o armazenamento do navegador é pequeno); os totais, em até 300
+  addHistory: h => set(s => ({ history: [h, ...s.history].slice(0, 300).map((x, i) => i < 30 || !x.track ? x : { ...x, track: undefined }) })),
   addRecent: (name, ll) => set(s => {
     const [lat, lon] = round(ll)
     const near = (a: { lat: number; lon: number }) => Math.abs(a.lat - lat) + Math.abs(a.lon - lon) < 0.002

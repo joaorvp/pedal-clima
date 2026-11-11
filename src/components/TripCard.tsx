@@ -6,7 +6,7 @@ import { useLabels, useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { OpenIn } from './TripHeader'
-import { SaveRoute } from './SaveRoute'
+import { SavedNote } from './SaveRoute'
 
 const color = (c: number) => `var(${CATS[c].color})`
 
@@ -19,7 +19,7 @@ export function TripCard() {
     <section className="card">
       <h2>Seu trajeto, minuto a minuto <span className="aside num" id="tl-dist">{view ? fmt1(view.route.total) + ' km' : ''}</span></h2>
       <Routes />
-      <SaveRoute />
+      <SavedNote />
       {view && <>
         <div className="routebar" id="routebar" aria-hidden="true">
           {view.ev.segs.map((sg, i) => <i key={i} style={{ width: (sg.to - sg.from) / view.route.total * 100 + '%', background: color(cat(sg.rate)) }} />)}
@@ -59,7 +59,7 @@ function Routes() {
           <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
         </button>
       ) })}
-      {!ride && <p className="routes-hint">No mapa: toque numa rota para escolher. Para moldar o caminho, toque na rota escolhida e arraste o ponto; repita para usar vários pontos.</p>}
+      {!ride && <p className="routes-hint">No mapa: toque numa rota para escolher. Para ir por outro caminho, toque na rota escolhida e arraste o ponto.</p>}
     </div>
   )
 }

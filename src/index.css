@@ -694,3 +694,26 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .saved-note b{color:var(--ink)}
 .badge.mine{background:color-mix(in srgb,var(--link) 16%,transparent);color:var(--link)}
 .dlg-body .sec{scroll-margin-top:64px}
+/* histórico: abrir um pedal mostra o caminho */
+.hist-list li{display:block;padding:0}
+.hist-row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;width:100%;border:0;background:transparent;color:inherit;text-align:left;font:inherit;min-height:52px}
+button.hist-row{cursor:pointer}
+.hist-row .rain{display:flex;align-items:center;gap:4px}
+.hist-row .chev{width:16px;height:16px;color:var(--muted);transition:transform .2s}
+.hist-list li.open .chev{transform:rotate(180deg)}
+.hist-detail{display:grid;gap:10px;padding:0 0 12px}
+.hist-detail .btn{justify-content:center;min-height:44px}
+.track-preview{width:100%;height:auto;max-height:180px;background:var(--surface-2);border-radius:12px}
+/* importar rota de um print */
+.imp-ends{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.imp-ends label{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.imp-ends select{min-height:44px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;padding:0 10px;font-size:16px}
+.imp-pick{justify-content:center;min-height:48px}
+.imp-hint{margin:0;font-size:15px}
+.imp-img{position:relative;width:100%;max-height:60dvh;margin:0 auto;border-radius:12px;overflow:hidden;background:var(--surface-2);touch-action:manipulation}
+.imp-img.tapping{cursor:crosshair}
+.imp-img img,.imp-img svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
+.imp-img img{object-fit:fill}
+.imp-actions{display:flex;flex-wrap:wrap;gap:8px}
+.imp-actions .btn{flex:1 1 140px;justify-content:center;min-height:44px}
+.imp-open{width:100%;justify-content:center;min-height:44px;margin-top:8px}

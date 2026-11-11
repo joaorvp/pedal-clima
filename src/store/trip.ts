@@ -44,7 +44,7 @@ export interface Ride {
 }
 
 /** Resumo mostrado ao chegar. */
-export interface RideSummary { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number }
+export interface RideSummary { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number; track?: LatLon[] }
 export type SheetState = 'peek' | 'half' | 'full'
 export type Mode = 'explore' | 'trip'
 
@@ -54,8 +54,6 @@ interface TripState {
   dest: Endpoint | null
   /** pontos de passagem do trajeto atual, na ordem do caminho (arrastando a rota ou abrigo escolhido) */
   vias: LatLon[]
-  /** caminho gravado no último pedal concluído (para salvar como rota) */
-  lastTrack: LatLon[] | null
   dep: number | null
   me: Me | null
   locStatus: LocStatus
@@ -129,7 +127,7 @@ function initialLanding() {
 }
 
 export const useTrip = create<TripState>()((set, get) => ({
-  mode: 'explore', origin: { kind: 'me' }, dest: null, vias: [], lastTrack: null, dep: null,
+  mode: 'explore', origin: { kind: 'me' }, dest: null, vias: [], dep: null,
   me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
@@ -143,12 +141,12 @@ export const useTrip = create<TripState>()((set, get) => ({
   startTrip: (dest, origin) => {
     if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
-    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], lastTrack: null, viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
     get().refresh()
   },
   closeTrip: () => {
     const prev = { origin: get().origin, dest: get().dest, vias: get().vias, routes: get().routes, sel: get().sel, dep: get().dep }
-    set({ mode: 'explore', dest: null, routes: [], vias: [], lastTrack: null, dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
+    set({ mode: 'explore', dest: null, routes: [], vias: [], dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
     get().refreshLocal()
     if (prev.dest) useUndo.getState().show('Trajeto fechado', () => { set({ mode: 'trip', ...prev, fitNonce: get().fitNonce + 1 }); if (!prev.routes.length) get().refresh() })
   },

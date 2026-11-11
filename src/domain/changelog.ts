@@ -3,12 +3,12 @@ export const CURRENT_APP_VERSION = '2.23.0'
 export const CHANGELOG = [
   {
     version: '2.23.0',
-    title: 'Suas rotas: molde o caminho e salve',
+    title: 'Sua rota: pelo histórico ou por um print',
     items: [
-      'Molde a rota com vários pontos: toque na rota escolhida e arraste o ponto, quantas vezes quiser. Cada ponto pode ser arrastado de novo ou removido tocando nele.',
-      '"Salvar esta rota" guarda o caminho com nome. Da próxima vez que você for para lá (ou voltar), ela aparece primeiro, com chuva e tempo calculados.',
-      'Ao chegar de um pedal, "Salvar o caminho que você fez" transforma o trajeto real em rota de referência.',
-      'Gerencie as rotas em Ajustes → Rotas salvas. Elas entram no backup.',
+      'Cada pedal concluído agora guarda o caminho que você fez. Em Seus pedais, toque num pedal para ver o desenho do percurso.',
+      'Fez um caminho melhor que as sugestões? Toque em "Usar como minha rota": da próxima vez que fizer esse trajeto (nos dois sentidos), ela aparece primeiro e já escolhida, com chuva e tempo calculados.',
+      'Fez o caminho por outro app? Em Ajustes → Rotas salvas → Importar de um print: escolha de onde e para onde, envie o print do Google Maps (ou Waze, Strava) e toque no começo e no fim da linha. O app copia a rota para o mapa, ajustada às ruas.',
+      'Gerencie as suas rotas em Ajustes → Rotas salvas. Elas entram no backup.',
     ],
   },
   {

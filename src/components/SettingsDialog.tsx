@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Crosshair, Download, Trash2, Upload, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Crosshair, Download, ImagePlus, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { accuracyText } from '../domain/calibration'
 import { STOP_FACTOR, useSettings, type PointKey } from '../store/settings'
@@ -10,6 +10,7 @@ import type { Settings } from '../store/settings'
 import { learnedSpeed } from '../domain/speed'
 import { AddressCombo } from './AddressCombo'
 import { Dialog } from './Dialog'
+import { ImportRoute } from './ImportRoute'
 
 const PLACE_DEF: { k: PointKey; label: string; caption: string; ph: string; color: string; letter: string }[] = [
   { k: 'home', label: 'Casa', caption: 'Casa', ph: 'Endereço de casa', color: '#1b2b4b', letter: 'C' },
@@ -19,6 +20,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
   const s = useSettings()
   const [plName, setPlName] = useState('')
   const [gpsMsg, setGpsMsg] = useState('')
+  const [importing, setImporting] = useState(false), [importMsg, setImportMsg] = useState('')
   const learned = learnedSpeed(s.history)
   const pick = (k: PointKey) => { onClose(); useTrip.getState().set({ pickMode: k, sheet: 'peek' }) }
 
@@ -90,7 +92,9 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
               ))}
             </div>
           ) : null}
-          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Num trajeto, toque em "Salvar esta rota" (dá para moldar o caminho arrastando a rota no mapa) ou, ao chegar de um pedal, em "Salvar o caminho que você fez".'}</p>
+          <button className="btn imp-open" type="button" id="import-open" onClick={() => setImporting(true)}><ImagePlus className="i" />Importar de um print</button>
+          {importMsg && <p className="note ok-text" id="import-msg" style={{ margin: '6px 0 0' }}>{importMsg}</p>}
+          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Em Seus pedais (ícone de relógio no topo), toque num pedal concluído e em "Usar como minha rota", ou importe de um print de outro app.'}</p>
         </div>
 
         <div className="sec">
@@ -127,6 +131,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
 
       </div>
       <div className="dlg-foot"><button className="btn primary" type="button" id="settings-done" onClick={onClose}>Pronto</button></div>
+      <ImportRoute open={importing} onClose={m => { setImporting(false); if (m) setImportMsg(m) }} />
     </Dialog>
   )
 }

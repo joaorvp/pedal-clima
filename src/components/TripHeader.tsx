@@ -28,8 +28,8 @@ export function TripHeader() {
         <button className="ibtn" type="button" aria-label="Inverter origem e destino" onClick={() => { setEditing(null); t().swap() }}><ArrowLeftRight className="i" /></button>
         <button className="ibtn" type="button" aria-label="Fechar trajeto" onClick={() => t().closeTrip()}><X className="i" /></button>
       </div>
-      {vias.length > 0 && <div className="end via"><i className="dot-v" aria-hidden="true">{vias.length}</i><span className="nm">{viaName ? 'Passando por ' + viaName : vias.length === 1 ? 'Passando por 1 ponto escolhido' : `Passando por ${vias.length} pontos escolhidos`}</span>
-        <button type="button" className="ibtn sm" aria-label={vias.length > 1 ? 'Remover todos os pontos de passagem' : 'Remover ponto de passagem'} onClick={() => removeTripVia()}><X className="i" /></button></div>}
+      {vias.length > 0 && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">{viaName ? 'Passando por ' + viaName : 'Passando pelo ponto escolhido'}</span>
+        <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => removeTripVia()}><X className="i" /></button></div>}
       {editing && <EndPicker which={editing} onDone={() => setEditing(null)} />}
     </section>
   )

@@ -1,4 +1,4 @@
-import { Bike, Share2, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Bike, Bookmark, ChevronDown, Share2, TrendingDown, TrendingUp, X } from 'lucide-react'
 import { useState } from 'react'
 import { fmt1, hhmm } from '../domain/format'
 import { periodStarts, speedTrend, totals, weekly } from '../domain/history'
@@ -6,6 +6,9 @@ import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { useUndo } from '../store/undo'
 import { Dialog } from './Dialog'
+import { NameForm } from './SaveRoute'
+import { saveAsRoute } from '../store/actions'
+import type { LatLon } from '../domain/types'
 
 const dur = (m: number) => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
 const day = (t: number) => new Date(t).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
@@ -14,6 +17,7 @@ const day = (t: number) => new Date(t).toLocaleDateString('pt-BR', { weekday: 's
 export function HistoryDialog() {
   const open = useTrip(s => s.historyOpen), history = useSettings(s => s.history), now = useTrip(s => s.now)
   const close = () => useTrip.getState().set({ historyOpen: false })
+  const [expanded, setExpanded] = useState<number | null>(null), [naming, setNaming] = useState(false), [msg, setMsg] = useState('')
   const { week, month } = periodStarts(new Date(now))
   const blocks = [{ label: 'Esta semana', t: totals(history, week) }, { label: 'Este mês', t: totals(history, month) }]
   return (
@@ -37,14 +41,32 @@ export function HistoryDialog() {
             ))}
           </div>
           <Weeks />
+          {msg && <p className="note ok-text" id="hist-msg" style={{ margin: 0 }}>{msg}</p>}
+          {history.some(h => h.track) && <p className="note" style={{ margin: 0 }}>Toque num pedal para ver o caminho que você fez e usá-lo como sua rota.</p>}
           <ul className="hist-list">
-            {history.slice(0, 40).map(h => (
-              <li key={h.at}>
+            {history.slice(0, 40).map(h => {
+              const row = <>
                 <span className="when"><b>{day(h.at)}</b><small className="num">{hhmm(h.at)}</small></span>
                 <span className="txt"><b>{h.dest}</b><small>{fmt1(h.km)} km · {h.mins} min{h.avg > 0 && h.avg < 70 ? ` · ${Math.round(h.avg)} km/h` : ''}</small></span>
-                <span className={'rain' + (h.rain >= 0.1 ? ' wet' : '')}>{h.rain >= 0.1 ? fmt1(h.rain) + ' mm' : 'seco'}</span>
-              </li>
-            ))}
+                <span className={'rain' + (h.rain >= 0.1 ? ' wet' : '')}>{h.rain >= 0.1 ? fmt1(h.rain) + ' mm' : 'seco'}{h.track && <ChevronDown className="i chev" aria-hidden="true" />}</span>
+              </>
+              return (
+                <li key={h.at} className={expanded === h.at ? 'open' : ''}>
+                  {h.track
+                    ? <button type="button" className="hist-row" aria-expanded={expanded === h.at} onClick={() => { setExpanded(expanded === h.at ? null : h.at); setNaming(false) }}>{row}</button>
+                    : <div className="hist-row">{row}</div>}
+                  {expanded === h.at && h.track && (
+                    <div className="hist-detail">
+                      <TrackPreview line={h.track} />
+                      {naming
+                        ? <NameForm initial={'Meu caminho para ' + h.dest} label="Nome da rota" onCancel={() => setNaming(false)}
+                            onSave={name => { saveAsRoute(name, h.track!); setNaming(false); setExpanded(null); setMsg(`"${name.trim() || 'Minha rota'}" salva. Ela aparece primeiro quando você fizer esse trajeto (nos dois sentidos).`) }} />
+                        : <button className="btn primary" type="button" id="hist-use" onClick={() => setNaming(true)}><Bookmark className="i" />Usar como minha rota</button>}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
           <button className="btn" type="button" id="hist-clear" onClick={() => {
             const prev = useSettings.getState().history
@@ -101,5 +123,25 @@ function Weeks() {
       <button className="btn" type="button" id="share-week" onClick={share}><Share2 className="i" />Compartilhar a semana</button>
       {msg && <p className="note" style={{ margin: 0 }}>{msg}</p>}
     </div>
+  )
+}
+
+/** Desenho do caminho do pedal (sem mapa por baixo): início em azul, chegada em laranja. */
+function TrackPreview({ line }: { line: LatLon[] }) {
+  const W = 300, H = 150, pad = 12
+  const lats = line.map(p => p[0]), lons = line.map(p => p[1]), k0 = Math.cos(lats[0] * Math.PI / 180)
+  const minLa = Math.min(...lats), maxLa = Math.max(...lats), minLo = Math.min(...lons), maxLo = Math.max(...lons)
+  const k = Math.min((W - 2 * pad) / Math.max(1e-6, (maxLo - minLo) * k0), (H - 2 * pad) / Math.max(1e-6, maxLa - minLa))
+  const ox = (W - (maxLo - minLo) * k0 * k) / 2, oy = (H - (maxLa - minLa) * k) / 2
+  const P = (p: LatLon) => [ox + (p[1] - minLo) * k0 * k, oy + (maxLa - p[0]) * k] as const
+  const d = line.map((p, i) => (i ? 'L' : 'M') + P(p).map(v => v.toFixed(1)).join(' ')).join('')
+  const [sx, sy] = P(line[0]), [ex, ey] = P(line[line.length - 1])
+  return (
+    <svg className="track-preview" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Desenho do caminho que você fez">
+      <path d={d} fill="none" stroke="var(--line)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke="var(--link)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={sx} cy={sy} r="6" fill="var(--surface)" stroke="var(--link)" strokeWidth="3" />
+      <circle cx={ex} cy={ey} r="6.5" fill="#e2662a" stroke="var(--surface)" strokeWidth="2.5" />
+    </svg>
   )
 }

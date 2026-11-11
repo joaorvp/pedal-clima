@@ -35,6 +35,12 @@ async function brouter(pts: LatLon[], idx: number): Promise<RouteCandidate | nul
   } catch { return null }
 }
 
+/** Encaixa um traçado nas ruas: o BRouter liga os pontos (em ordem) pelo caminho de bike mais próximo. */
+export async function snapToRoads(pts: LatLon[]): Promise<LatLon[] | null> {
+  const r = await brouter(pts, 0)
+  return r?.line?.length ? r.line : null
+}
+
 /** Até 3 rotas diferentes. Bike: as do BRouter (por ciclovias), com o OSRM de reserva; e uma pelas vias principais para comparar. */
 export async function fetchRoutes(home: LatLon, vias: LatLon[], dest: LatLon, profile: Profile): Promise<{ routes: RouteCandidate[]; fallback: boolean }> {
   const ends = [home, dest], pts = [home, ...vias, dest], via = vias.length > 0

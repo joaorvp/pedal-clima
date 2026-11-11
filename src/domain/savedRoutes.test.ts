@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { appendTrack, insertVia, lineKm, matchSaved, simplify, type SavedRoute } from './savedRoutes'
+import { appendTrack, lineKm, matchSaved, simplify, type SavedRoute } from './savedRoutes'
 import type { LatLon } from './types'
 
 const straight = (n: number): LatLon[] => Array.from({ length: n }, (_, i) => [-15.8 + i * 0.0001, -48.0])
@@ -18,10 +18,6 @@ describe('rotas salvas', () => {
     const back = matchSaved([r], [-15.79, -47.99], [-15.8, -48.0])
     expect(back[0].line[0]).toEqual([-15.79, -47.99])
     expect(matchSaved([r], [-15.7, -48.0], [-15.79, -47.99])).toHaveLength(0)
-  })
-  it('ponto de passagem novo entra na ordem do caminho', () => {
-    const line = straight(100), a = line[20], b = line[80], mid = line[50]
-    expect(insertVia([a, b], mid, line)).toEqual([a, mid, b])
   })
   it('gravação do pedal: um ponto a cada ~20 m e sem saltos do GPS', () => {
     let t: LatLon[] = []

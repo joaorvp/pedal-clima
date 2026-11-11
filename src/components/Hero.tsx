@@ -10,7 +10,6 @@ import { endpointName, useTrip, type RideSummary } from '../store/trip'
 import { Icon } from './icons'
 import { Dialog } from './Dialog'
 import { RideTools } from './RideTools'
-import { SaveTrack } from './SaveRoute'
 import { useEffect, useRef, useState } from 'react'
 
 export function Hero() {
@@ -149,7 +148,6 @@ function Summary({ s }: { s: RideSummary }) {
       </div>
       {s.wh != null && <p className="note" style={{ margin: '8px 0 0' }}>Bateria usada: ~{Math.round(s.wh)} Wh (estimativa).</p>}
       <button className="btn" type="button" id="share" onClick={share} style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}><Share2 className="i" />Compartilhar resumo</button>
-      <SaveTrack />
       <button className="linkbtn" type="button" style={{ marginTop: 10 }} onClick={() => useTrip.getState().set({ historyOpen: true })}>Ver histórico de pedais</button>
       {msg && <p className="note" style={{ margin: '6px 0 0' }}>{msg}</p>}
     </div>

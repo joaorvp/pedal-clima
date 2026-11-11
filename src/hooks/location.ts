@@ -2,7 +2,7 @@ import { bearing, hav, project } from '../domain/geo'
 import { evaluate, isRainy, rateAt } from '../domain/weather'
 import type { LatLon } from '../domain/types'
 import { readJson, writeJson } from '../services/cache'
-import { appendTrack } from '../domain/savedRoutes'
+import { appendTrack, simplify } from '../domain/savedRoutes'
 import { say } from './voice'
 import { baseSpeed, useSettings } from '../store/settings'
 import { endpointLL, useTrip, type Endpoint, type Me, type Ride, type RideSummary } from '../store/trip'
@@ -95,7 +95,7 @@ export function startRide(): string | null {
   const t = useTrip.getState()
   if (t.locStatus === 'denied') return 'Permita o acesso à localização no navegador para usar o modo pedal.'
   if (!navigator.geolocation) return 'Este navegador não fornece localização.'
-  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null, track: [] }, arrived: false, feedbackPred: null, summary: null, lastTrack: null, sheet: 'peek' })
+  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null, track: [] }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
   startLocation()
   if (t.me) rideStep(t.me, null)
   keepAwake(); buzz(30); saveRide(true)
@@ -156,9 +156,10 @@ export function stopRide(arrived = false) {
   if (arrived && r) {
     const mins = Math.max(1, Math.round((Date.now() - r.startedAt) / 60e3)), km = Math.max(r.dist, r.d)
     const s = useSettings.getState()
-    summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now() }
+    const path = [...r.track, ...(r.pos ? [r.pos] : [])]
+    summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now(), ...(path.length >= 3 ? { track: simplify(path) } : {}) }
   }
   if (summary) useSettings.getState().addHistory(summary)
-  // o caminho gravado só fica disponível para salvar se o pedal chegou ao destino; senão é descartado
-  t.set({ ride: null, dep: null, arrived, summary, feedbackPred: arrived ? r?.pred ?? null : null, lastTrack: arrived && r && r.track.length >= 3 ? [...r.track, ...(r.pos ? [r.pos] : [])] : null })
+  // pedal encerrado antes de chegar: o caminho gravado é descartado junto
+  t.set({ ride: null, dep: null, arrived, summary, feedbackPred: arrived ? r?.pred ?? null : null })
 }

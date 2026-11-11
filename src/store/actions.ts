@@ -13,13 +13,23 @@ export async function setPointFromMap(k: PointKey, ll: LatLon) {
 
 const r5 = (ll: LatLon): LatLon => [+ll[0].toFixed(5), +ll[1].toFixed(5)]
 
-/** Acrescenta um ponto de passagem (arrastando a rota no mapa), na ordem do caminho. Vale só para este trajeto. */
+/** Faz o trajeto passar por um ponto (arrastando a rota no mapa). Um ponto só, e vale só para este trajeto. */
 export async function setTripVia(ll: LatLon) {
   const { useTrip } = await import('./trip')
-  const { insertVia } = await import('../domain/savedRoutes')
-  const t = useTrip.getState(), line = t.routes[t.sel]?.line ?? []
-  t.set({ vias: insertVia(t.vias, r5(ll), line).slice(0, 8), viaName: '', routes: [] })
+  const t = useTrip.getState()
+  t.set({ vias: [r5(ll)], viaName: '', routes: [] })
   t.refresh()
+}
+
+/** Salva um caminho como rota sua; ela passa a ser a primeira e escolhida nesse trajeto (com Desfazer). */
+export async function saveAsRoute(name: string, line: LatLon[]) {
+  const { useTrip } = await import('./trip')
+  const { useUndo } = await import('./undo')
+  const s = useSettings.getState(), id = s.saveRoute(name, line)
+  s.patch({ routePick: useSettings.getState().savedRoutes.find(r => r.id === id)?.name })
+  const again = () => { const t = useTrip.getState(); if (t.mode === 'trip' && !t.ride) { t.set({ routes: [], vias: [], viaName: '' }); t.refresh() } }
+  again()
+  useUndo.getState().show('Rota salva', () => { useSettings.getState().removeRoute(id); again() })
 }
 /** Move um ponto de passagem já existente. */
 export async function moveTripVia(i: number, ll: LatLon) {

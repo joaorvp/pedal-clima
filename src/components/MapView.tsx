@@ -53,7 +53,7 @@ const glyph = (k: keyof typeof svgPath) => `<svg viewBox="0 0 24 24" width="16" 
 const placeIcon = (k: keyof typeof svgPath, label: string) => L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="saved-pin" title="${label}">${glyph(k)}</div>` })
 const destIcon = L.divIcon({ className: '', iconSize: [34, 42], iconAnchor: [17, 40], html: `<div class="dest-pin">${glyph('flag')}</div>` })
 const originIcon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: '<div class="origin-dot"></div>' })
-const viaIcon = (n: number) => L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: `<div class="pin" style="background:#6b7a93"><b>${n}</b></div>` })
+const viaIcon = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: '<div class="pin" style="background:#6b7a93"><b>P</b></div>' })
 const dotIcon = L.divIcon({ className: 'smooth', iconSize: [22, 22], iconAnchor: [11, 11], html: '<div class="me-dot"></div>' })
 const BIKE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3.4"/><circle cx="18" cy="16" r="3.4"/><path d="M6 16l3.6-6.4h5.6L18 16M9.6 9.6L8.6 7H7M15.2 9.6l-1-2.6h2.2M6 16h5.6l3.6-6.4"/></svg>'
 // a seta gira na tela: direção do movimento + giro atual do mapa (no modo bússola, aponta sempre para cima)
@@ -190,8 +190,8 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       const box = document.createElement('div'); box.className = 'drop'
       const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn'; rm.textContent = 'Remover este ponto'
       rm.onclick = () => { map.closePopup(); removeTripVia(i) }
-      box.append(Object.assign(document.createElement('b'), { textContent: `Ponto de passagem ${i + 1}` }), Object.assign(document.createElement('small'), { textContent: 'Arraste para mudar o caminho.' }), rm)
-      const m = L.marker(v, { icon: viaIcon(i + 1), draggable: !ride?.pos, title: `Ponto de passagem ${i + 1} (arraste para mudar)` }).bindPopup(box, { className: 'drop-pop', offset: [0, -26] }).addTo(ly.ends)
+      box.append(Object.assign(document.createElement('b'), { textContent: 'Ponto de passagem' }), Object.assign(document.createElement('small'), { textContent: 'Arraste para mudar o caminho.' }), rm)
+      const m = L.marker(v, { icon: viaIcon, draggable: !ride?.pos, title: 'Ponto de passagem (arraste para mudar)' }).bindPopup(box, { className: 'drop-pop', offset: [0, -26] }).addTo(ly.ends)
       m.on('dragend', () => { const p = m.getLatLng(); moveTripVia(i, [p.lat, p.lng]) })
     })
   }, [map, ly, mode, origin, dest, vias, ride?.pos]) // eslint-disable-line react-hooks/exhaustive-deps

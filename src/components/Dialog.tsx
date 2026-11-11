@@ -10,7 +10,8 @@ export function Dialog({ open, onClose, children, className, labelledBy }: { ope
   }, [open])
   return (
     <dialog ref={ref} className={className} aria-labelledby={labelledBy} id={labelledBy.replace('-title', '')}
-      onClose={onClose} onClick={e => { if (e.target === ref.current) onClose() }}>
+      // o evento de fechar de um diálogo aberto dentro deste sobe pela árvore do React: só fecha se for deste
+      onClose={e => { if (e.target === e.currentTarget) onClose() }} onClick={e => { if (e.target === ref.current) onClose() }}>
       {open && children}
     </dialog>
   )
