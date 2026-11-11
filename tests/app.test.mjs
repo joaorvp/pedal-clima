@@ -33,11 +33,12 @@ await page.route("**/*", r => {
   if (offline) return r.abort();
   if (u.includes("routed-")) return r.fulfill({ json: M.routeJson(u) });
   if (u.includes("/v1/elevation")) return r.fulfill({ json: M.elevationJson(u) });
+  if (u.includes("air-quality-api")) return r.fulfill({ json: M.airJson });
+  if (u.includes("overpass-api")) return r.fulfill({ json: M.overpassJson });
   if (u.includes("open-meteo")) return r.fulfill({ json: M.weatherJson(u) });
   if (u.includes("photon.komoot.io/api")) return r.fulfill({ json: M.photonJson });
   if (u.includes("photon.komoot.io/reverse")) return r.fulfill({ json: M.reverseJson });
   if (u.includes("inmet")) return r.fulfill({ json: M.inmetJson });
-  if (u.includes("overpass-api")) return r.fulfill({ json: M.overpassJson });
   if (u.includes("weather-maps.json")) return r.fulfill({ json: M.radarJson() });
   return r.fulfill({ status: 204, body: "" });
 });
@@ -58,6 +59,16 @@ assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open))
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
 assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
 assert.match(await page.textContent(".local-where"), /Onde você está/);
+assert.match(await page.textContent(".local-meta"), /24% umidade.*ar bom/s);
+assert.match(await page.textContent(".comfort"), /Umidade em 24%/);
+
+// relatar problema: relatório técnico sem coordenadas
+await page.click("#open-settings"); await page.waitForTimeout(300);
+await page.evaluate(() => document.getElementById("report").click()); await page.waitForTimeout(400);
+const report = await page.inputValue(".report");
+assert.match(report, /Pedágua \d+\.\d+\.\d+[\s\S]*Localização: ok/);
+assert.ok(!/-15\.\d|-48\.\d|-47\.\d/.test(report), "o relatório não pode ter coordenadas");
+await page.click("#settings-done"); await page.waitForTimeout(300);
 
 // rotina: com a saída daqui a 20 min, a tela inicial sugere o trajeto
 const soon = await page.evaluate(() => { const d = new Date(Date.now() + 20 * 60e3); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); });

@@ -2,6 +2,8 @@ import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFix
 import { startLocation } from '../hooks/location'
 import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
+import { airLabel, comfortAlerts } from '../domain/air'
+import { hourlyAt } from '../domain/weather'
 import { hhmm } from '../domain/format'
 import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
@@ -14,6 +16,9 @@ import { Icon } from './icons'
 export function LocalCard() {
   const local = useTrip(s => s.local), now = useTrip(s => s.now), loc = useTrip(s => s.locStatus), me = useTrip(s => s.me), watch = useTrip(s => s.watchClear)
   const sum = local ? localSummary(local.wx, now) : null
+  const air = useTrip(s => s.air)
+  const humidity = local ? hourlyAt(local.wx, now, 'relative_humidity_2m') : null
+  const comfort = local ? comfortAlerts({ feels: hourlyAt(local.wx, now, 'apparent_temperature'), humidity, aqi: air?.aqi ?? null }) : []
   const homeSet = useSettings(s => s.homeSet)
   const where = me ? 'Onde você está' : loc === 'asking' ? 'Procurando você…' : homeSet ? 'Perto da sua casa' : 'Na região do mapa'
   return (
@@ -35,8 +40,11 @@ export function LocalCard() {
         <div className="local-meta">
           {sum.temp != null && <span><b className="num">{Math.round(sum.temp)}°</b> agora</span>}
           {sum.wind != null && <span><b className="num">{Math.round(sum.wind)}</b> km/h de vento</span>}
+          {humidity != null && <span><b className="num">{Math.round(humidity)}%</b> umidade</span>}
+          {air && <span>ar <b>{airLabel(air.aqi).word}</b></span>}
         </div>
       )}
+      {comfort.length > 0 && <ul className="comfort">{comfort.map(c => <li key={c.icon} data-l={c.level}><Icon name={c.icon} />{c.title}</li>)}</ul>}
     </section>
   )
 }

@@ -92,9 +92,9 @@ export function SlotsCard() {
 }
 
 export function Checklist() {
-  const view = useTripView(), sun = useTrip(s => s.sun)
+  const view = useTripView(), sun = useTrip(s => s.sun), air = useTrip(s => s.air)
   if (!view) return null
-  const items = checklist(view.ev, view.ctx, sun, view.prof ? view.battery.pct : null)
+  const items = checklist(view.ev, view.ctx, sun, view.prof ? view.battery.pct : null, air?.aqi ?? null)
   return (
     <section className="card">
       <h2>Antes de sair</h2>

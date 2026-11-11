@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.11.0'
+export const CURRENT_APP_VERSION = '2.12.0'
 export const CHANGELOG = [
+  {
+    version: '2.12.0',
+    title: 'Calor, ar seco e qualidade do ar',
+    items: [
+      'O clima de onde você está agora mostra umidade e qualidade do ar, com aviso de calor forte e de ar muito seco.',
+      'O checklist do trajeto avisa quando o ar estiver ruim ou seco demais.',
+      'Algo estranho? Em Ajustes, "Relatar problema" gera um relatório para enviar (sem suas coordenadas).',
+    ],
+  },
   {
     version: '2.11.0',
     title: 'Seus pedais e o trajeto de amanhã',

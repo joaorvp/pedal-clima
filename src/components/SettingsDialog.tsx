@@ -4,6 +4,7 @@ import { accuracyText } from '../domain/calibration'
 import { useSettings, type PointKey } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { setPointFromMap } from '../store/actions'
+import { buildReport } from '../services/report'
 import { AddressCombo } from './AddressCombo'
 import { Dialog } from './Dialog'
 
@@ -16,6 +17,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
   const s = useSettings()
   const [plName, setPlName] = useState('')
   const [gpsMsg, setGpsMsg] = useState('')
+  const [report, setReport] = useState(''), [reportMsg, setReportMsg] = useState('')
   const pick = (k: PointKey) => { onClose(); useTrip.getState().set({ pickMode: k, sheet: 'peek' }) }
 
   return (
@@ -88,6 +90,19 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           <p className="note">Com os horários preenchidos, o app abre no sentido certo e já mostra a previsão para a sua próxima saída.</p>
         </div>
 
+        <div className="sec">
+          <h3>Algo estranho?</h3>
+          <p className="note" style={{ margin: '0 0 8px' }}>Gera um relatório técnico (versão, celular, GPS, rota e últimos erros) para você mandar a quem cuida do app. Não inclui suas coordenadas nem endereços.</p>
+          <div className="row">
+            <button className="btn" type="button" id="report" onClick={async () => {
+              const text = buildReport(); setReport(text)
+              try { if (navigator.share) { await navigator.share({ title: 'Relatório do Pedágua', text }); return } } catch { return }
+              try { await navigator.clipboard.writeText(text); setReportMsg('Relatório copiado. É só colar na conversa.') } catch { setReportMsg('Selecione o texto abaixo e copie.') }
+            }}>Relatar problema</button>
+            {reportMsg && <span className="note ok-text" style={{ margin: 0 }}>{reportMsg}</span>}
+          </div>
+          {report && <textarea className="report" readOnly value={report} rows={8} aria-label="Relatório técnico" onFocus={e => e.currentTarget.select()} />}
+        </div>
         <div className="sec">
           <h3>Precisão da previsão</h3>
           <p className="note" id="acc-txt" style={{ margin: '0 0 8px' }}>{accuracyText(s.log, s.probTh)}</p>

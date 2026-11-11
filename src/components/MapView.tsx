@@ -58,11 +58,14 @@ const bikeIcon = (heading: number | null) => L.divIcon({ className: 'smooth', ic
 
 const PICK_LABEL: Record<PointKey | 'dest' | 'origin', string> = { home: 'Toque no mapa onde fica a sua casa', via: 'Toque num ponto por onde você passa', work: 'Toque no mapa onde fica o trabalho', dest: 'Toque no mapa para escolher o destino', origin: 'Toque no mapa para escolher de onde sair' }
 
-interface Lyr { route: L.LayerGroup; ends: L.LayerGroup; places: L.LayerGroup; radar: L.TileLayer | null; me: L.Marker | null; acc: L.Circle | null; handle: L.Marker | null; meBike: boolean | null }
+interface Lyr { route: L.LayerGroup; ends: L.LayerGroup; places: L.LayerGroup }
+/** Camadas que o próprio Leaflet altera: ficam num ref, fora do estado do React. */
+interface Slots { radar: L.TileLayer | null; me: L.Marker | null; acc: L.Circle | null; handle: L.Marker | null; meBike: boolean | null }
 
 export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: () => void }) {
   const el = useRef<HTMLDivElement>(null)
   const [inst, setInst] = useState<{ map: L.Map; ly: Lyr } | null>(null)
+  const slots = useRef<Slots>({ radar: null, me: null, acc: null, handle: null, meBike: null })
   const view = useTripView()
   const mode = useTrip(s => s.mode), origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), via = useTrip(s => s.via)
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), radar = useTrip(s => s.radar)
@@ -88,7 +91,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     }
     setBase(0)
     map.createPane('radar'); map.getPane('radar')!.style.zIndex = '350'; map.getPane('radar')!.style.pointerEvents = 'none'
-    const ly: Lyr = { route: L.layerGroup().addTo(map), ends: L.layerGroup().addTo(map), places: L.layerGroup().addTo(map), radar: null, me: null, acc: null, handle: null, meBike: null }
+    const ly: Lyr = { route: L.layerGroup().addTo(map), ends: L.layerGroup().addTo(map), places: L.layerGroup().addTo(map) }
     map.on('dragstart', () => { const r = useTrip.getState().ride; if (r?.follow) useTrip.getState().set({ ride: { ...r, follow: false } }) })
     map.on('moveend', () => { const c = map.getCenter(); saveView([+c.lat.toFixed(5), +c.lng.toFixed(5)], map.getZoom()) })
     map.on('click', e => {
@@ -212,13 +215,13 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     }
     function showHandle(ll: L.LatLng) {
       if (!map || !ly || useTrip.getState().ride?.pos) return
-      if (ly.handle) map.removeLayer(ly.handle)
+      if (slots.current.handle) map.removeLayer(slots.current.handle)
       const h = L.marker(ll, { draggable: true, zIndexOffset: 900, icon: L.divIcon({ className: '', iconSize: [26, 26], iconAnchor: [13, 13], html: '<div class="rhandle"></div>' }) })
         .bindTooltip('Arraste para mudar o caminho', { permanent: true, direction: 'top', offset: [0, -14] }).addTo(map)
-      const timer = setTimeout(() => { if (ly.handle === h) { map.removeLayer(h); ly.handle = null } }, 7000)
+      const timer = setTimeout(() => { if (slots.current.handle === h) { map.removeLayer(h); slots.current.handle = null } }, 7000)
       h.on('dragstart', () => { clearTimeout(timer); h.closeTooltip() })
-      h.on('dragend', () => { const p = h.getLatLng(); map.removeLayer(h); ly.handle = null; setTripVia([p.lat, p.lng]) })
-      ly.handle = h
+      h.on('dragend', () => { const p = h.getLatLng(); map.removeLayer(h); slots.current.handle = null; setTripVia([p.lat, p.lng]) })
+      slots.current.handle = h
     }
   }, [map, ly, mode, routes, sel, view, ride?.pos, ride?.d])
 
@@ -266,9 +269,9 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   // radar
   useEffect(() => {
     if (!map || !ly) return
-    if (ly.radar) { map.removeLayer(ly.radar); ly.radar = null }
+    if (slots.current.radar) { map.removeLayer(slots.current.radar); slots.current.radar = null }
     const f = radar.frames[radar.idx]
-    if (radar.on && f) ly.radar = L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: .65, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' }).addTo(map)
+    if (radar.on && f) slots.current.radar = L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: .65, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' }).addTo(map)
   }, [map, ly, radar.on, radar.idx, radar.frames, radar.host])
   useEffect(() => {
     if (!radar.playing) return
@@ -282,16 +285,16 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   const heading = riding ? ride!.heading : null
   useEffect(() => {
     if (!map || !ly) return
-    if (!pos) { if (ly.me) { map.removeLayer(ly.me); map.removeLayer(ly.acc!); ly.me = ly.acc = null; ly.meBike = null } return }
+    if (!pos) { if (slots.current.me) { map.removeLayer(slots.current.me); map.removeLayer(slots.current.acc!); slots.current.me = slots.current.acc = null; slots.current.meBike = null } return }
     const acc = riding ? ride!.acc : me?.acc ?? 0
-    if (!ly.me) {
-      ly.acc = L.circle(pos, { radius: acc, color: '#2b7fff', weight: 1, opacity: .4, fillOpacity: .12, interactive: false }).addTo(map)
-      ly.me = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: riding ? bikeIcon(heading) : dotIcon }).addTo(map)
-      ly.meBike = riding
+    if (!slots.current.me) {
+      slots.current.acc = L.circle(pos, { radius: acc, color: '#2b7fff', weight: 1, opacity: .4, fillOpacity: .12, interactive: false }).addTo(map)
+      slots.current.me = L.marker(pos, { interactive: false, keyboard: false, zIndexOffset: 1000, icon: riding ? bikeIcon(heading) : dotIcon }).addTo(map)
+      slots.current.meBike = riding
     } else {
-      ly.me.setLatLng(pos); ly.acc!.setLatLng(pos).setRadius(acc)
-      if (riding) ly.me.setIcon(bikeIcon(heading)); else if (ly.meBike) ly.me.setIcon(dotIcon)
-      ly.meBike = riding
+      slots.current.me.setLatLng(pos); slots.current.acc!.setLatLng(pos).setRadius(acc)
+      if (riding) slots.current.me.setIcon(bikeIcon(heading)); else if (slots.current.meBike) slots.current.me.setIcon(dotIcon)
+      slots.current.meBike = riding
     }
     if (riding && ride!.follow) centerOn(pos)
   }, [map, ly, pos?.[0], pos?.[1], heading, riding, ride?.follow, me?.acc]) // eslint-disable-line react-hooks/exhaustive-deps

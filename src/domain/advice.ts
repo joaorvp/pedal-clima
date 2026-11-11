@@ -1,6 +1,7 @@
 import { fmt1, hhmm, lowerFirst, upperFirst } from './format'
 import { CATS, cat, clearTime, darkness, hourlyAt, isRainy, pastRain } from './weather'
 import type { Dir, Evaluation, Level, Route, SunTimes } from './types'
+import { comfortAlerts } from './air'
 
 export interface TripCtx {
   route: Route
@@ -71,10 +72,10 @@ export function rideVerdict(ev: Evaluation, c: TripCtx, d: number, off: number, 
   return v
 }
 
-export type CheckIcon = 'bolt' | 'battery' | 'bag' | 'light' | 'check' | 'road' | 'wind' | 'uv' | 'thermo'
+export type CheckIcon = 'bolt' | 'battery' | 'bag' | 'light' | 'check' | 'road' | 'wind' | 'uv' | 'thermo' | 'drop'
 export interface CheckItem { level: Level; icon: CheckIcon; title: string; detail?: string }
 
-export function checklist(ev: Evaluation, c: TripCtx, sun: SunTimes | null, battPct: number | null): CheckItem[] {
+export function checklist(ev: Evaluation, c: TripCtx, sun: SunTimes | null, battPct: number | null, aqi: number | null = null): CheckItem[] {
   const out: CheckItem[] = [], add = (level: Level, icon: CheckIcon, title: string, detail?: string) => out.push({ level, icon, title, detail })
   const wet = wetInfo(c), rainy = ev.exposure >= 0.15 || ev.maxRate >= 0.5 || ev.maxProb >= c.probTh - 10
   if (ev.storm) add('bad', 'bolt', 'Espere a trovoada passar', 'Na bike você é o ponto mais alto da via. Células assim costumam passar em 30 a 60 min.')
@@ -90,7 +91,8 @@ export function checklist(ev: Evaluation, c: TripCtx, sun: SunTimes | null, batt
   const uv = w0 ? hourlyAt(w0, ev.depMs, 'uv_index') ?? 0 : 0
   const temp = w0 ? hourlyAt(w0, ev.depMs, 'apparent_temperature') ?? hourlyAt(w0, ev.depMs, 'temperature_2m') : null
   if (uv >= 8) add('warn', 'uv', `UV ${uv.toFixed(0)}, muito alto`, 'Protetor solar e manga longa.')
-  if (temp != null && temp >= 31) add('warn', 'thermo', `Sensação de ${Math.round(temp)} °C`, 'Leve água.')
+  const humidity = w0 ? hourlyAt(w0, ev.depMs, 'relative_humidity_2m') : null
+  for (const a of comfortAlerts({ feels: temp, humidity, aqi })) add(a.level, a.icon, a.title, a.detail)
   const dk = darkness(sun, ev)
   if (dk?.kind === 'set') add('warn', 'light', dk.full ? `Já escureceu (pôr do sol às ${hhmm(dk.t)})` : `Escurece às ${hhmm(dk.t)}, você chega às ${hhmm(ev.arr)}`, 'Farol dianteiro e luz traseira ligados. Roupa clara ou refletiva ajuda.')
   if (dk?.kind === 'rise') add('warn', 'light', dk.full ? `Ainda escuro: amanhece às ${hhmm(dk.t)}` : `Amanhece às ${hhmm(dk.t)}, você sai às ${hhmm(ev.depMs)}`, 'Farol dianteiro e luz traseira ligados.')

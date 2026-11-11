@@ -6,7 +6,7 @@ import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import type { Shelter } from '../domain/shelter'
 import { readJson, removeKey, writeJson } from '../services/cache'
 import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
-import { fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
+import { fetchAir, fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
 import { fetchRoutes } from '../services/routing'
 import { useSettings, type PointKey } from './settings'
 import { useUndo } from './undo'
@@ -76,6 +76,8 @@ interface TripState {
   viaName: string
   /** tela "Seus pedais" aberta */
   historyOpen: boolean
+  /** qualidade do ar onde você está */
+  air: { aqi: number; pm25: number } | null
   pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
@@ -121,7 +123,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, shelters: null, viaName: '', historyOpen: false, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, shelters: null, viaName: '', historyOpen: false, air: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
@@ -162,9 +164,10 @@ export const useTrip = create<TripState>()((set, get) => ({
     const ll = st.me?.pos ?? (st.mode === 'trip' ? endpointLL(st.origin, st.me) : null) ?? (s0.homeSet ? s0.home : readJson<{ c: LatLon }>('pedalclima.view')?.c ?? s0.home)
     const radarP = fetchRadar().then(r => { if (r) set(s => ({ radar: { ...s.radar, host: r.host, frames: r.frames, idx: Math.max(0, r.frames.length - 1) } })) })
     const alertsP = fetchAlerts().then(alerts => set({ alerts }))
+    const airP = fetchAir(ll).then(air => { if (air) set({ air }) })
     try { const wx = await fetchLocalWeather(ll); const local = { wx, at: Date.now(), ll }; set({ local, offline: false }); writeJson(LOCAL_KEY, local) }
     catch { const cached = get().local ?? readJson<TripState['local']>(LOCAL_KEY); if (cached) set({ local: cached, offline: true }) }
-    await Promise.all([radarP, alertsP])
+    await Promise.all([radarP, alertsP, airP])
   },
 
   refresh: async () => {

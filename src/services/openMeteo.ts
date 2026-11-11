@@ -3,7 +3,7 @@ import { pointAt } from '../domain/geo'
 import type { ElevPoint, PointWeather, Route, SunTimes } from '../domain/types'
 import { readJson, writeJson } from './cache'
 
-const HOURLY = 'precipitation_probability,precipitation,temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day'
+const HOURLY = 'precipitation_probability,precipitation,temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day'
 
 /** Uma chamada para todos os pontos de todas as rotas. */
 export async function fetchWeather(routes: Route[]): Promise<{ perRoute: PointWeather[][]; sun: SunTimes | null }> {
@@ -54,4 +54,14 @@ export async function fetchLocalWeather(ll: [number, number]): Promise<PointWeat
   const w = Array.isArray(j) ? j[0] : j
   if (!w?.hourly?.time) throw new Error('resposta sem previsão')
   return w
+}
+
+/** Qualidade do ar agora (índice americano 0–500 e PM2,5). Falha em silêncio: é um extra. */
+export async function fetchAir(ll: [number, number]): Promise<{ aqi: number; pm25: number } | null> {
+  try {
+    const p = new URLSearchParams({ latitude: ll[0].toFixed(3), longitude: ll[1].toFixed(3), current: 'us_aqi,pm2_5', timezone: 'America/Sao_Paulo' })
+    const r = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?' + p); if (!r.ok) return null
+    const c = (await r.json() as { current?: { us_aqi?: number; pm2_5?: number } }).current
+    return c?.us_aqi != null ? { aqi: c.us_aqi, pm25: c.pm2_5 ?? 0 } : null
+  } catch { return null }
 }
