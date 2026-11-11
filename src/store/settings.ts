@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { create } from 'zustand'
 import { persist, type PersistStorage } from 'zustand/middleware'
 import { calibrate, type FeedbackEntry } from '../domain/calibration'
+import { useUndo } from './undo'
 import type { LatLon, Profile } from '../domain/types'
 
 /** Mesma chave do app antigo (index.html único): os dados de quem já usa continuam valendo. */
@@ -37,6 +38,8 @@ export const settingsSchema = z.object({
   routePick: z.string().optional().catch(undefined),
   seenVersion: z.string().optional().catch(undefined),
   installDismissed: z.boolean().catch(false),
+  /** a pessoa já tocou em "Permitir localização" no card de explicação */
+  locAllowed: z.boolean().catch(false),
   /** avisos falados durante o pedal */
   voice: z.boolean().catch(true),
   /** últimos destinos buscados ou marcados no mapa (fora os lugares salvos) */
@@ -88,7 +91,12 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
   setName: (k, name) => set(s => ({ names: { ...s.names, [k]: name } })),
   clearVia: () => set(s => ({ via: null, names: { ...s.names, via: '' } })),
   addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },
-  removePlace: id => set(s => ({ places: s.places.filter(p => p.id !== id), destId: s.destId === id ? null : s.destId })),
+  removePlace: id => {
+    const s = get(), i = s.places.findIndex(p => p.id === id), place = s.places[i]
+    if (!place) return
+    set({ places: s.places.filter(p => p.id !== id), destId: s.destId === id ? null : s.destId })
+    useUndo.getState().show(`${place.name} removido`, () => set(st => { const places = st.places.slice(); places.splice(Math.min(i, places.length), 0, place); return { places } }))
+  },
   renamePlace: (id, name) => set(s => ({ places: s.places.map(p => p.id === id ? { ...p, name: name.trim().slice(0, 30) || p.name } : p) })),
   shiftPlace: (id, by) => set(s => {
     const i = s.places.findIndex(p => p.id === id), j = i + by

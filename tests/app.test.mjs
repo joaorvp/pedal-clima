@@ -83,6 +83,11 @@ assert.match(await page.textContent(".triphead"), /Rua 9|Ponto no mapa/);
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());
 await page.waitForTimeout(500);
 assert.ok(await page.locator(".sc.recent").count() === 1, "o ponto usado vira atalho de destino recente");
+// fechar sem querer: "Desfazer" reabre o trajeto
+assert.ok(await page.locator("#undo").count() === 1, "fechar o trajeto oferece desfazer");
+await page.evaluate(() => document.getElementById("undo").click()); await page.waitForTimeout(800);
+assert.ok(await page.locator(".triphead").count() === 1, "desfazer reabre o trajeto");
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
 
 // montar o trajeto pelo atalho do trabalho
 await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click());

@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.7.0'
+export const CURRENT_APP_VERSION = '2.8.0'
 export const CHANGELOG = [
+  {
+    version: '2.8.0',
+    title: 'Avise quando a chuva passar',
+    items: [
+      'Chovendo onde você está? Toque em "Me avise quando parar": com o app aberto, ele vibra e avisa quando a chuva passar.',
+      'Removeu um lugar ou fechou um trajeto sem querer? Toque em "Desfazer".',
+      'Antes de pedir a localização, o app explica para que ela serve.',
+    ],
+  },
   {
     version: '2.7.0',
     title: 'Modo painel para o guidão',

@@ -8,6 +8,7 @@ import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
 import { fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
 import { fetchRoutes } from '../services/routing'
 import { useSettings, type PointKey } from './settings'
+import { useUndo } from './undo'
 
 /** Um ponto do trajeto: a sua posição ao vivo ou um lugar fixo (salvo, buscado ou marcado no mapa). */
 export type Endpoint =
@@ -66,6 +67,8 @@ interface TripState {
   summary: RideSummary | null
   /** modo painel (guidão) aberto */
   dash: boolean
+  /** avisar quando parar de chover onde você está */
+  watchClear: boolean
   pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
@@ -111,7 +114,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
@@ -124,7 +127,12 @@ export const useTrip = create<TripState>()((set, get) => ({
     set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, sheet: 'peek', error: '', arrived: false })
     get().refresh()
   },
-  closeTrip: () => { set({ mode: 'explore', dest: null, routes: [], via: null, dep: null, routeNote: '', error: '', centerNonce: get().centerNonce + 1 }); get().refreshLocal() },
+  closeTrip: () => {
+    const prev = { origin: get().origin, dest: get().dest, via: get().via, routes: get().routes, sel: get().sel, dep: get().dep }
+    set({ mode: 'explore', dest: null, routes: [], via: null, dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
+    get().refreshLocal()
+    if (prev.dest) useUndo.getState().show('Trajeto fechado', () => { set({ mode: 'trip', ...prev, fitNonce: get().fitNonce + 1 }); if (!prev.routes.length) get().refresh() })
+  },
   setEnd: (which, e) => {
     if (which === 'dest' && e.kind === 'place' && !e.key) useSettings.getState().addRecent(e.name, e.ll)
     const st = get()
@@ -142,7 +150,9 @@ export const useTrip = create<TripState>()((set, get) => ({
   },
 
   refreshLocal: async () => {
-    const st = get(), ll = st.me?.pos ?? (st.mode === 'trip' ? endpointLL(st.origin, st.me) : null) ?? useSettings.getState().home
+    const st = get(), s0 = useSettings.getState()
+    // sem localização: a casa (se cadastrada) ou a região do mapa, nunca o ponto de exemplo de fábrica
+    const ll = st.me?.pos ?? (st.mode === 'trip' ? endpointLL(st.origin, st.me) : null) ?? (s0.homeSet ? s0.home : readJson<{ c: LatLon }>('pedalclima.view')?.c ?? s0.home)
     const radarP = fetchRadar().then(r => { if (r) set(s => ({ radar: { ...s.radar, host: r.host, frames: r.frames, idx: Math.max(0, r.frames.length - 1) } })) })
     const alertsP = fetchAlerts().then(alerts => set({ alerts }))
     try { const wx = await fetchLocalWeather(ll); const local = { wx, at: Date.now(), ll }; set({ local, offline: false }); writeJson(LOCAL_KEY, local) }

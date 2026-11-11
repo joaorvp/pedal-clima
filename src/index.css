@@ -459,3 +459,16 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .prow .pname input:focus{outline:none;border-color:var(--link);background:var(--surface)}
 .prow .pact{display:flex;gap:2px}
 .prow .pact .ibtn:disabled{opacity:.3;cursor:default}
+
+/* ---------- Etapa D ---------- */
+.btn.watch{width:100%;justify-content:center;margin-top:12px;min-height:44px}
+.btn.watch.on{background:color-mix(in srgb,var(--link) 12%,var(--surface));border-color:var(--link);color:var(--link)}
+.locask{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start}
+.locask .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--link) 14%,transparent);color:var(--link)}
+.locask b{display:block;font:700 17px var(--font-display)}
+.locask p{margin:4px 0 10px;color:var(--muted);font-size:14px}
+.undo{position:fixed;z-index:65;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet,0px) + 70px);display:flex;align-items:center;gap:14px;
+  background:var(--ink);color:var(--surface);border-radius:999px;padding:8px 8px 8px 18px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:14px;font-weight:500;
+  animation:rise .25s cubic-bezier(.2,.8,.2,1) both;max-width:calc(100vw - 24px)}
+.undo button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--accent);font-weight:700;padding:10px 12px;border-radius:999px;cursor:pointer;min-height:44px}
+@media (min-width:1000px){.undo{bottom:24px}}

@@ -4,7 +4,10 @@ import { Sheet } from './components/Sheet'
 import { Hero } from './components/Hero'
 import { TripCard } from './components/TripCard'
 import { TripHeader } from './components/TripHeader'
-import { LocalCard, RoutineCard, WhereTo } from './components/Explore'
+import { LocalCard, LocationAsk, RoutineCard, WhereTo } from './components/Explore'
+import { UndoToast } from './components/UndoToast'
+import { localSummary } from './domain/local'
+import { rainStopped } from './hooks/alerts'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
@@ -21,8 +24,28 @@ export default function App() {
   const view = useTrip(s => s.mode + s.routes.length + ':' + s.sel + ':' + s.loading + ':' + !!s.ride?.pos + ':' + s.arrived + ':' + !!s.local + ':' + (s.alerts?.length ?? 0) + s.locStatus)
   const profile = useSettings(s => s.profile)
 
-  // ao abrir: pede a localização e mostra o clima onde você está
-  useEffect(() => { startLocation(); useTrip.getState().refreshLocal() }, [])
+  // ao abrir: se a localização já foi permitida, usa direto; senão, o card explica antes do pedido do navegador
+  useEffect(() => {
+    useTrip.getState().refreshLocal()
+    const go = () => startLocation()
+    if (useSettings.getState().locAllowed) { go(); return }
+    if (!navigator.permissions?.query) return
+    navigator.permissions.query({ name: 'geolocation' }).then(p => {
+      if (p.state === 'granted') { useSettings.getState().patch({ locAllowed: true }); go() }
+      else if (p.state === 'denied') useTrip.getState().set({ locStatus: 'denied' })
+    }).catch(() => {})
+  }, [])
+  // "me avise quando parar": confere a cada 5 min e avisa quando a chuva passar
+  const watchClear = useTrip(s => s.watchClear), local = useTrip(s => s.local)
+  useEffect(() => {
+    if (!watchClear) return
+    const id = setInterval(() => useTrip.getState().refreshLocal(), 5 * 60e3)
+    return () => clearInterval(id)
+  }, [watchClear])
+  useEffect(() => {
+    if (!watchClear || !local) return
+    if (!localSummary(local.wx, Date.now()).raining) { useTrip.getState().set({ watchClear: false }); rainStopped() }
+  }, [watchClear, local])
   // trocar o tipo de rota recalcula o trajeto aberto
   useEffect(() => { if (useTrip.getState().mode === 'trip') { useTrip.getState().set({ routes: [] }); useTrip.getState().refresh() } }, [profile])
   useEffect(() => {
@@ -51,6 +74,7 @@ export default function App() {
       <Sheet contentKey={view}>
         <Banners />
         {mode === 'explore' ? <>
+          <LocationAsk />
           <RoutineCard />
           <WhereTo onAddPlace={() => setSettings({ open: true, focus: 'places' })} />
           <LocalCard />
@@ -67,6 +91,7 @@ export default function App() {
     <SettingsDialog open={settings.open} focus={settings.focus} onClose={() => setSettings({ open: false })} />
     <Welcome />
     <Dashboard />
+    <UndoToast />
     <UpdatePrompt />
     <InstallBanner />
     <WhatsNew />

@@ -1,18 +1,21 @@
-import { ArrowRight, Briefcase, Clock, History, House, MapPinned, Plus, Search, Star } from 'lucide-react'
+import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFixed, MapPinned, Plus, Search, Star } from 'lucide-react'
+import { startLocation } from '../hooks/location'
 import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
 import { hhmm } from '../domain/format'
 import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { readJson } from '../services/cache'
+import { useState } from 'react'
 import { AddressCombo } from './AddressCombo'
 import { Icon } from './icons'
 
 /** Clima onde você está agora: o resumo que aparece ao abrir o app. */
 export function LocalCard() {
-  const local = useTrip(s => s.local), now = useTrip(s => s.now), loc = useTrip(s => s.locStatus), me = useTrip(s => s.me)
+  const local = useTrip(s => s.local), now = useTrip(s => s.now), loc = useTrip(s => s.locStatus), me = useTrip(s => s.me), watch = useTrip(s => s.watchClear)
   const sum = local ? localSummary(local.wx, now) : null
-  const where = me ? 'Onde você está' : loc === 'denied' || loc === 'unavailable' ? 'Perto da sua casa' : 'Procurando você…'
+  const homeSet = useSettings(s => s.homeSet)
+  const where = me ? 'Onde você está' : loc === 'asking' ? 'Procurando você…' : homeSet ? 'Perto da sua casa' : 'Na região do mapa'
   return (
     <section className={'card hero local' + (sum ? '' : ' loading')} id="hero" data-level={sum?.level ?? 'ok'} aria-live="polite">
       <div className="local-where"><span>{where}</span>{local && <span className="num">{hhmm(local.at)}</span>}</div>
@@ -23,6 +26,11 @@ export function LocalCard() {
           <p className="sub" id="v-sub">{sum?.sub ?? 'Buscando a previsão para onde você está.'}</p>
         </div>
       </div>
+      {sum?.raining && (
+        <button className={'btn watch' + (watch ? ' on' : '')} type="button" id="watch-clear" aria-pressed={watch} onClick={() => useTrip.getState().set({ watchClear: !watch })}>
+          {watch ? <BellRing className="i" /> : <Bell className="i" />}{watch ? 'Vou avisar quando parar · deixe o app aberto' : 'Me avise quando parar'}
+        </button>
+      )}
       {sum && (sum.temp != null || sum.wind != null) && (
         <div className="local-meta">
           {sum.temp != null && <span><b className="num">{Math.round(sum.temp)}°</b> agora</span>}
@@ -80,5 +88,25 @@ export function RoutineCard() {
         <small>Saída às {toWork ? s.tIda : s.tVolta} · {when}. Toque para ver a chuva no caminho.</small></span>
       <ArrowRight className="i go" />
     </button>
+  )
+}
+
+/** Antes do pedido do navegador: por que o app quer a sua localização. */
+export function LocationAsk() {
+  const loc = useTrip(s => s.locStatus), allowed = useSettings(s => s.locAllowed)
+  const [later, setLater] = useState(false)
+  if (loc !== 'idle' || allowed || later) return null
+  return (
+    <section className="card locask" aria-labelledby="locask-title">
+      <span className="ic"><LocateFixed className="i" /></span>
+      <div>
+        <b id="locask-title">Mostrar onde você está?</b>
+        <p>O Pedágua usa a localização para mostrar a chuva ao seu redor e acompanhar o pedal. Ela fica só no seu aparelho.</p>
+        <div className="row">
+          <button className="btn primary" type="button" id="loc-allow" onClick={() => { useSettings.getState().patch({ locAllowed: true }); startLocation() }}>Permitir localização</button>
+          <button className="btn" type="button" onClick={() => setLater(true)}>Agora não</button>
+        </div>
+      </div>
+    </section>
   )
 }

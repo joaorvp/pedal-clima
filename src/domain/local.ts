@@ -3,7 +3,7 @@ import { CATS, cat, hourlyAt, rateAt } from './weather'
 import type { Level, PointWeather } from './types'
 import type { IconName } from './advice'
 
-export interface LocalSummary { level: Level; icon: IconName; title: string; sub: string; temp: number | null; wind: number | null }
+export interface LocalSummary { level: Level; icon: IconName; title: string; sub: string; temp: number | null; wind: number | null; raining: boolean }
 
 /** Clima onde você está, olhando a chuva a cada 15 min nas próximas 3 h. */
 export function localSummary(w: PointWeather, now: number): LocalSummary {
@@ -12,7 +12,7 @@ export function localSummary(w: PointWeather, now: number): LocalSummary {
   const temp = hourlyAt(w, now, 'temperature_2m'), wind = hourlyAt(w, now, 'wind_speed_10m')
   const code = hourlyAt(w, now, 'weather_code') ?? 0, day = hourlyAt(w, now, 'is_day') ?? 1
   const storm = code >= 95
-  const base = { temp, wind }
+  const base = { temp, wind, raining: rates[0] >= 0.2 }
   if (rates[0] >= 0.2) {
     const stop = rates.findIndex(r => r < 0.2)
     const what = CATS[cat(rates[0])].label

@@ -6,7 +6,7 @@ import { placeName } from '../domain/advice'
 import { ordered, CATS, cat, evaluate } from '../domain/weather'
 import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
-import { lastView, saveView } from '../hooks/location'
+import { lastView, saveView, startLocation } from '../hooks/location'
 import { useTripView } from '../hooks/useTripView'
 import { useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
@@ -300,6 +300,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
             const t = T(), r = t.ride
             if (r?.pos) { t.set({ ride: { ...r, follow: true } }); centerOn(r.pos); return }
             if (t.me) centerOn(t.me.pos, Math.max(map?.getZoom() ?? 15, 15))
+            else if (t.locStatus === 'idle') { useSettings.getState().patch({ locAllowed: true }); startLocation() }
             else t.set({ error: t.locStatus === 'denied' ? 'A localização está bloqueada. Libere nas permissões do navegador para ver onde você está.' : 'Procurando sua localização…' })
           }}><LocateFixed className="i" /></button>
         <div className="radarpill num" id="radar-time">{radarLabel}</div>
