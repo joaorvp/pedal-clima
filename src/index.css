@@ -52,11 +52,18 @@ svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-widt
 /* Shell */
 .shell{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:14px calc(28px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+/* desktop: o app ocupa a tela toda; o mapa preenche a altura e o painel ao lado rola sozinho */
 @media (min-width:1000px){
-  .shell{grid-template-columns:minmax(0,1.25fr) minmax(380px,1fr);align-items:start}
-  .shell .mapcard{position:sticky;top:70px;grid-row:1 / span 8;grid-column:1}
-  .side{grid-column:2}
-  #map{height:calc(100vh - 150px)!important;max-height:none!important}
+  html,body{height:100%;overflow:hidden}
+  .appbar .in{max-width:none;padding-inline:20px}
+  .shell{max-width:none;height:calc(100dvh - 56px);padding:12px 20px 16px;gap:16px;
+    grid-template-columns:minmax(0,1fr) clamp(400px,30vw,500px);grid-template-rows:minmax(0,1fr);align-items:stretch}
+  .shell .mapcard{grid-row:1;grid-column:1;height:100%;min-height:0}
+  .shell .mapcard .mapwrap{height:100%}
+  #map{height:100%!important;min-height:0!important;max-height:none!important}
+  .shell > .side > *{flex:none}
+  .shell > .side{grid-column:2;grid-row:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    margin-right:-12px;padding:2px 12px 16px 2px;scrollbar-width:thin;scrollbar-gutter:stable}
 }
 .side{display:grid;gap:14px;min-width:0}
 

@@ -33,6 +33,9 @@ export function Sheet({ children, contentKey }: { children: ReactNode; contentKe
   }
 
   useLayoutEffect(() => { place(state) }, [state, contentKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // no desktop o painel rola sozinho: ao abrir ou fechar um trajeto, volta para o topo
+  const mode = useTrip(s => s.mode)
+  useEffect(() => { if (!mq?.matches && ref.current) ref.current.scrollTop = 0 }, [mode])
   useEffect(() => {
     const onChange = () => place(useTrip.getState().sheet)
     mq?.addEventListener('change', onChange); window.addEventListener('resize', onChange)
