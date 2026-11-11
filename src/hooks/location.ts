@@ -4,9 +4,52 @@ import type { LatLon } from '../domain/types'
 import { readJson, writeJson } from '../services/cache'
 import { say } from './voice'
 import { baseSpeed, useSettings } from '../store/settings'
-import { endpointLL, useTrip, type Me, type RideSummary } from '../store/trip'
+import { endpointLL, useTrip, type Endpoint, type Me, type Ride, type RideSummary } from '../store/trip'
 
 const VIEW_KEY = 'pedalclima.view'
+const RIDE_KEY = 'pedalclima.ride.v1'
+const RESUME_WINDOW = 3 * 3600e3
+
+/** Pedal em andamento salvo no aparelho: se o celular fechar o app no meio do caminho, dá para continuar de onde parou. */
+export interface RideSnap {
+  dest: Extract<Endpoint, { kind: 'place' }>; via: LatLon | null; viaName: string
+  startedAt: number; dist: number; rain: number; moving: number; pace: number; pred: Ride['pred']; savedAt: number
+}
+let lastSave = 0
+function saveRide(force = false) {
+  const t = useTrip.getState(), r = t.ride
+  if (!r || t.dest?.kind !== 'place' || (!force && Date.now() - lastSave < 10e3)) return
+  lastSave = Date.now()
+  const snap: RideSnap = { dest: t.dest, via: t.via, viaName: t.viaName, startedAt: r.startedAt, dist: r.dist, rain: r.rain, moving: r.moving, pace: r.pace, pred: r.pred, savedAt: lastSave }
+  writeJson(RIDE_KEY, snap)
+}
+export function discardRide() { try { localStorage.removeItem(RIDE_KEY) } catch { /* sem armazenamento */ } }
+/** Pedal interrompido há menos de 3 h (o mais antigo é descartado). */
+export function pendingRide(): RideSnap | null {
+  const s = readJson<RideSnap>(RIDE_KEY)
+  const ok = s && s.dest?.kind === 'place' && Array.isArray(s.dest.ll) && typeof s.startedAt === 'number' && typeof s.savedAt === 'number'
+  if (!ok || Date.now() - s.savedAt > RESUME_WINDOW) { if (s) discardRide(); return null }
+  return s
+}
+/** Reabre o trajeto saindo de onde você está e retoma o pedal com o tempo, a distância e a chuva já acumulados. */
+export function resumeRide(s: RideSnap): Promise<string | null> {
+  const t = useTrip.getState()
+  t.set({ mode: 'trip', origin: { kind: 'me' }, dest: s.dest, dep: null, routes: [], via: s.via, viaName: s.viaName, shelters: null, sheet: 'peek', error: '', arrived: false, summary: null })
+  t.refresh()
+  return new Promise(resolve => {
+    const t0 = Date.now()
+    const id = setInterval(() => {
+      const st = useTrip.getState()
+      if (st.routes[st.sel]) {
+        clearInterval(id)
+        const err = startRide(); if (err) { resolve(err); return }
+        const r = useTrip.getState().ride!
+        useTrip.getState().set({ ride: { ...r, startedAt: s.startedAt, dist: s.dist, rain: s.rain, moving: s.moving, pace: s.pace, pred: s.pred ?? r.pred } })
+        saveRide(true); resolve(null)
+      } else if (Date.now() - t0 > 25e3) { clearInterval(id); resolve('Não deu para recalcular a rota agora. Tente de novo em instantes.') }
+    }, 300)
+  })
+}
 
 /** Vibração curta nos celulares que permitem (Android). */
 export const buzz = (p: number | number[]) => { try { navigator.vibrate?.(p) } catch { /* sem suporte */ } }
@@ -54,7 +97,7 @@ export function startRide(): string | null {
   t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
   startLocation()
   if (t.me) rideStep(t.me, null)
-  keepAwake(); buzz(30)
+  keepAwake(); buzz(30); saveRide(true)
   return null
 }
 
@@ -98,9 +141,11 @@ function rideStep(me: Me, speedMs: number | null) {
     queueMicrotask(() => useTrip.getState().setEnd('origin', { kind: 'me' }))
   }
   t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false, offSince, dist, rain, moving, pace, recalcAt } })
+  saveRide()
 }
 
 export function stopRide(arrived = false) {
+  discardRide()
   if (arrived) buzz([40, 60, 40])
   wakeLock?.release().catch(() => {}); wakeLock = null
   const t = useTrip.getState(), r = t.ride

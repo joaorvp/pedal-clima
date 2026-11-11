@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.17.1'
+export const CURRENT_APP_VERSION = '2.18.0'
 export const CHANGELOG = [
+  {
+    version: '2.18.0',
+    title: 'Pedal que não se perde e desktop em tela cheia',
+    items: [
+      'Se o celular fechar o app no meio do pedal, ao reabrir aparece "Continuar o pedal": o tempo, a distância e a chuva seguem de onde pararam.',
+      'No celular, segure o dedo num botão de ícone para ver o que ele faz.',
+      'No computador, o mapa ocupa a tela toda e o painel ao lado rola sozinho.',
+    ],
+  },
   {
     version: '2.17.1',
     title: 'Animação do radar consertada',

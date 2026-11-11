@@ -12,8 +12,8 @@ function tipFor(el: HTMLElement): string | null {
 }
 
 /**
- * Dicas ao passar o mouse (ou ao focar pelo teclado) nos botões: explicam o que cada ícone faz.
- * No toque não aparecem; ali os botões já têm rótulo para leitores de tela e o ícone é o mesmo.
+ * Dicas que explicam o que cada botão de ícone faz: ao passar o mouse, ao focar pelo teclado
+ * ou, no celular, ao segurar o dedo no botão (nesse caso o toque não aciona o botão).
  */
 export function Tooltips() {
   const [tip, setTip] = useState<Tip | null>(null)
@@ -35,6 +35,21 @@ export function Tooltips() {
       }, delay)
     }
     const hide = () => { clearTimeout(timer.current); current.current = null; setTip(null) }
+    // segurar o dedo: depois de ~0,5 s mostra a dica e engole o clique que viria ao soltar
+    let press: { x: number; y: number } | null = null, swallow = false, autoHide = 0
+    const down = (e: PointerEvent) => {
+      hide(); clearTimeout(autoHide); autoHide = 0; swallow = false; press = null
+      if (e.pointerType !== 'touch') return
+      const el = target(e); if (!el || !tipFor(el)) return
+      press = { x: e.clientX, y: e.clientY }
+      show(el, 500)
+      const t = timer.current
+      window.setTimeout(() => { if (timer.current === t && current.current === el && press) { swallow = true; navigator.vibrate?.(10); autoHide = window.setTimeout(hide, 2500) } }, 510)
+    }
+    const move = (e: PointerEvent) => { if (press && !swallow && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { press = null; hide() } }
+    const up = () => { press = null; if (!swallow) { clearTimeout(timer.current); if (!autoHide) setTip(null) } }
+    const click = (e: MouseEvent) => { if (swallow) { e.preventDefault(); e.stopPropagation(); swallow = false } }
+    const menu = (e: Event) => { if (current.current && target(e) === current.current) e.preventDefault() }
     const over = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return
       const el = target(e); if (el === current.current) return
@@ -42,7 +57,12 @@ export function Tooltips() {
     }
     const focus = (e: FocusEvent) => { const el = target(e); if (el?.matches(':focus-visible')) show(el, 0) }
     document.addEventListener('pointerover', over)
-    document.addEventListener('pointerdown', hide, true)
+    document.addEventListener('pointerdown', down, true)
+    document.addEventListener('pointermove', move, true)
+    document.addEventListener('pointerup', up, true)
+    document.addEventListener('pointercancel', up, true)
+    document.addEventListener('click', click, true)
+    document.addEventListener('contextmenu', menu, true)
     document.addEventListener('focusin', focus)
     document.addEventListener('focusout', hide)
     document.addEventListener('scroll', hide, true)
@@ -50,7 +70,13 @@ export function Tooltips() {
     document.addEventListener('keydown', esc)
     return () => {
       document.removeEventListener('pointerover', over)
-      document.removeEventListener('pointerdown', hide, true)
+      document.removeEventListener('pointerdown', down, true)
+      document.removeEventListener('pointermove', move, true)
+      document.removeEventListener('pointerup', up, true)
+      document.removeEventListener('pointercancel', up, true)
+      document.removeEventListener('click', click, true)
+      document.removeEventListener('contextmenu', menu, true)
+      clearTimeout(autoHide)
       document.removeEventListener('focusin', focus)
       document.removeEventListener('focusout', hide)
       document.removeEventListener('scroll', hide, true)

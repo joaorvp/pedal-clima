@@ -1,10 +1,10 @@
-import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFixed, MapPinned, Plus, Search, Star } from 'lucide-react'
-import { startLocation } from '../hooks/location'
+import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFixed, MapPinned, Navigation, Plus, Search, Star } from 'lucide-react'
+import { discardRide, pendingRide, resumeRide, startLocation } from '../hooks/location'
 import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
 import { airLabel, comfortAlerts } from '../domain/air'
 import { hourlyAt } from '../domain/weather'
-import { hhmm } from '../domain/format'
+import { fmt1, hhmm } from '../domain/format'
 import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { readJson } from '../services/cache'
@@ -113,6 +113,32 @@ export function LocationAsk() {
         <div className="row">
           <button className="btn primary" type="button" id="loc-allow" onClick={() => { useSettings.getState().patch({ locAllowed: true }); startLocation() }}>Permitir localização</button>
           <button className="btn" type="button" onClick={() => setLater(true)}>Agora não</button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** O app fechou no meio de um pedal: oferece continuar de onde parou (com tempo, distância e chuva acumulados). */
+export function ResumeRide() {
+  const [snap, setSnap] = useState(() => pendingRide())
+  const [busy, setBusy] = useState(false), [err, setErr] = useState('')
+  const riding = useTrip(s => !!s.ride), now = useTrip(s => s.now)
+  if (!snap || riding) return null
+  const mins = Math.max(1, Math.round((now - snap.savedAt) / 60e3))
+  const km = snap.dist >= 0.1 ? `, ${fmt1(snap.dist)} km rodados` : ''
+  return (
+    <section className="card locask resume" aria-labelledby="resume-title">
+      <span className="ic"><Navigation className="i" /></span>
+      <div>
+        <b id="resume-title">Continuar o pedal até {snap.dest.name}?</b>
+        <p>O app fechou no meio do caminho há {mins} min{km}. Continue de onde parou: o tempo e a distância seguem contando.</p>
+        {err && <p className="err-text">{err}</p>}
+        <div className="row">
+          <button className="btn primary" type="button" id="resume-go" disabled={busy}
+            onClick={async () => { setBusy(true); setErr(''); const e = await resumeRide(snap); setBusy(false); if (e) setErr(e); else setSnap(null) }}>
+            <Navigation className="i" />{busy ? 'Recalculando a rota…' : 'Continuar pedal'}</button>
+          <button className="btn" type="button" id="resume-drop" disabled={busy} onClick={() => { discardRide(); setSnap(null) }}>Descartar</button>
         </div>
       </div>
     </section>

@@ -4,7 +4,7 @@ import { Sheet } from './components/Sheet'
 import { Hero } from './components/Hero'
 import { TripCard } from './components/TripCard'
 import { TripHeader } from './components/TripHeader'
-import { LocalCard, LocationAsk, RoutineCard, WhereTo } from './components/Explore'
+import { LocalCard, LocationAsk, ResumeRide, RoutineCard, WhereTo } from './components/Explore'
 import { UndoToast } from './components/UndoToast'
 import { Tooltips } from './components/Tooltips'
 import { ShelterCard } from './components/ShelterCard'
@@ -89,6 +89,7 @@ export default function App() {
       <Sheet contentKey={view}>
         <Banners />
         {mode === 'explore' ? <>
+          <ResumeRide />
           <LocationAsk />
           <RoutineCard />
           <WhereTo onAddPlace={() => setSettings({ open: true, focus: 'places' })} />

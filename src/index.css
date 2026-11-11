@@ -546,3 +546,10 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 @keyframes tipin{from{opacity:0}}
 :root[data-theme="dark"] .tip{background:#e9eef7;color:#16233f}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tip{background:#e9eef7;color:#16233f}}
+/* segurar o dedo num botão mostra a dica: sem o menu de cópia do iOS por cima */
+.fab,.ibtn,.btn,.sc,.chip{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.resume{border:1px solid color-mix(in srgb,var(--link) 40%,transparent)}
+.resume .row{display:flex;flex-wrap:wrap;gap:8px}
+.resume .row .btn{min-height:44px;justify-content:center}
+.resume .row .btn.primary{flex:1 1 180px}
+.err-text{color:var(--bad)!important;font-weight:600}

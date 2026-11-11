@@ -80,6 +80,15 @@ assert.notEqual(await page.textContent("#radar-time"), t0, "a animação muda o 
 assert.equal((await radarPanes()).length, op.length, "animar não recria as camadas");
 await page.evaluate(() => document.getElementById("radar-play").click()); await page.waitForTimeout(200);
 
+// no celular: segurar o dedo num botão mostra a dica e não aciona o botão
+await page.evaluate(() => { const b = document.getElementById("open-history"), r = b.getBoundingClientRect(); b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: r.x + 5, clientY: r.y + 5 })); });
+await page.waitForTimeout(700);
+assert.match(await page.textContent(".tip"), /Seus pedais/, "segurar o dedo mostra a dica");
+await page.evaluate(() => { const b = document.getElementById("open-history"); b.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })); b.click(); });
+await page.waitForTimeout(300);
+assert.ok(!(await page.evaluate(() => document.getElementById("history")?.open)), "o toque longo não abre o histórico");
+await page.waitForTimeout(2600);
+
 // relatar problema: relatório técnico sem coordenadas
 await page.click("#open-settings"); await page.waitForTimeout(300);
 await page.evaluate(() => document.getElementById("report").click()); await page.waitForTimeout(400);
@@ -183,6 +192,13 @@ await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.2, longitude: -48.093 +
 assert.ok(await page.locator("#compass").count() === 1, "botão de bússola no pedal");
 assert.ok(await page.evaluate(() => Math.round(window.__pedaguaMap.getBearing()) !== 0), "no modo bússola o mapa gira com a direção");
 assert.ok(await page.evaluate(() => { const b = document.querySelector(".bike-disc").getBoundingClientRect(), m = document.getElementById("map").getBoundingClientRect(), vis = m.height - parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet") || "0"); return b.top + b.height / 2 - m.top > vis * 0.55; }), "no mapa bússola a bike fica mais para baixo, mostrando o caminho à frente");
+// o app fechou no meio do pedal: ao reabrir, oferece continuar de onde parou
+await page.waitForTimeout(10500); await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.21, longitude: -48.093 + 0.137 * 0.21 }); await page.waitForTimeout(1200);
+await page.reload(); await page.waitForTimeout(1800);
+assert.match(await page.textContent("#resume-title"), /Continuar o pedal até Trabalho/);
+await page.click("#resume-go"); await page.waitForTimeout(2000);
+assert.ok(await page.locator(".bike-disc").count() === 1 && await page.locator("#resume-title").count() === 0, "continuar retoma o pedal");
+assert.ok(await page.evaluate(() => { const r = JSON.parse(localStorage.getItem("pedalclima.ride.v1")); return r && Date.now() - r.startedAt > 10e3; }), "o pedal retomado mantém a hora de início");
 
 // fora da rota por ~12 s: recalcula sozinho a partir de onde você está
 await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.006, longitude: -48.093 + 0.137 * 0.3 - 0.004 });
