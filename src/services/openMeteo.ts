@@ -39,3 +39,18 @@ export async function fetchElevation(r: Route): Promise<ElevPoint[] | undefined>
     return elev
   } catch { return undefined }
 }
+
+/** Previsão de um único ponto (onde você está). */
+export async function fetchLocalWeather(ll: [number, number]): Promise<PointWeather> {
+  const p = new URLSearchParams({
+    latitude: ll[0].toFixed(3), longitude: ll[1].toFixed(3),
+    minutely_15: 'precipitation', past_minutely_15: '4', forecast_minutely_15: '16', hourly: HOURLY,
+    past_hours: '1', forecast_hours: '6', timeformat: 'unixtime', timezone: 'America/Sao_Paulo',
+  })
+  const r = await fetch('https://api.open-meteo.com/v1/forecast?' + p)
+  if (!r.ok) throw new Error('HTTP ' + r.status)
+  const j = await r.json() as PointWeather | PointWeather[]
+  const w = Array.isArray(j) ? j[0] : j
+  if (!w?.hourly?.time) throw new Error('resposta sem previsão')
+  return w
+}

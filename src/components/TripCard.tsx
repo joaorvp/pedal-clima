@@ -3,42 +3,20 @@ import { placeName, timelineGroups } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, evaluate, hourlyAt } from '../domain/weather'
 import { useLabels, useTripView } from '../hooks/useTripView'
-import { curPlace, destPt, useSettings } from '../store/settings'
+import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
+import { OpenIn } from './TripHeader'
 
 const color = (c: number) => `var(${CATS[c].color})`
 
-export function TripCard({ onEdit, onAddPlace }: { onEdit: () => void; onAddPlace: () => void }) {
+export function TripCard() {
   const view = useTripView()
   const labels = useLabels()
   const ride = useTrip(s => s.ride)
-  const s = useSettings()
-  const place = curPlace(s)
-  const nameOf = (k: 'home' | 'work') => k === 'work' && place ? place.name : s.names[k] || (k === 'home' ? 'Casa' : 'Trabalho')
-  const dir = useTrip(st => st.dir)
-  const from = dir === 'ida' ? nameOf('home') : nameOf('work'), to = dir === 'ida' ? nameOf('work') : nameOf('home')
-
-  const a = dir === 'ida' ? s.home : destPt(s), b = dir === 'ida' ? destPt(s) : s.home, f = (p: [number, number]) => p[0] + ',' + p[1]
-  const g = new URLSearchParams({ api: '1', origin: f(a), destination: f(b), travelmode: 'bicycling' })
-  if (s.via) g.set('waypoints', f(s.via))
 
   return (
     <section className="card">
       <h2>Seu trajeto, minuto a minuto <span className="aside num" id="tl-dist">{view ? fmt1(view.route.total) + ' km' : ''}</span></h2>
-      <button className="trip" type="button" id="trip" onClick={onEdit}>
-        <span className="lb">DE</span><span className="nm" id="trip-a">{from}</span>
-        <span className="lb">PARA</span><span className="nm" id="trip-b">{to}</span>
-        <span className="ed">Editar</span>
-      </button>
-      <div className="dests" id="dests" role="radiogroup" aria-label="Destino">
-        <button type="button" role="radio" aria-checked={!s.destId} data-id="" onClick={() => s.patch({ destId: null })}>Trabalho</button>
-        {s.places.map(p => <button key={p.id} type="button" role="radio" aria-checked={s.destId === p.id} data-id={p.id} onClick={() => s.patch({ destId: p.id })}>{p.name}</button>)}
-        <button type="button" className="add" id="dest-add" onClick={onAddPlace}>+ Lugar</button>
-      </div>
-      <div className="open-in">
-        <a className="btn" id="open-gmaps" href={'https://www.google.com/maps/dir/?' + g} target="_blank" rel="noopener">Abrir no Google Maps</a>
-        <a className="btn" id="open-waze" href={`https://waze.com/ul?ll=${f(b)}&navigate=yes`} target="_blank" rel="noopener">Abrir no Waze</a>
-      </div>
       <Routes />
       {view && <>
         <div className="routebar" id="routebar" aria-hidden="true">
@@ -51,16 +29,17 @@ export function TripCard({ onEdit, onAddPlace }: { onEdit: () => void; onAddPlac
       </div>
       {view && <Timeline />}
       {view?.prof && <Elevation />}
+      <OpenIn />
       {!view && ride == null && <p className="note">A linha do tempo aparece quando a previsão carregar.</p>}
     </section>
   )
 }
 
 function Routes() {
-  const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), dir = useTrip(s => s.dir)
+  const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel)
   const dep = useTrip(s => s.dep), now = useTrip(s => s.now), ride = useTrip(s => s.ride)
   const speed = useSettings(s => s.speed), lastT = ride?.last?.t
-  const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, dir, lastT ?? dep ?? now, speed) : null), [routes, dir, dep, now, lastT, speed])
+  const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, 'ida', lastT ?? dep ?? now, speed) : null), [routes, dep, now, lastT, speed])
   if (routes.length < 2 || evs.some(e => !e)) return null
   const ex = evs.map(e => e!.exposure), du = evs.map(e => e!.dur)
   const dryI = ex.indexOf(Math.min(...ex)), fastI = du.indexOf(Math.min(...du))

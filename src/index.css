@@ -311,3 +311,56 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .toast > svg{color:var(--link)}
 .toast.news{grid-template-columns:auto minmax(0,1fr) auto;align-items:start}
 @media (min-width:1000px){.toast{left:auto;width:380px;right:24px}}
+
+/* ---------- Você no mapa ---------- */
+/* desliza entre as leituras do GPS em vez de pular (sem animar durante o zoom) */
+.leaflet-marker-icon.smooth{transition:transform .9s linear}
+.leaflet-zoom-anim .leaflet-marker-icon.smooth{transition:none}
+.me-dot{width:22px;height:22px;border-radius:50%;background:#2b7fff;border:4px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.3);animation:me-pulse 2.4s ease-out infinite}
+@keyframes me-pulse{0%{box-shadow:0 0 0 0 rgba(43,127,255,.45),0 2px 8px rgba(0,0,0,.3)}100%{box-shadow:0 0 0 16px rgba(43,127,255,0),0 2px 8px rgba(0,0,0,.3)}}
+.bike-me{position:relative;width:56px;height:56px;display:grid;place-items:center}
+.bike-cone{position:absolute;inset:0;transition:transform .6s ease-out}
+.bike-cone::before{content:"";position:absolute;left:50%;top:-6px;transform:translateX(-50%);border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:16px solid var(--link);filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.bike-disc{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:3px solid #fff;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.saved-pin{width:34px;height:34px;border-radius:50%;background:var(--surface);color:var(--ink);border:2px solid var(--head);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer}
+.dest-pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#e2662a;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center;color:#fff}
+.dest-pin svg{transform:rotate(45deg)}
+.origin-dot{width:20px;height:20px;border-radius:50%;background:#fff;border:5px solid var(--head);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.fab.locate{position:absolute;z-index:6;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(var(--sheet,0px) + 14px);transition:bottom .34s cubic-bezier(.2,.8,.2,1)}
+.fab.locate.lost{background:var(--link);color:#fff}
+@media (min-width:1000px){.fab.locate{bottom:96px}}
+
+/* ---------- Tela inicial ---------- */
+.local-where{display:flex;justify-content:space-between;font:600 11.5px var(--font-data);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.local-meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;color:var(--muted);font-size:13.5px}
+.local-meta b{color:var(--ink);font-size:17px;font-weight:600}
+.whereto{display:grid;gap:12px}
+.whereto .search{position:relative}
+.whereto .search > svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);z-index:1;pointer-events:none}
+.whereto .search input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:13px 16px 13px 44px;color:var(--ink);font-size:16px;font-weight:500}
+.whereto .search input:focus{outline:none;border-color:var(--link);background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 22%,transparent)}
+.shortcuts{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px}
+.shortcuts::-webkit-scrollbar{display:none}
+.sc{flex:none;display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:10px 14px;font-weight:600;font-size:14px;cursor:pointer;min-height:44px}
+.sc svg{width:18px;height:18px;color:var(--link)}
+.sc.add{border-style:dashed;color:var(--link)}
+
+/* ---------- Cabeçalho do trajeto ---------- */
+.triphead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 8px;align-items:center}
+.triphead .ends{display:grid;gap:10px;position:relative;padding-left:24px}
+.triphead .ends::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;border-left:2px dotted var(--line)}
+.triphead .end{display:flex;align-items:center;min-width:0}
+.triphead .end .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.triphead .end .nm b{font-weight:600}
+.triphead i{position:absolute;left:0;width:14px;height:14px;border-radius:50%}
+.triphead .dot-o{background:#fff;border:4px solid var(--head)}
+.triphead .dot-d{background:#e2662a;border:3px solid #fff;box-shadow:0 0 0 1px #e2662a}
+.triphead .actions{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
+.triphead .actions .ibtn{width:44px;height:44px}
+.triphead .open-in{grid-column:1 / -1;margin:0}
+.card > .open-in:last-child{margin:14px 0 0}
+
+/* Iniciar pedal: largura total logo abaixo do veredito, ao alcance do polegar */
+.hero > .ride-btn{display:flex;width:100%;justify-content:center;margin:14px 0 0;padding:13px 16px;font-size:16px;min-height:48px}
+.hero.riding > .ride-btn{background:var(--bad);border-color:var(--bad);color:#fff}
+.hero.riding .when{display:none}

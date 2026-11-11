@@ -21,11 +21,13 @@ export function Sheet({ children, contentKey }: { children: ReactNode; contentKe
     y.current = v
     el.classList.toggle('dragging', !anim)
     el.style.transform = `translateY(${v}px)`
-    useTrip.getState().set({ sheetVisible: Math.max(0, el.offsetHeight - v) })
+    const vis = Math.max(0, el.offsetHeight - v)
+    document.documentElement.style.setProperty('--sheet', vis + 'px')
+    useTrip.getState().set({ sheetVisible: vis })
   }
   function place(s: SheetState) {
     const el = ref.current; if (!el) return
-    if (!mq?.matches) { el.style.transform = ''; el.classList.remove('full'); useTrip.getState().set({ sheetVisible: 0 }); return }
+    if (!mq?.matches) { el.style.transform = ''; el.classList.remove('full'); document.documentElement.style.setProperty('--sheet', '0px'); useTrip.getState().set({ sheetVisible: 0 }); return }
     el.classList.toggle('full', s === 'full'); if (s !== 'full') el.scrollTop = 0
     apply(stops()[s])
   }

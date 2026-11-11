@@ -9,7 +9,8 @@ import { useTrip } from '../store/trip'
 import { Icon } from './icons'
 
 export function AppBar({ onSettings }: { onSettings: () => void }) {
-  const loading = useTrip(s => s.loading), offline = useTrip(s => s.offline), wxAt = useTrip(s => s.wxAt)
+  const loading = useTrip(s => s.loading), offline = useTrip(s => s.offline), mode = useTrip(s => s.mode)
+  const wxAt = useTrip(s => s.mode === 'trip' ? s.wxAt : s.local?.at ?? 0)
   const label = loading ? (wxAt ? `previsão ${hhmm(wxAt)} · atualizando…` : 'carregando…') : offline ? `sem conexão · previsão ${hhmm(wxAt)}` : wxAt ? `previsão ${hhmm(wxAt)}` : ''
   return (
     <header className="appbar">
@@ -17,30 +18,29 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
         <img className="logo" src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={32} height={32} />
         <p className="brand">Pedal &amp; Clima</p>
         <span className="upd" id="updated">{label}</span>
-        <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar" onClick={() => useTrip.getState().refresh()}><RefreshCw className="i" /></button>
+        <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
         <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes" onClick={onSettings}><SlidersHorizontal className="i" /></button>
       </div>
     </header>
   )
 }
 
-export function Banners({ onFix }: { onFix: () => void }) {
+export function Banners() {
   const error = useTrip(s => s.error), routeNote = useTrip(s => s.routeNote), alerts = useTrip(s => s.alerts)
-  const customized = useSettings(s => s.customized), now = useTrip(s => s.now)
+  const loc = useTrip(s => s.locStatus), mode = useTrip(s => s.mode), now = useTrip(s => s.now)
   const a = alerts?.[0]
   const when = a ? (!isNaN(a.start) && a.start > now ? `a partir de ${hhmm(a.start)}` : !isNaN(a.end) ? `até ${new Date(a.end).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : '') : ''
   return <>
     {(error || routeNote) && <div id="error" className="err">{error || routeNote}</div>}
     {a && (
-      <a id="alert" className="alert" href="https://alertas2.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}>
+      <a id="alert" className="alert" href="https://portal.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}>
         <span className="ic">{a.level >= 2 ? <CloudLightning className="i" /> : <CloudRain className="i" />}</span>
         <div><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b><small>Alerta oficial para o DF {when}{alerts!.length > 1 ? ` · +${alerts!.length - 1} alerta(s)` : ''}. Toque para ver.</small></div>
       </a>
     )}
-    {!customized && (
+    {loc === 'denied' && mode === 'explore' && (
       <div id="setup-banner" className="banner">
-        <MapPin className="i" /><span>Casa e trabalho ainda estão em posições aproximadas.</span>
-        <button className="btn" type="button" id="banner-fix" onClick={onFix}>Ajustar</button>
+        <MapPin className="i" /><span>A localização está bloqueada. Libere nas permissões do navegador para o app saber onde você está.</span>
       </div>
     )}
   </>
@@ -48,19 +48,19 @@ export function Banners({ onFix }: { onFix: () => void }) {
 
 export function SlotsCard() {
   const view = useTripView()
-  const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), dir = useTrip(s => s.dir), dep = useTrip(s => s.dep), now = useTrip(s => s.now)
+  const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), dep = useTrip(s => s.dep), now = useTrip(s => s.now)
   const speed = useSettings(s => s.speed)
   const route = routes[sel]
   const data = useMemo(() => {
     if (!route?.wx) return null
     const base = Math.ceil((now + 5 * 60e3) / 900e3) * 900e3
-    const items = Array.from({ length: 13 }, (_, k) => { const t = k === 0 ? now : base + (k - 1) * 900e3; return { t, ev: evaluate(route, dir, t, speed) } })
+    const items = Array.from({ length: 13 }, (_, k) => { const t = k === 0 ? now : base + (k - 1) * 900e3; return { t, ev: evaluate(route, 'ida', t, speed) } })
     let best = items[0]
     for (const x of items) if (!x.ev.storm && (best.ev.storm || x.ev.exposure < best.ev.exposure - 0.03)) best = x
     const showBest = best !== items[0] && items[0].ev.exposure - best.ev.exposure > 0.1
     const raining = items[0].ev.exposure >= 0.15 || items[0].ev.storm
-    return { items, best, showBest, clear: raining && !showBest ? clearTime(route, dir, now, speed) : undefined, raining }
-  }, [route, dir, now, speed])
+    return { items, best, showBest, clear: raining && !showBest ? clearTime(route, 'ida', now, speed) : undefined, raining }
+  }, [route, now, speed])
   if (!view || !data || view.riding) return null
   const { items, best, showBest, clear, raining } = data
   const maxE = Math.max(0.6, ...items.map(x => x.ev.exposure))

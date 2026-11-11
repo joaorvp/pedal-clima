@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.1.0'
+export const CURRENT_APP_VERSION = '2.2.0'
 export const CHANGELOG = [
+  {
+    version: '2.2.0',
+    title: 'Comece de onde você está',
+    items: [
+      'O app abre com você no mapa e o clima de onde você está agora.',
+      'Toque em "Para onde vamos?" ou num atalho (Casa, Trabalho, seus lugares) para montar o trajeto.',
+      'Pedalando, uma bike mostra você no mapa em tempo real, girando no sentido em que você vai.',
+      'O celular vibra ao iniciar, ao chegar e quando a chuva estiver a menos de 1 km.',
+    ],
+  },
   {
     version: '2.1.0',
     title: 'Cara nova e mais simples',

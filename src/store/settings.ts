@@ -14,13 +14,17 @@ const names = z.object({ home: z.string().catch(''), via: z.string().catch(''), 
 
 export const settingsSchema = z.object({
   home: latLon.catch([-15.876, -48.093]),
-  via: latLon.nullable().catch([-15.8395, -48.0265]),
+  // Quem nunca configurou não tem ponto P (antes vinha um de exemplo)
+  via: latLon.nullable().catch(null),
   work: latLon.catch([-15.803, -47.956]),
   speed: z.number().min(8).max(45).catch(22),
   batt: z.number().min(150).max(2000).catch(500),
   whkm: z.number().min(3).max(30).catch(10),
   profile: z.enum(['bike', 'main']).catch('bike'),
   customized: z.boolean().catch(false),
+  /** casa e trabalho definidos pela pessoa (os valores de fábrica são só de exemplo e não aparecem) */
+  homeSet: z.boolean().optional().catch(undefined),
+  workSet: z.boolean().optional().catch(undefined),
   onboarded: z.boolean().catch(false),
   tIda: z.string().catch(''),
   tVolta: z.string().catch(''),
@@ -42,6 +46,9 @@ export function parseSettings(raw: unknown): Settings {
   const s = settingsSchema.parse(raw ?? {})
   // Versões antigas davam nome ao comércio mais próximo; refaz com rua e bairro.
   if (s.nameVer !== 2) { s.names = { home: '', via: '', work: '' }; s.nameVer = 2 }
+  // Quem já tinha ajustado os pontos antes desses campos existirem: casa e trabalho contam como definidos.
+  if (s.homeSet === undefined) s.homeSet = s.customized
+  if (s.workSet === undefined) s.workSet = s.customized
   return s
 }
 
@@ -70,7 +77,7 @@ const round = (ll: LatLon): LatLon => [+ll[0].toFixed(5), +ll[1].toFixed(5)]
 export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
   ...parseSettings({}),
   patch: p => set(p),
-  setPoint: (k, ll, name) => set(s => ({ [k]: round(ll), customized: k === 'via' ? s.customized : true, names: { ...s.names, [k]: name ?? '' } })),
+  setPoint: (k, ll, name) => set(s => ({ [k]: round(ll), customized: k === 'via' ? s.customized : true, ...(k === 'home' ? { homeSet: true } : k === 'work' ? { workSet: true } : {}), names: { ...s.names, [k]: name ?? '' } })),
   setName: (k, name) => set(s => ({ names: { ...s.names, [k]: name } })),
   clearVia: () => set(s => ({ via: null, names: { ...s.names, via: '' } })),
   addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },

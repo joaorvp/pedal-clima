@@ -56,6 +56,14 @@ describe('configurações salvas', () => {
     expect(s).toMatchObject({ home: [-15.9, -48.1], via: null, speed: 25, batt: 720, customized: true })
     expect(s.places[0].name).toBe('Academia'); expect(s.names.home).toBe('Rua 9')
   })
+  it('quem já usava mantém casa, trabalho e o próprio ponto P', () => {
+    const s = parseSettings({ customized: true, via: [-15.84, -48.02], nameVer: 2 })
+    expect(s.homeSet).toBe(true); expect(s.workSet).toBe(true); expect(s.via).toEqual([-15.84, -48.02])
+  })
+  it('quem nunca configurou não vê pontos de exemplo', () => {
+    const s = parseSettings({})
+    expect(s.homeSet).toBe(false); expect(s.workSet).toBe(false); expect(s.via).toBeNull()
+  })
   it('corrige valores inválidos em vez de quebrar', () => {
     const s = parseSettings({ speed: 'rápido', home: 'x' })
     expect(s.speed).toBe(22); expect(s.home).toHaveLength(2)

@@ -26,7 +26,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
       </div>
       <div className="dlg-body">
         <div className="sec">
-          <h3>Pontos do trajeto</h3>
+          <h3>Seus lugares</h3>
           <div className="places" id="places">
             {PLACE_DEF.map(p => (
               <div className="place" key={p.k}>

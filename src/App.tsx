@@ -3,27 +3,31 @@ import { MapView } from './components/MapView'
 import { Sheet } from './components/Sheet'
 import { Hero } from './components/Hero'
 import { TripCard } from './components/TripCard'
+import { TripHeader } from './components/TripHeader'
+import { LocalCard, WhereTo } from './components/Explore'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
 import { InstallBanner, UpdatePrompt, WhatsNew } from './components/Pwa'
-import { destPt, useSettings } from './store/settings'
+import { startLocation } from './hooks/location'
+import { useSettings } from './store/settings'
 import { useTrip } from './store/trip'
 
 export default function App() {
   const [settings, setSettings] = useState<{ open: boolean; focus?: string }>({ open: false })
   const [full, setFull] = useState(false)
-  const view = useTrip(s => s.routes.length + ':' + s.sel + ':' + s.loading + ':' + !!s.ride?.pos + ':' + s.arrived)
-  const alerts = useTrip(s => s.alerts?.length ?? 0), customized = useSettings(s => s.customized)
-  // recalcula a rota quando os pontos, o destino ou o tipo de rota mudam
-  const sig = useSettings(s => [s.home, s.via, destPt(s), s.profile].flat().join(','))
+  const mode = useTrip(s => s.mode)
+  const view = useTrip(s => s.mode + s.routes.length + ':' + s.sel + ':' + s.loading + ':' + !!s.ride?.pos + ':' + s.arrived + ':' + !!s.local + ':' + (s.alerts?.length ?? 0) + s.locStatus)
+  const profile = useSettings(s => s.profile)
 
-  useEffect(() => { useTrip.getState().loadSnapshot() }, [])
-  useEffect(() => { useTrip.getState().refresh() }, [sig])
+  // ao abrir: pede a localização e mostra o clima onde você está
+  useEffect(() => { startLocation(); useTrip.getState().refreshLocal() }, [])
+  // trocar o tipo de rota recalcula o trajeto aberto
+  useEffect(() => { if (useTrip.getState().mode === 'trip') { useTrip.getState().set({ routes: [] }); useTrip.getState().refresh() } }, [profile])
   useEffect(() => {
     const refresh = setInterval(() => useTrip.getState().refresh(), 10 * 60e3)
     const tick = setInterval(() => useTrip.getState().set({ now: Date.now() }), 60e3)
-    const vis = () => { if (!document.hidden && Date.now() - useTrip.getState().wxAt > 5 * 60e3) useTrip.getState().refresh() }
+    const vis = () => { const t = useTrip.getState(); if (!document.hidden && Date.now() - Math.max(t.wxAt, t.local?.at ?? 0) > 5 * 60e3) t.refresh() }
     document.addEventListener('visibilitychange', vis)
     return () => { clearInterval(refresh); clearInterval(tick); document.removeEventListener('visibilitychange', vis) }
   }, [])
@@ -33,12 +37,18 @@ export default function App() {
     <AppBar onSettings={() => setSettings({ open: true })} />
     <main className="shell">
       <MapView full={full} onToggleFull={() => setFull(f => !f)} />
-      <Sheet contentKey={view + alerts + customized}>
-        <Banners onFix={() => setSettings({ open: true })} />
-        <Hero />
-        <TripCard onEdit={() => setSettings({ open: true })} onAddPlace={() => setSettings({ open: true, focus: 'places' })} />
-        <SlotsCard />
-        <Checklist />
+      <Sheet contentKey={view}>
+        <Banners />
+        {mode === 'explore' ? <>
+          <WhereTo onAddPlace={() => setSettings({ open: true, focus: 'places' })} />
+          <LocalCard />
+        </> : <>
+          <TripHeader />
+          <Hero />
+          <TripCard />
+          <SlotsCard />
+          <Checklist />
+        </>}
         <Footer />
       </Sheet>
     </main>

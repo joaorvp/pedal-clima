@@ -1,30 +1,48 @@
 import { create } from 'zustand'
 import type { InmetAlert } from '../domain/alerts'
-import { nextCommute } from '../domain/commute'
+import { hav } from '../domain/geo'
 import { prepRoute } from '../domain/routes'
-import type { Dir, LatLon, Route, SunTimes } from '../domain/types'
+import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import { readJson, removeKey, writeJson } from '../services/cache'
 import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
-import { fetchElevation, fetchWeather } from '../services/openMeteo'
+import { fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
 import { fetchRoutes } from '../services/routing'
-import { destPt, useSettings, type PointKey } from './settings'
+import { useSettings, type PointKey } from './settings'
+
+/** Um ponto do trajeto: a sua posição ao vivo ou um lugar fixo (salvo, buscado ou marcado no mapa). */
+export type Endpoint =
+  | { kind: 'me' }
+  | { kind: 'place'; ll: LatLon; name: string; key?: string }
+
+export interface Me { pos: LatLon; acc: number; heading: number | null; t: number }
+export type LocStatus = 'idle' | 'asking' | 'ok' | 'denied' | 'unavailable'
 
 export interface Ride {
   pos: LatLon | null; acc: number
-  /** km percorridos no sentido atual e distância até a rota */
+  /** km percorridos desde a origem e distância até a rota */
   d: number; off: number
   /** velocidade média suavizada (km/h) */
   ema: number
+  /** sentido do movimento (graus), para girar o marcador da bike */
+  heading: number | null
   follow: boolean
   weakSignal: boolean
   last: { pos: LatLon; t: number } | null
-  pred: { t: number; dir: Dir; rainy: boolean; prob: number; exp: number } | null
+  pred: { t: number; dir: string; rainy: boolean; prob: number; exp: number } | null
 }
 export type SheetState = 'peek' | 'half' | 'full'
+export type Mode = 'explore' | 'trip'
 
 interface TripState {
-  dir: Dir
+  mode: Mode
+  origin: Endpoint
+  dest: Endpoint | null
+  /** ponto "passar por" do trajeto atual */
+  via: LatLon | null
   dep: number | null
+  me: Me | null
+  locStatus: LocStatus
+  local: { wx: PointWeather; at: number; ll: LatLon } | null
   routes: Route[]
   sel: number
   wxAt: number
@@ -38,65 +56,109 @@ interface TripState {
   ride: Ride | null
   feedbackPred: Ride['pred']
   arrived: boolean
-  pickMode: PointKey | null
+  pickMode: PointKey | 'dest' | null
   sheet: SheetState
   sheetVisible: number
   fitNonce: number
+  centerNonce: number
   now: number
   set: (p: Partial<TripState>) => void
   refresh: () => Promise<void>
+  refreshLocal: () => Promise<void>
   loadSnapshot: () => boolean
   selectRoute: (i: number) => void
+  startTrip: (dest: Endpoint, origin?: Endpoint) => void
+  closeTrip: () => void
+  swap: () => void
+}
+
+/** Coordenada de um ponto do trajeto (a posição atual, se for "Sua localização"). */
+export function endpointLL(e: Endpoint | null, me: Me | null): LatLon | null {
+  if (!e) return null
+  return e.kind === 'me' ? me?.pos ?? null : e.ll
+}
+export function endpointName(e: Endpoint | null): string {
+  if (!e) return ''
+  return e.kind === 'me' ? 'Sua localização' : e.name
 }
 
 const SNAP_KEY = 'pedalclima.last'
-const snapSig = () => { const s = useSettings.getState(); return [s.home, s.via, destPt(s), s.profile].flat().join(',') }
+const LOCAL_KEY = 'pedalclima.local'
+const round3 = (ll: LatLon | null) => ll ? ll.map(v => v.toFixed(3)).join(',') : '-'
 
-function initialDir(): { dir: Dir; dep: number | null } {
-  const s = useSettings.getState(), n = nextCommute(s.tIda, s.tVolta)
-  if (n) return { dir: n.d, dep: n.diff > 5 && n.diff <= 180 ? Date.now() + n.diff * 60e3 - (Date.now() % 60e3) : null }
-  return { dir: new Date().getHours() < 12 ? 'ida' : 'volta', dep: null }
+/** O ponto P vale para o trajeto casa ⇄ trabalho (saindo de perto de um e indo para o outro). */
+function commuteVia(o: LatLon, d: LatLon): LatLon | null {
+  const s = useSettings.getState(); if (!s.via) return null
+  const near = (a: LatLon, b: LatLon) => hav(a, b) < 1.5
+  return (near(o, s.home) && near(d, s.work)) || (near(o, s.work) && near(d, s.home)) ? s.via : null
 }
 
 export const useTrip = create<TripState>()((set, get) => ({
-  ...initialDir(),
+  mode: 'explore', origin: { kind: 'me' }, dest: null, via: null, dep: null,
+  me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
-  loading: true, offline: false, error: '', routeNote: '',
+  loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
   ride: null, feedbackPred: null, arrived: false, pickMode: null,
-  sheet: 'peek', sheetVisible: 0, fitNonce: 0, now: Date.now(),
+  sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
   selectRoute: i => { set({ sel: i }); useSettings.getState().patch({ routePick: get().routes[i]?.name }) },
 
-  refresh: async () => {
-    set({ loading: true })
-    const s = useSettings.getState(), dest = destPt(s)
-    const radarP = fetchRadar().then(r => { if (r) set(st => ({ radar: { ...st.radar, host: r.host, frames: r.frames, idx: Math.max(0, r.frames.length - 1) } })) })
+  startTrip: (dest, origin) => {
+    const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
+    const oll = endpointLL(o, st.me), dll = endpointLL(dest, st.me)
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, sheet: 'peek', error: '', arrived: false })
+    get().refresh()
+  },
+  closeTrip: () => { set({ mode: 'explore', dest: null, routes: [], via: null, dep: null, routeNote: '', error: '', centerNonce: get().centerNonce + 1 }); get().refreshLocal() },
+  swap: () => {
+    const { origin, dest, me } = get(); if (!dest) return
+    // "Sua localização" vira um ponto fixo ao ir para o destino: a volta parte de onde você estava.
+    const o: Endpoint = origin.kind === 'me' ? { kind: 'place', ll: me?.pos ?? useSettings.getState().home, name: 'Onde você estava' } : origin
+    set({ origin: dest, dest: o, routes: [] }); get().refresh()
+  },
+
+  refreshLocal: async () => {
+    const st = get(), ll = st.me?.pos ?? (st.mode === 'trip' ? endpointLL(st.origin, st.me) : null) ?? useSettings.getState().home
+    const radarP = fetchRadar().then(r => { if (r) set(s => ({ radar: { ...s.radar, host: r.host, frames: r.frames, idx: Math.max(0, r.frames.length - 1) } })) })
     const alertsP = fetchAlerts().then(alerts => set({ alerts }))
-    try {
-      const { routes: cands, fallback } = await fetchRoutes(s.home, s.via, dest, s.profile)
-      const routes = cands.map(c => prepRoute(c, s.via))
-      const [{ perRoute, sun }, elevs] = await Promise.all([fetchWeather(routes), Promise.all(routes.map(fetchElevation))])
-      routes.forEach((r, i) => { r.wx = perRoute[i]; r.elev = elevs[i] })
-      const keep = routes.findIndex(r => r.name === useSettings.getState().routePick)
-      const prevSig = get().routes.map(r => r.line.length).join()
-      set({ routes, sel: keep >= 0 ? keep : 0, sun, wxAt: Date.now(), loading: false, offline: false, error: '',
-        routeNote: fallback ? 'Não consegui calcular a rota agora; usando linha reta entre os pontos.' : '',
-        fitNonce: prevSig === routes.map(r => r.line.length).join() ? get().fitNonce : get().fitNonce + 1 })
-      if (!writeJson(SNAP_KEY, { sig: snapSig(), wxAt: Date.now(), sun, sel: get().sel, routes })) removeKey(SNAP_KEY)
-    } catch (e) {
-      if (get().routes.length && get().routes[0].wx) set({ loading: false, offline: true, error: '' })
-      else set({ loading: false, error: 'Não consegui carregar a previsão: ' + ((e as Error).message || e) + '. Verifique a conexão e toque em atualizar.' })
-    }
+    try { const wx = await fetchLocalWeather(ll); const local = { wx, at: Date.now(), ll }; set({ local, offline: false }); writeJson(LOCAL_KEY, local) }
+    catch { const cached = get().local ?? readJson<TripState['local']>(LOCAL_KEY); if (cached) set({ local: cached, offline: true }) }
     await Promise.all([radarP, alertsP])
   },
 
-  /** Última previsão salva: abre na hora e funciona sem sinal. */
+  refresh: async () => {
+    const st = get()
+    if (st.mode !== 'trip' || !st.dest) { await get().refreshLocal(); return }
+    const o = endpointLL(st.origin, st.me), d = endpointLL(st.dest, st.me)
+    if (!o || !d) { set({ error: 'Aguardando sua localização para montar o trajeto.' }); return }
+    set({ loading: true })
+    const s = useSettings.getState(), via = st.via
+    const localP = get().refreshLocal()
+    try {
+      const { routes: cands, fallback } = await fetchRoutes(o, via, d, s.profile)
+      const routes = cands.map(c => prepRoute(c, via))
+      const [{ perRoute, sun }, elevs] = await Promise.all([fetchWeather(routes), Promise.all(routes.map(fetchElevation))])
+      routes.forEach((r, i) => { r.wx = perRoute[i]; r.elev = elevs[i] })
+      if (get().mode !== 'trip') return
+      const keep = routes.findIndex(r => r.name === useSettings.getState().routePick)
+      set({ routes, sel: keep >= 0 ? keep : 0, sun, wxAt: Date.now(), loading: false, offline: false, error: '',
+        routeNote: fallback ? 'Não consegui calcular a rota agora; usando linha reta entre os pontos.' : '', fitNonce: get().fitNonce + 1 })
+      if (!writeJson(SNAP_KEY, { sig: round3(o) + '|' + round3(d) + '|' + s.profile, wxAt: Date.now(), sun, sel: get().sel, routes, origin: st.origin, dest: st.dest, via })) removeKey(SNAP_KEY)
+    } catch (e) {
+      if (get().routes[0]?.wx) set({ loading: false, offline: true, error: '' })
+      else set({ loading: false, error: 'Não consegui carregar a previsão: ' + ((e as Error).message || e) + '. Verifique a conexão e toque em atualizar.' })
+    }
+    await localP
+  },
+
+  /** Último trajeto salvo: reabre na hora e funciona sem sinal. */
   loadSnapshot: () => {
-    const j = readJson<{ sig: string; wxAt: number; sun: SunTimes | null; sel: number; routes: Route[] }>(SNAP_KEY)
-    if (!j || j.sig !== snapSig() || Date.now() - j.wxAt > 20 * 3600e3 || !j.routes?.length) return false
-    set({ routes: j.routes, sun: j.sun, wxAt: j.wxAt, sel: Math.min(j.sel || 0, j.routes.length - 1), loading: false, fitNonce: get().fitNonce + 1 })
+    const j = readJson<{ wxAt: number; sun: SunTimes | null; sel: number; routes: Route[]; origin?: Endpoint; dest?: Endpoint; via?: LatLon | null }>(SNAP_KEY)
+    if (!j?.dest || !j.routes?.length || Date.now() - j.wxAt > 20 * 3600e3) return false
+    set({ mode: 'trip', origin: j.origin ?? { kind: 'me' }, dest: j.dest, via: j.via ?? null, routes: j.routes, sun: j.sun, wxAt: j.wxAt,
+      sel: Math.min(j.sel || 0, j.routes.length - 1), loading: false, fitNonce: get().fitNonce + 1 })
     return true
   },
 }))

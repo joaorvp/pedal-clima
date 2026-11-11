@@ -44,36 +44,52 @@ await page.route("**/*", r => {
 await page.goto(APP);
 await page.waitForTimeout(1200);
 
-// primeira abertura
+// primeira abertura: boas-vindas com casa e trabalho
 assert.ok(await page.evaluate(() => document.getElementById("welcome").open), "boas-vindas deve abrir na primeira vez");
 await page.fill("#wl-home", "lugar"); await page.waitForTimeout(500); await page.keyboard.press("Enter");
-await page.click("#wl-next"); await page.click("#wl-next"); await page.click("#wl-next");
+await page.click("#wl-next");
+await page.fill("#wl-work", "lugar"); await page.waitForTimeout(500); await page.keyboard.press("Enter");
+await page.click("#wl-next"); await page.click("#wl-next");
 await page.waitForTimeout(800);
 assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "boas-vindas deve fechar ao concluir");
 
-// veredito, linha do tempo, rotas e alerta
+// tela inicial: você no mapa e o clima onde você está
+assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
+assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
+assert.match(await page.textContent(".local-where"), /Onde você está/);
+
+// montar o trajeto pelo atalho do trabalho
+await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click());
+await page.waitForTimeout(1200);
+assert.match(await page.textContent(".triphead"), /Sua localização/);
 const title = await page.textContent("#v-title");
-assert.ok(title && !/Carregando/.test(title), "veredito deve aparecer: " + title);
+assert.ok(title && !/Carregando|Olhando/.test(title), "veredito do trajeto deve aparecer: " + title);
 assert.ok((await page.locator("#timeline li").count()) >= 2, "linha do tempo deve ter trechos");
 assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternativas");
 assert.match(await page.textContent("#alert"), /INMET/);
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
 
-// modo pedal até a chegada
+// modo pedal: a bike aparece no mapa e o pedal termina ao chegar
 await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
+assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike no mapa durante o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);
 await ctx.setGeolocation({ latitude: work[0], longitude: work[1] });
-await page.waitForTimeout(900);
+await page.waitForTimeout(1200);
 assert.equal(await page.textContent("#v-title"), "Você chegou");
-assert.ok(await page.evaluate(() => !document.getElementById("fb").hidden), "deve perguntar se a previsão acertou");
+assert.ok(await page.evaluate(() => !!document.getElementById("fb")), "deve perguntar se a previsão acertou");
 
-// sem conexão: abre com a última previsão salva
+// fechar o trajeto volta para a tela inicial
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());
+await page.waitForTimeout(500);
+assert.ok(await page.locator(".whereto").count() === 1, "deve voltar para a tela inicial");
+
+// sem conexão: o clima de onde você está continua aparecendo
 offline = true;
 await page.reload(); await page.waitForTimeout(1500);
 assert.match(await page.textContent("#updated"), /sem conexão/);
-assert.ok(await page.evaluate(() => !document.getElementById("error")), "não deve mostrar erro com previsão salva");
+assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
 
 assert.deepEqual(errors, [], "a página não deve ter erros de JavaScript");
 await browser.close();
