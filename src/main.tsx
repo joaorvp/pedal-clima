@@ -13,8 +13,6 @@ import '@fontsource/barlow-condensed/800-italic.css'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
 import App from './App'
-import { installErrorLog } from './services/report'
 
-installErrorLog()
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)

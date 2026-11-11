@@ -97,9 +97,7 @@ export function PrivacyText() {
     <p>Os direitos previstos no art. 18 da LGPD (acesso, correção, eliminação e portabilidade, entre outros) são exercidos por você mesmo, diretamente no app: veja e corrija os dados em Ajustes, apague-os como descrito acima e exporte uma cópia em Ajustes → Seus dados → Exportar backup. O arquivo de backup contém os endereços de casa e trabalho: guarde-o em local seguro.</p>
     <h4>9. Segurança</h4>
     <p>O app é servido apenas por conexão segura (HTTPS), não tem servidor próprio que possa vazar dados e restringe de onde a página pode carregar scripts e para onde pode se conectar. A proteção do aparelho (bloqueio de tela, atualizações) cabe a quem o usa.</p>
-    <h4>10. Relatório de problemas</h4>
-    <p>"Relatar problema" (em Ajustes) gera um texto técnico com versão, aparelho e erros recentes, <b>sem coordenadas nem endereços</b>. Nada é enviado automaticamente: o texto só sai do aparelho se você mesmo o copiar e mandar.</p>
-    <h4>11. Alterações e contato</h4>
+    <h4>10. Alterações e contato</h4>
     <p>Esta política pode ser atualizada. A versão vigente fica sempre nesta página. Dúvidas podem ser enviadas pela página do projeto no <A href="https://github.com/joaorvp/pedal-clima">GitHub</A>.</p>
     <p className="ld-upd">Última atualização: {LEGAL_UPDATED} · versão {CURRENT_APP_VERSION} do app.</p>
   </>

@@ -1,6 +1,11 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.22.0'
+export const CURRENT_APP_VERSION = '2.22.1'
 export const CHANGELOG = [
+  {
+    version: '2.22.1',
+    title: 'Ajustes mais enxutos',
+    items: ['O "Relatar problema" saiu dos Ajustes. Dúvidas e sugestões ficam pela página do projeto no GitHub, indicada em "Sobre, termos e privacidade".'],
+  },
   {
     version: '2.22.0',
     title: 'Termos de uso, créditos e privacidade completa',

@@ -127,13 +127,7 @@ await page.setInputFiles("#backup-file", { name: "x.json", mimeType: "applicatio
 assert.match(await page.textContent("#backup-msg"), /não é um backup/);
 await page.click("#settings-done"); await page.waitForTimeout(300);
 
-// relatar problema: relatório técnico sem coordenadas
-await page.click("#open-settings"); await page.waitForTimeout(300);
-await page.evaluate(() => document.getElementById("report").click()); await page.waitForTimeout(400);
-const report = await page.inputValue(".report");
-assert.match(report, /Pedágua \d+\.\d+\.\d+[\s\S]*Localização: ok/);
-assert.ok(!/-15\.\d|-48\.\d|-47\.\d/.test(report), "o relatório não pode ter coordenadas");
-await page.click("#settings-done"); await page.waitForTimeout(300);
+assert.ok(await page.evaluate(async () => { document.getElementById("open-settings").click(); await new Promise(r => setTimeout(r, 300)); const ok = !document.getElementById("report"); document.getElementById("settings-done").click(); return ok; }), "o Relatar problema saiu dos Ajustes");
 
 // rotina: com a saída daqui a 20 min, a tela inicial sugere o trajeto
 const soon = await page.evaluate(() => { const d = new Date(Date.now() + 20 * 60e3); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); });
