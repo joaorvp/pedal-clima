@@ -129,7 +129,7 @@ export function Footer() {
         <a href="https://www.redemet.aer.mil.br/?i=produtos&p=radares-meteorologicos" target="_blank" rel="noopener">Radar REDEMET</a>
         <a href="https://www.rainviewer.com/map.html" target="_blank" rel="noopener">RainViewer</a>
         <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
-        <a href="#sobre" id="open-about" onClick={e => { e.preventDefault(); useTrip.getState().set({ landing: true }) }}>Sobre e privacidade</a>
+        <a href="#sobre" id="open-about" onClick={e => { e.preventDefault(); useTrip.getState().set({ landing: true }) }}>Sobre, termos e privacidade</a>
       </div>
       <span>A previsão vem de modelos com resolução de alguns km: boa para tendência, pode errar o bairro exato. Para os próximos 30–60 min, confie mais no radar.</span>
     </section>

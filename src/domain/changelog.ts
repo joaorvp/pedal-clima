@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.21.1'
+export const CURRENT_APP_VERSION = '2.22.0'
 export const CHANGELOG = [
+  {
+    version: '2.22.0',
+    title: 'Termos de uso, créditos e privacidade completa',
+    items: [
+      'A página "Sobre" agora deixa claro que o Pedágua é um projeto pessoal, gratuito e não comercial, construído sobre mapas e APIs de uso gratuito.',
+      'Novas seções: Termos de uso e aviso legal, Serviços e créditos (o que cada serviço fornece e recebe) e Política de privacidade completa, organizada conforme a LGPD.',
+    ],
+  },
   {
     version: '2.21.1',
     title: 'Atalhos arrumados no computador',

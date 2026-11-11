@@ -52,7 +52,11 @@ await page.waitForTimeout(1200);
 
 // primeira visita pelo navegador: a página de apresentação vem antes do app
 assert.match(await page.textContent(".landing h1"), /Saiba onde vai chover/);
-assert.match(await page.textContent("#privacidade"), /Sem conta.*Open-Meteo/s);
+assert.match(await page.textContent("#termos"), /pessoal, gratuito e sem fins comerciais.*APIs públicas de uso gratuito/s);
+assert.match(await page.textContent("#creditos"), /Open-Meteo.*OpenStreetMap.*RainViewer.*INMET.*GitHub Pages/s);
+assert.match(await page.textContent("#privacidade"), /Sem conta.*LGPD.*art\. 18/s);
+await page.click("#termos summary"); await page.waitForTimeout(200);
+assert.ok(await page.evaluate(() => document.querySelector("#termos details").open), "os termos completos abrem ao tocar");
 assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "as boas-vindas esperam a apresentação");
 await page.click("#landing-start"); await page.waitForTimeout(500);
 assert.ok(await page.locator(".landing").count() === 0, "Começar fecha a apresentação");

@@ -117,7 +117,7 @@ const round3 = (ll: LatLon | null) => ll ? ll.map(v => v.toFixed(3)).join(',') :
 /** Mostra a apresentação na primeira visita pelo navegador (não no app instalado nem nos atalhos) ou com #sobre / #privacidade. */
 function initialLanding() {
   if (typeof window === 'undefined') return false
-  if (/^#(sobre|privacidade)$/.test(location.hash)) return true
+  if (/^#(sobre|privacidade|termos|creditos)$/.test(location.hash)) return true
   const s = useSettings.getState()
   const standalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone
   return !s.onboarded && !s.customized && !standalone && !new URLSearchParams(location.search).has('ir')

@@ -1,9 +1,12 @@
-import { Bike, CloudRain, Download, History, Navigation, Radar, ShieldCheck, Smartphone, Umbrella, Volume2 } from 'lucide-react'
+import { Bike, CloudRain, Download, Globe, History, Navigation, Radar, Scale, ShieldCheck, Smartphone, Umbrella, Volume2 } from 'lucide-react'
+import { Fold, PrivacyText, ProvidersList, TermsText } from './Legal'
 import { useEffect, useRef, useState } from 'react'
 import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 
 interface BeforeInstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
+
+const PROVIDER_COUNT = 11
 
 const FEATURES = [
   { icon: CloudRain, title: 'Chuva trecho a trecho', text: 'Cruza a sua rota com a previsão de 15 em 15 minutos e mostra onde vai chover na hora exata em que você passar.' },
@@ -34,7 +37,8 @@ export function Landing() {
   }, [open])
   // link direto para a privacidade (#privacidade)
   useEffect(() => {
-    if (open && location.hash === '#privacidade') requestAnimationFrame(() => ref.current?.querySelector('#privacidade')?.scrollIntoView())
+    const h = location.hash.slice(1)
+    if (open && ['privacidade', 'termos', 'creditos'].includes(h)) requestAnimationFrame(() => ref.current?.querySelector('#' + h)?.scrollIntoView())
   }, [open])
   if (!open) return null
   const start = () => {
@@ -59,7 +63,7 @@ export function Landing() {
             <button className="btn primary ld-cta" type="button" id="landing-start" onClick={start}><Navigation className="i" />{cta}</button>
             <a className="btn" href="#instalar" onClick={e => { e.preventDefault(); ref.current?.querySelector('#instalar')?.scrollIntoView({ behavior: 'smooth' }) }}><Smartphone className="i" />Como instalar</a>
           </div>
-          <p className="ld-free">Gratuito, sem conta e sem anúncios. Seus dados ficam no seu celular.</p>
+          <p className="ld-free">Projeto pessoal, gratuito e não comercial. Sem conta, sem anúncios, e seus dados ficam no seu celular.</p>
         </div>
         <RouteArt />
       </section>
@@ -103,29 +107,36 @@ export function Landing() {
         </div>
       </section>
 
+      <section className="ld-sec" id="termos" aria-labelledby="ld-terms">
+        <h2 id="ld-terms"><Scale className="i" />Projeto pessoal e não comercial</h2>
+        <div className="ld-callout">
+          <p>O Pedágua é um projeto <b>pessoal, gratuito e sem fins comerciais</b>, feito para uso próprio e de amigos: sem venda, assinatura, anúncios ou patrocínio.</p>
+          <p>Ele funciona sobre <b>mapas, dados abertos e APIs públicas de uso gratuito</b>, vários deles liberados só para uso pessoal ou não comercial. Por isso o app não pode ser usado para fins comerciais e pode mudar ou parar se algum desses serviços alterar as condições.</p>
+          <p>Previsão e rotas são <b>estimativas</b>: não substituem os alertas oficiais nem a sua atenção no trânsito.</p>
+        </div>
+        <Fold title="Termos de uso e aviso legal"><TermsText /></Fold>
+      </section>
+
+      <section className="ld-sec" id="creditos" aria-labelledby="ld-cred">
+        <h2 id="ld-cred"><Globe className="i" />Serviços e créditos</h2>
+        <p className="ld-p">Tudo o que o app mostra vem destes serviços gratuitos e projetos abertos, a quem o Pedágua agradece. Cada um tem os próprios termos e política de privacidade.</p>
+        <Fold title={`Ver os ${PROVIDER_COUNT} serviços usados e o que cada um recebe`}><ProvidersList /></Fold>
+      </section>
+
       <section className="ld-sec" id="privacidade" aria-labelledby="ld-priv">
         <h2 id="ld-priv"><ShieldCheck className="i" />Privacidade</h2>
-        <ul className="ld-priv">
-          <li><b>Sem conta, sem servidor próprio.</b> Casa, trabalho, lugares e histórico ficam guardados só no seu aparelho. Não há cadastro, anúncios, cookies de rastreamento nem estatísticas de uso.</li>
-          <li><b>O que sai do aparelho.</b> Para calcular rotas e previsão, o app consulta serviços públicos. Eles recebem pontos do mapa, mas não sabem quem você é:
-            <ul>
-              <li>Open-Meteo: previsão, altitude e qualidade do ar dos pontos da rota e de onde você está.</li>
-              <li>BRouter e OSRM: origem, destino e ponto de passagem, para traçar as rotas.</li>
-              <li>Photon (Komoot): o texto que você digita na busca e o ponto marcado no mapa, para achar o endereço.</li>
-              <li>Overpass (OpenStreetMap): a região onde a chuva começa, quando você procura abrigos.</li>
-              <li>OpenStreetMap, CyclOSM, Esri e RainViewer: as imagens do mapa e do radar da região que você está vendo.</li>
-              <li>INMET: os alertas oficiais, sem nenhuma localização.</li>
-            </ul>
-          </li>
-          <li><b>Sua localização fica no aparelho.</b> Ela é usada para o ponto azul, o pedal e a chuva onde você está, e só sai do celular dentro dessas consultas.</li>
-          <li><b>"Relatar problema"</b> gera um texto técnico sem coordenadas, e só é enviado se você mesmo copiar e mandar.</li>
-          <li><b>Backup é com você.</b> Em Ajustes → Seus dados, dá para exportar tudo num arquivo e importar em outro aparelho. Limpar os dados do navegador apaga as informações do app.</li>
-        </ul>
+        <div className="ld-priv-grid">
+          <div className="ld-card"><h3>Sem conta e sem servidor</h3><p>Não há cadastro, login nem banco de dados. Quem fez o app não recebe nem vê nenhum dado seu.</p></div>
+          <div className="ld-card"><h3>Tudo no seu celular</h3><p>Casa, trabalho, lugares, rotina e histórico ficam guardados só no aparelho, sob o seu controle.</p></div>
+          <div className="ld-card"><h3>Só o necessário sai do aparelho</h3><p>Os serviços de mapa e previsão recebem apenas os pontos de cada consulta, nunca o seu nome ou contato.</p></div>
+          <div className="ld-card"><h3>Sem rastreamento</h3><p>Sem cookies de rastreamento, estatísticas de uso, anúncios ou perfis. Nada é vendido ou compartilhado.</p></div>
+        </div>
+        <Fold title="Política de privacidade completa (LGPD)"><PrivacyText /></Fold>
       </section>
 
       <section className="ld-sec ld-note">
         <p>A previsão vem de modelos meteorológicos com resolução de alguns quilômetros: ótima para tendência, mas pode errar o bairro exato. Para os próximos 30 a 60 minutos, confie mais no radar.</p>
-        <p className="ld-credits">Dados: © colaboradores do OpenStreetMap, Open-Meteo, RainViewer, INMET, BRouter, CyclOSM.</p>
+        <p className="ld-credits">Dados de mapa © colaboradores do OpenStreetMap (ODbL). Previsão: Open-Meteo (CC BY 4.0), com dados do Copernicus. Radar: RainViewer. Alertas: INMET. Rotas: BRouter e OSRM. Mapa de ciclovias: CyclOSM.</p>
       </section>
 
       <div className="ld-sticky" data-show={stuck ? '1' : undefined} aria-hidden={!stuck}><button className="btn primary ld-cta" type="button" tabIndex={stuck ? 0 : -1} onClick={start}><Navigation className="i" />{cta}</button></div>
