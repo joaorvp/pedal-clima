@@ -1,0 +1,49 @@
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
+
+// No GitHub Pages o app fica em /pedal-clima/; localmente, na raiz.
+const base = process.env.VITE_BASE_PATH ?? '/'
+
+export default defineConfig({
+  base,
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      // Service worker próprio (src/pwa/sw.ts): precisa guardar os pedaços de
+      // mapa já vistos com limite de quantidade, o que o gerado automático não faz.
+      strategies: 'injectManifest',
+      srcDir: 'src/pwa',
+      filename: 'sw.ts',
+      registerType: 'prompt',
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'] },
+      includeAssets: ['icon.svg', 'apple-touch-icon.png', 'favicon-32x32.png'],
+      manifest: {
+        id: '.',
+        name: 'Pedal & Clima',
+        short_name: 'Pedal',
+        description: 'Chuva ao longo do trajeto de bike, no horário em que você passa por cada trecho.',
+        lang: 'pt-BR',
+        start_url: '.',
+        scope: '.',
+        display: 'standalone',
+        // Sem `orientation`: declarar faz o Android ignorar a trava de rotação do sistema.
+        background_color: '#0e2b2f',
+        theme_color: '#0e2b2f',
+        categories: ['weather', 'navigation', 'travel'],
+        icons: [
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'monochrome-96.png', sizes: '96x96', type: 'image/png', purpose: 'monochrome' },
+        ],
+      },
+    }),
+  ],
+  test: {
+    include: ['src/**/*.test.ts'],
+    environment: 'node',
+  },
+})

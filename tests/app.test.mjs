@@ -1,14 +1,27 @@
 // Abre o app num navegador sem internet (APIs simuladas) e confere os fluxos principais.
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import * as M from "./mock-apis.mjs";
 
+// Serve o build de produção (dist/) no mesmo caminho do GitHub Pages.
 const root = fileURLToPath(new URL("..", import.meta.url));
-const leafletDir = root + "node_modules/leaflet/dist/";
+const server = spawn(process.execPath, [root + "node_modules/vite/bin/vite.js", "preview", "--port", "4179", "--strictPort"], { cwd: root, env: { ...process.env, VITE_BASE_PATH: "/pedal-clima/" }, stdio: "ignore" });
+let stopping = false;
+server.on("exit", c => { if (c && !stopping) { console.error("vite preview saiu com código " + c); process.exit(1); } });
+for (let i = 0; ; i++) {
+  try { if ((await fetch("http://localhost:4179/pedal-clima/")).ok) break; } catch { /* ainda subindo */ }
+  if (i > 60) throw new Error("vite preview não respondeu");
+  await new Promise(r => setTimeout(r, 300));
+}
+const APP = "http://localhost:4179/pedal-clima/";
+process.on("exit", () => { stopping = true; server.kill(); });
+process.on("uncaughtException", e => { console.error(e); stopping = true; server.kill(); process.exit(1); });
+
 const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
-const ctx = await browser.newContext({ viewport: { width: 400, height: 860 }, hasTouch: true, isMobile: true,
+// serviceWorkers: "block" para as respostas simuladas valerem (o SW é testado à parte, no build)
+const ctx = await browser.newContext({ viewport: { width: 400, height: 860 }, hasTouch: true, isMobile: true, serviceWorkers: "block",
   geolocation: { latitude: -15.8762, longitude: -48.0925 }, permissions: ["geolocation"] });
 const page = await ctx.newPage();
 const errors = [];
@@ -16,9 +29,7 @@ page.on("pageerror", e => errors.push(e.message));
 let offline = false;
 await page.route("**/*", r => {
   const u = r.request().url();
-  if (u.startsWith("file:")) return r.continue();
-  if (u.includes("leaflet.js")) return r.fulfill({ body: readFileSync(leafletDir + "leaflet.js"), contentType: "text/javascript" });
-  if (u.includes("leaflet.css")) return r.fulfill({ body: readFileSync(leafletDir + "leaflet.css"), contentType: "text/css" });
+  if (u.startsWith(APP)) return r.continue();
   if (offline) return r.abort();
   if (u.includes("routed-")) return r.fulfill({ json: M.routeJson(u) });
   if (u.includes("/v1/elevation")) return r.fulfill({ json: M.elevationJson(u) });
@@ -30,7 +41,7 @@ await page.route("**/*", r => {
   return r.fulfill({ status: 204, body: "" });
 });
 
-await page.goto("file://" + root + "index.html");
+await page.goto(APP);
 await page.waitForTimeout(1200);
 
 // primeira abertura
@@ -38,7 +49,7 @@ assert.ok(await page.evaluate(() => document.getElementById("welcome").open), "b
 await page.fill("#wl-home", "lugar"); await page.waitForTimeout(500); await page.keyboard.press("Enter");
 await page.click("#wl-next"); await page.click("#wl-next"); await page.click("#wl-next");
 await page.waitForTimeout(800);
-assert.ok(!(await page.evaluate(() => document.getElementById("welcome").open)), "boas-vindas deve fechar ao concluir");
+assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "boas-vindas deve fechar ao concluir");
 
 // veredito, linha do tempo, rotas e alerta
 const title = await page.textContent("#v-title");
@@ -62,8 +73,9 @@ assert.ok(await page.evaluate(() => !document.getElementById("fb").hidden), "dev
 offline = true;
 await page.reload(); await page.waitForTimeout(1500);
 assert.match(await page.textContent("#updated"), /sem conexão/);
-assert.ok(await page.evaluate(() => document.getElementById("error").hidden), "não deve mostrar erro com previsão salva");
+assert.ok(await page.evaluate(() => !document.getElementById("error")), "não deve mostrar erro com previsão salva");
 
 assert.deepEqual(errors, [], "a página não deve ter erros de JavaScript");
 await browser.close();
+stopping = true; server.kill();
 console.log("app.test: ok");

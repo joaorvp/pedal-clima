@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Testes unitários
+        run: npm test
+      - name: Teste do script de avisos
+        run: npm run test:aviso
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE_PATH: /pedal-clima/
+      - name: Teste de ponta a ponta (build de produção)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
