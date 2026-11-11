@@ -70,7 +70,7 @@ const q = new URLSearchParams({
   latitude: S.map(s => s.lat.toFixed(4)).join(","), longitude: S.map(s => s.lon.toFixed(4)).join(","),
   minutely_15: "precipitation", past_minutely_15: "12", forecast_minutely_15: "96",
   hourly: "precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
-  past_hours: "2", forecast_hours: "24", timeformat: "unixtime", timezone: "America/Sao_Paulo"
+  past_hours: "2", forecast_hours: "24", daily: "sunrise,sunset", forecast_days: "2", timeformat: "unixtime", timezone: "America/Sao_Paulo"
 });
 const wr = await fetch("https://api.open-meteo.com/v1/forecast?" + q);
 if (!wr.ok) { console.log("Open-Meteo HTTP " + wr.status); process.exit(1); }
@@ -97,12 +97,39 @@ S.forEach((s, i) => { const m = W[i].minutely_15; let v = 0; m?.time.forEach((t,
 const hhmm = ms => { const d = new Date(ms + OFFSET * 60e3); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
 const f1 = n => n.toFixed(1).replace(".", ",");
 const rainy = exposure >= 0.15 || maxRate >= 0.5 || maxProb >= 50;
+const arrMs = pick.dep + total / SPEED * 3600e3;
+
+// Pôr / nascer do sol
+let darkLine = "";
+const sun = W[0]?.daily;
+if (sun?.sunset) for (let i = 0; i < sun.sunset.length && !darkLine; i++) {
+  const set = sun.sunset[i] * 1000, rise = sun.sunrise[i] * 1000;
+  if (arrMs > set - 600e3 && pick.dep < set + 6 * 3600e3) darkLine = `Escurece às ${hhmmEarly(set)}: farol e luz traseira ligados.`;
+  else if (pick.dep < rise + 600e3 && arrMs > rise - 6 * 3600e3) darkLine = `Amanhece às ${hhmmEarly(rise)}: farol e luz traseira ligados.`;
+}
+function hhmmEarly(ms) { const d = new Date(ms - 3 * 3600e3); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); }
+
+// Alertas oficiais do INMET para o DF (IBGE 5300108)
+let alert = null;
+try {
+  const ar = await fetch("https://apiprevmet3.inmet.gov.br/avisos/ativos");
+  if (ar.ok) {
+    const j = await ar.json(), list = Array.isArray(j) ? j : [...(j.hoje || []), ...(j.futuro || [])];
+    const pd = v => { if (!v) return NaN; const t = String(v).trim().replace(" ", "T"); return Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(t) ? t : t + "-03:00"); };
+    alert = list.find(a => {
+      const here = String(a.geocodes || a.geocode || "").includes("5300108") || /bras[ií]lia/i.test(String(a.municipios || "")) || /distrito federal/i.test(String(a.estados || ""));
+      const end = pd(a.fim || a.data_fim), start = pd(a.inicio || a.data_inicio);
+      return here && (isNaN(end) || end > pick.dep) && (isNaN(start) || start < arrMs);
+    }) || null;
+  }
+} catch { console.log("Alertas do INMET indisponíveis."); }
 let level, title; const lines = [];
 if (storm) { level = 5; title = "Trovoada no caminho. Melhor esperar"; }
 else if (maxRate >= 4) { level = 4; title = "Chuva forte no trajeto"; }
 else if (rainy) { level = 4; title = "Leve a capa"; }
 else if (wet.v >= 0.5) { level = 3; title = "Seco, mas a pista está molhada"; }
 else { level = 2; title = "Pode ir tranquilo"; }
+if (alert && level < 4) { level = 4; if (!rainy && !storm) title = "Alerta do INMET para o DF"; }
 
 if (first) lines.push(`Chuva ${place(first.km)} por volta de ${hhmm(first.t)}, até ${f1(maxRate)} mm/h.`);
 else if (rainy) lines.push(`Até ${maxProb}% de chance de chuva no trajeto.`);
@@ -110,7 +137,9 @@ if (rainy) lines.push(exposure >= 0.05 ? `~${f1(exposure)} mm no trajeto. Capa n
 if (wet.v >= 0.5) lines.push(`Choveu ${f1(wet.v)} mm nas últimas 3 h ${place(wet.km)}.`);
 if (head >= 12) lines.push(`Vento contra de ~${Math.round(head)} km/h.`);
 if (gust >= 40) lines.push(`Rajadas de até ${Math.round(gust)} km/h.`);
-if (!lines.length) lines.push(`Sem chuva prevista até a chegada (~${hhmm(pick.dep + total / SPEED * 3600e3)}).`);
+if (alert) lines.push(`INMET: ${alert.descricao || alert.evento || "alerta meteorológico"}${alert.severidade ? " (" + alert.severidade + ")" : ""}.`);
+if (darkLine) lines.push(darkLine);
+if (!lines.length || (lines.length === 1 && darkLine)) lines.unshift(`Sem chuva prevista até a chegada (~${hhmm(arrMs)}).`);
 
 const send = level >= 3 || ALWAYS || FORCE;
 console.log(`${pick.dir} ${hhmm(pick.dep)}: ${title} (nível ${level})${send ? "" : ". Seco, sem aviso."}`);
