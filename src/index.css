@@ -520,3 +520,10 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .hero.riding .wx svg{width:30px;height:30px}
 .hero.riding h1{font-size:28px}
 .hero.riding .sub{margin-top:3px;font-size:14px}
+/* confirmar o fim do pedal: no celular, sobe de baixo (perto do polegar) */
+.confirm-end{width:min(420px,calc(100vw - 24px));margin:auto}
+.confirm-end h2{font:800 24px var(--font-display);margin:0}
+.confirm-actions{display:grid;gap:10px}
+.confirm-actions .btn{width:100%;justify-content:center;min-height:52px;font-size:16px}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+@media (max-width:999px){.confirm-end{margin:auto auto calc(12px + env(safe-area-inset-bottom,0px))}}

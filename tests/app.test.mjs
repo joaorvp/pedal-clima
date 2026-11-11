@@ -150,6 +150,12 @@ assert.match(await page.textContent("#speedo"), /\d+\s*km\/h/, "velocímetro sob
 assert.match(await page.textContent(".speedo-wind"), /contra|a favor|vento fraco/);
 assert.ok(await page.locator("#radar-play").count() === 0, "no pedal, sem a animação do radar para não poluir o mapa");
 assert.ok(await page.evaluate(() => { const r = document.getElementById("ride").getBoundingClientRect(); return r.bottom <= innerHeight && r.top > 0; }), "o botão de encerrar fica visível sem abrir a gaveta");
+// encerrar pede confirmação: "Continuar pedalando" mantém o pedal
+await page.evaluate(() => document.getElementById("ride").click()); await page.waitForTimeout(300);
+assert.ok(await page.evaluate(() => document.getElementById("end").open), "encerrar o pedal pede confirmação");
+assert.match(await page.textContent("#end"), /Faltam \d+,\d km/);
+await page.click("#end-cancel"); await page.waitForTimeout(300);
+assert.ok(!(await page.evaluate(() => document.getElementById("end").open)) && await page.locator(".bike-disc").count() === 1, "continuar pedalando mantém o pedal");
 assert.ok(await page.evaluate(() => !!document.querySelector("body > video")), "o vídeo da janela flutuante fica preparado ao iniciar o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
 // visor do pedal: chuva à frente e chance; bússola girando o mapa com a direção

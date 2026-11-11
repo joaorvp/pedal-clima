@@ -9,6 +9,7 @@ export const CHANGELOG = [
       'O painel do pedal ficou mais enxuto: sobra mais mapa, e o "Encerrar pedal" fica sempre à vista, junto da voz e da janela flutuante.',
       'Com o mapa bússola, a bike fica mais para baixo na tela, mostrando mais do caminho à frente.',
       'O modo painel saiu: o mapa fica sempre visível.',
+      'Encerrar o pedal agora pede confirmação, para um toque sem querer no guidão não acabar com o pedal.',
     ],
   },
   {

@@ -8,6 +8,7 @@ import { buzz, startRide, stopRide } from '../hooks/location'
 import { baseSpeed, useSettings } from '../store/settings'
 import { endpointName, useTrip, type RideSummary } from '../store/trip'
 import { Icon } from './icons'
+import { Dialog } from './Dialog'
 import { RideTools } from './RideTools'
 import { useEffect, useRef, useState } from 'react'
 
@@ -23,6 +24,7 @@ export function Hero() {
   const tomorrowTime = (dest?.kind === 'place' && dest.key === 'home' ? tVolta : tIda) || '07:00'
   const tomorrow = dep != null && new Date(dep).toDateString() !== new Date(now).toDateString() && dep > now
   const [thanks, setThanks] = useState('')
+  const [confirmEnd, setConfirmEnd] = useState(false)
   const set = useTrip(s => s.set)
 
   let v: Verdict | null = null
@@ -49,6 +51,8 @@ export function Hero() {
     setTimeout(() => setThanks(''), 6000)
   }
   function toggleRide() {
+    // pedal em andamento: confirma antes de encerrar (um toque sem querer no guidão não perde o pedal)
+    if (ride?.pos) { setConfirmEnd(true); return }
     if (ride) { stopRide(); return }
     const err = startRide(); if (err) set({ error: err })
   }
@@ -59,7 +63,7 @@ export function Hero() {
     </button>
   )
 
-  return (
+  return (<>
     <section className={'card hero' + (loading ? ' loading' : '') + (riding ? ' riding' : '')} id="hero" data-level={v?.level ?? 'ok'} aria-live="polite">
       <div className="livebadge"><i /><span id="live-txt">AO VIVO · {ride?.weakSignal ? 'sinal de GPS fraco' : 'indo para ' + (endpointName(dest) || 'o destino')}</span></div>
       <div className="hero-main">
@@ -108,7 +112,21 @@ export function Hero() {
           }} />
       </div>
     </section>
-  )
+    <Dialog open={confirmEnd && !!ride?.pos} onClose={() => setConfirmEnd(false)} className="confirm-end" labelledBy="end-title">
+      <div className="dlg-body">
+        <div>
+          <h2 id="end-title">Encerrar o pedal?</h2>
+          <p className="note" style={{ margin: '6px 0 0' }}>
+            {left > 0.05 ? `Faltam ${fmt1(left)} km até ${endpointName(dest) || 'o destino'}. ` : ''}Pedais encerrados antes de chegar não entram no histórico.
+          </p>
+        </div>
+        <div className="confirm-actions">
+          <button className="btn primary" type="button" id="end-cancel" autoFocus onClick={() => setConfirmEnd(false)}>Continuar pedalando</button>
+          <button className="btn danger" type="button" id="end-confirm" onClick={() => { setConfirmEnd(false); stopRide() }}>Encerrar pedal</button>
+        </div>
+      </div>
+    </Dialog>
+  </>)
 }
 
 /** Resumo do pedal ao chegar, com botão de compartilhar. */
