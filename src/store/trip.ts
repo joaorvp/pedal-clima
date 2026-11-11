@@ -3,6 +3,7 @@ import type { InmetAlert } from '../domain/alerts'
 import { hav } from '../domain/geo'
 import { prepRoute } from '../domain/routes'
 import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
+import type { Shelter } from '../domain/shelter'
 import { readJson, removeKey, writeJson } from '../services/cache'
 import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
 import { fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
@@ -69,6 +70,10 @@ interface TripState {
   dash: boolean
   /** avisar quando parar de chover onde você está */
   watchClear: boolean
+  /** abrigos cobertos encontrados para o trecho com chuva */
+  shelters: { state: 'loading' | 'ok' | 'empty' | 'error'; list: Shelter[] } | null
+  /** nome do ponto de passagem quando ele é um abrigo */
+  viaName: string
   pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
@@ -114,7 +119,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, dash: false, watchClear: false, shelters: null, viaName: '', pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
@@ -124,7 +129,7 @@ export const useTrip = create<TripState>()((set, get) => ({
     if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
     const oll = endpointLL(o, st.me), dll = endpointLL(dest, st.me)
-    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, sheet: 'peek', error: '', arrived: false })
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
     get().refresh()
   },
   closeTrip: () => {
@@ -139,7 +144,7 @@ export const useTrip = create<TripState>()((set, get) => ({
     if (st.mode !== 'trip' || !st.dest) { if (which === 'dest') get().startTrip(e); else get().startTrip(st.dest ?? e, e); return }
     const origin = which === 'origin' ? e : st.origin, dest = which === 'dest' ? e : st.dest
     const oll = endpointLL(origin, st.me), dll = endpointLL(dest, st.me)
-    set({ origin, dest, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, error: '' })
+    set({ origin, dest, routes: [], via: oll && dll ? commuteVia(oll, dll) : null, viaName: '', shelters: null, error: '' })
     get().refresh()
   },
   swap: () => {

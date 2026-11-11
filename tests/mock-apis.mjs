@@ -29,3 +29,7 @@ export const inmetJson = { hoje: [{ descricao: "Tempestade", severidade: "Perigo
 export const photonJson = { features: [{ geometry: { coordinates: [-47.99, -15.83] }, properties: { name: "Lugar Teste", street: "Rua 5", district: "Setor Y", city: "Brasília" } }] };
 export const reverseJson = { features: [{ geometry: { coordinates: [0, 0] }, properties: { street: "Rua 9", district: "Bairro Z", city: "Cidade" } }] };
 export const radarJson = () => ({ host: "https://tilecache.rainviewer.com", radar: { past: [{ time: Math.floor(Date.now() / 1000) - 600, path: "/v2/radar/x" }] } });
+export const overpassJson = { elements: [
+  { type: "node", id: 11, lat: -15.8555, lon: -48.0345, tags: { highway: "bus_stop", shelter: "yes", name: "Parada EPTG" } },
+  { type: "node", id: 12, lat: -15.857, lon: -48.031, tags: { amenity: "fuel", brand: "Posto Exemplo" } },
+] };

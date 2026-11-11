@@ -44,6 +44,7 @@ const svgPath = {
   work: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
   star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
   flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  umbrella: '<path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9zM12 12v7a2 2 0 0 1-4 0"/>',
 }
 const glyph = (k: keyof typeof svgPath) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${svgPath[k]}</svg>`
 const placeIcon = (k: keyof typeof svgPath, label: string) => L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="saved-pin" title="${label}">${glyph(k)}</div>` })
@@ -141,6 +142,16 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     map.getContainer().classList.add('cycle')
     return () => { map.removeLayer(layer); map.getContainer().classList.remove('cycle') }
   }, [map, cycleMap])
+
+  // abrigos encontrados para a chuva
+  const shelters = useTrip(s => s.shelters)
+  useEffect(() => {
+    if (!map || shelters?.state !== 'ok') return
+    const g = L.layerGroup().addTo(map)
+    shelters.list.forEach(s => L.marker(s.ll, { title: s.name, icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: `<div class="shelter-pin">${glyph('umbrella')}</div>` }) })
+      .bindTooltip(s.name + ' · ' + s.kind).addTo(g))
+    return () => { map.removeLayer(g) }
+  }, [map, shelters])
 
   // lugares salvos (só na tela inicial): um toque monta o trajeto
   useEffect(() => {

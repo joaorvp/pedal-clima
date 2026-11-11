@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.9.0'
+export const CURRENT_APP_VERSION = '2.10.0'
 export const CHANGELOG = [
+  {
+    version: '2.10.0',
+    title: 'Onde me abrigar',
+    items: [
+      'Com chuva no caminho, toque em "Procurar abrigos": pontos de ônibus cobertos, postos, estações e shoppings mais próximos.',
+      '"Passar por aqui" refaz a rota passando pelo abrigo e seguindo para o destino.',
+    ],
+  },
   {
     version: '2.9.0',
     title: 'Atalhos e ciclovias',

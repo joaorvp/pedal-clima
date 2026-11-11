@@ -37,6 +37,7 @@ await page.route("**/*", r => {
   if (u.includes("photon.komoot.io/api")) return r.fulfill({ json: M.photonJson });
   if (u.includes("photon.komoot.io/reverse")) return r.fulfill({ json: M.reverseJson });
   if (u.includes("inmet")) return r.fulfill({ json: M.inmetJson });
+  if (u.includes("overpass-api")) return r.fulfill({ json: M.overpassJson });
   if (u.includes("weather-maps.json")) return r.fulfill({ json: M.radarJson() });
   return r.fulfill({ status: 204, body: "" });
 });
@@ -100,6 +101,13 @@ assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternati
 assert.match(await page.textContent("#alert"), /INMET/);
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
 assert.ok((await page.locator(".rlabel").count()) >= 2, "cada rota deve ter etiqueta de tempo e chuva no mapa");
+
+// chuva no caminho: procurar abrigo e passar por ele
+await page.evaluate(() => document.getElementById("shelter-find").click()); await page.waitForTimeout(800);
+assert.ok((await page.locator(".shelters li").count()) >= 1, "deve listar abrigos perto da chuva");
+assert.match(await page.textContent(".shelters"), /Parada EPTG/);
+await page.evaluate(() => document.querySelector(".shelters li .btn").click()); await page.waitForTimeout(1200);
+assert.match(await page.textContent(".triphead"), /Passando por Parada EPTG/);
 
 // trocar o destino pelo cabeçalho e voltar para o trabalho
 const pickDest = async name => {

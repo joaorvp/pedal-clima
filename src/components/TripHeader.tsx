@@ -8,7 +8,7 @@ type Which = 'origin' | 'dest'
 
 /** Cabeçalho do trajeto: de onde, para onde (toque para trocar), ponto de passagem, inverter e fechar. */
 export function TripHeader() {
-  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), ride = useTrip(s => s.ride), via = useTrip(s => s.via)
+  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), ride = useTrip(s => s.ride), via = useTrip(s => s.via), viaName = useTrip(s => s.viaName)
   const [editing, setEditing] = useState<Which | null>(null)
   const t = useTrip.getState
   if (ride) return null
@@ -18,8 +18,8 @@ export function TripHeader() {
         <button type="button" className="end" aria-label={'Trocar origem: ' + endpointName(origin)} aria-expanded={editing === 'origin'} onClick={() => setEditing(editing === 'origin' ? null : 'origin')}>
           <i className="dot-o" aria-hidden="true" /><span className="nm">{endpointName(origin)}</span>
         </button>
-        {via && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">Passando pelo ponto P</span>
-          <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => { t().set({ via: null, routes: [] }); t().refresh() }}><X className="i" /></button></div>}
+        {via && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">{viaName ? 'Passando por ' + viaName : 'Passando pelo ponto P'}</span>
+          <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => { t().set({ via: null, viaName: '', routes: [] }); t().refresh() }}><X className="i" /></button></div>}
         <button type="button" className="end" aria-label={'Trocar destino: ' + endpointName(dest)} aria-expanded={editing === 'dest'} onClick={() => setEditing(editing === 'dest' ? null : 'dest')}>
           <i className="dot-d" aria-hidden="true" /><span className="nm"><b>{endpointName(dest)}</b></span>
         </button>
