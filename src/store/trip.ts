@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { InmetAlert } from '../domain/alerts'
 import { prepRoute } from '../domain/routes'
+import { matchSaved } from '../domain/savedRoutes'
 import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import type { Shelter } from '../domain/shelter'
 import { readJson, removeKey, writeJson } from '../services/cache'
@@ -38,6 +39,8 @@ export interface Ride {
   moving: number; pace: number
   /** último recálculo automático (fora da rota) */
   recalcAt: number | null
+  /** caminho percorrido (um ponto a cada ~20 m), só no aparelho, para salvar como rota ao chegar */
+  track: LatLon[]
 }
 
 /** Resumo mostrado ao chegar. */
@@ -49,8 +52,10 @@ interface TripState {
   mode: Mode
   origin: Endpoint
   dest: Endpoint | null
-  /** ponto "passar por" do trajeto atual */
-  via: LatLon | null
+  /** pontos de passagem do trajeto atual, na ordem do caminho (arrastando a rota ou abrigo escolhido) */
+  vias: LatLon[]
+  /** caminho gravado no último pedal concluído (para salvar como rota) */
+  lastTrack: LatLon[] | null
   dep: number | null
   me: Me | null
   locStatus: LocStatus
@@ -124,7 +129,7 @@ function initialLanding() {
 }
 
 export const useTrip = create<TripState>()((set, get) => ({
-  mode: 'explore', origin: { kind: 'me' }, dest: null, via: null, dep: null,
+  mode: 'explore', origin: { kind: 'me' }, dest: null, vias: [], lastTrack: null, dep: null,
   me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
@@ -138,12 +143,12 @@ export const useTrip = create<TripState>()((set, get) => ({
   startTrip: (dest, origin) => {
     if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
-    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], via: null, viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], lastTrack: null, viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
     get().refresh()
   },
   closeTrip: () => {
-    const prev = { origin: get().origin, dest: get().dest, via: get().via, routes: get().routes, sel: get().sel, dep: get().dep }
-    set({ mode: 'explore', dest: null, routes: [], via: null, dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
+    const prev = { origin: get().origin, dest: get().dest, vias: get().vias, routes: get().routes, sel: get().sel, dep: get().dep }
+    set({ mode: 'explore', dest: null, routes: [], vias: [], lastTrack: null, dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
     get().refreshLocal()
     if (prev.dest) useUndo.getState().show('Trajeto fechado', () => { set({ mode: 'trip', ...prev, fitNonce: get().fitNonce + 1 }); if (!prev.routes.length) get().refresh() })
   },
@@ -154,7 +159,7 @@ export const useTrip = create<TripState>()((set, get) => ({
     const origin = which === 'origin' ? e : st.origin, dest = which === 'dest' ? e : st.dest
     // recálculo no pedal (nova origem = você) mantém o ponto de passagem, como um abrigo escolhido
     const keepVia = which === 'origin' && !!st.ride
-    set({ origin, dest, routes: [], via: keepVia ? st.via : null, viaName: keepVia ? st.viaName : '', shelters: null, error: '' })
+    set({ origin, dest, routes: [], vias: keepVia ? st.vias : [], viaName: keepVia ? st.viaName : '', shelters: null, error: '' })
     get().refresh()
   },
   swap: () => {
@@ -182,11 +187,14 @@ export const useTrip = create<TripState>()((set, get) => ({
     const o = endpointLL(st.origin, st.me), d = endpointLL(st.dest, st.me)
     if (!o || !d) { set({ error: 'Aguardando sua localização para montar o trajeto.' }); return }
     set({ loading: true })
-    const s = useSettings.getState(), via = st.via
+    const s = useSettings.getState(), vias = st.vias
     const localP = get().refreshLocal()
     try {
-      const { routes: cands, fallback } = await fetchRoutes(o, via, d, s.profile)
-      const routes = cands.map(c => prepRoute(c, via))
+      const { routes: found, fallback } = await fetchRoutes(o, vias, d, s.profile)
+      // rotas salvas que servem para este trajeto vêm primeiro (sem pontos de passagem novos, que pedem um caminho diferente)
+      const mine = vias.length ? [] : matchSaved(s.savedRoutes, o, d).slice(0, 2).map(m => ({ line: m.line, roads: [], profile: s.profile, viaP: false, saved: { id: m.route.id, name: m.route.name } }))
+      const cands = [...mine, ...found].slice(0, mine.length + 3)
+      const routes = cands.map(c => prepRoute(c, vias[0] ?? null))
       // nomes únicos (a escolha da rota fica salva pelo nome)
       routes.forEach((r, i) => { const n = routes.slice(0, i).filter(o => o.name.startsWith(r.name)).length; if (n) r.name += n === 1 ? ' · alternativa' : ` · alternativa ${n}` })
       const [{ perRoute, sun }, elevs] = await Promise.all([fetchWeather(routes), Promise.all(routes.map(fetchElevation))])
@@ -194,8 +202,8 @@ export const useTrip = create<TripState>()((set, get) => ({
       if (get().mode !== 'trip') return
       const keep = routes.findIndex(r => r.name === useSettings.getState().routePick)
       set({ routes, sel: keep >= 0 ? keep : 0, sun, wxAt: Date.now(), loading: false, offline: false, error: '',
-        routeNote: fallback ? 'Não consegui calcular a rota agora; usando linha reta entre os pontos.' : '', fitNonce: get().fitNonce + 1 })
-      if (!writeJson(SNAP_KEY, { sig: round3(o) + '|' + round3(d) + '|' + s.profile, wxAt: Date.now(), sun, sel: get().sel, routes, origin: st.origin, dest: st.dest, via })) removeKey(SNAP_KEY)
+        routeNote: fallback && !mine.length ? 'Não consegui calcular a rota agora; usando linha reta entre os pontos.' : '', fitNonce: get().fitNonce + 1 })
+      if (!writeJson(SNAP_KEY, { sig: round3(o) + '|' + round3(d) + '|' + s.profile, wxAt: Date.now(), sun, sel: get().sel, routes, origin: st.origin, dest: st.dest, vias })) removeKey(SNAP_KEY)
     } catch (e) {
       if (get().routes[0]?.wx) set({ loading: false, offline: true, error: '' })
       else set({ loading: false, error: 'Não consegui carregar a previsão: ' + ((e as Error).message || e) + '. Verifique a conexão e toque em atualizar.' })
@@ -205,9 +213,9 @@ export const useTrip = create<TripState>()((set, get) => ({
 
   /** Último trajeto salvo: reabre na hora e funciona sem sinal. */
   loadSnapshot: () => {
-    const j = readJson<{ wxAt: number; sun: SunTimes | null; sel: number; routes: Route[]; origin?: Endpoint; dest?: Endpoint; via?: LatLon | null }>(SNAP_KEY)
+    const j = readJson<{ wxAt: number; sun: SunTimes | null; sel: number; routes: Route[]; origin?: Endpoint; dest?: Endpoint; via?: LatLon | null; vias?: LatLon[] }>(SNAP_KEY)
     if (!j?.dest || !j.routes?.length || Date.now() - j.wxAt > 20 * 3600e3) return false
-    set({ mode: 'trip', origin: j.origin ?? { kind: 'me' }, dest: j.dest, via: j.via ?? null, routes: j.routes, sun: j.sun, wxAt: j.wxAt,
+    set({ mode: 'trip', origin: j.origin ?? { kind: 'me' }, dest: j.dest, vias: j.vias ?? (j.via ? [j.via] : []), routes: j.routes, sun: j.sun, wxAt: j.wxAt,
       sel: Math.min(j.sel || 0, j.routes.length - 1), loading: false, fitNonce: get().fitNonce + 1 })
     return true
   },

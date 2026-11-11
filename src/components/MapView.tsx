@@ -13,7 +13,7 @@ import { NextTurn } from './NextTurn'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
-import { setPointFromMap, setTripVia } from '../store/actions'
+import { moveTripVia, removeTripVia, setPointFromMap, setTripVia } from '../store/actions'
 import { buzz } from '../hooks/location'
 import { reverseName } from '../services/places'
 
@@ -53,7 +53,7 @@ const glyph = (k: keyof typeof svgPath) => `<svg viewBox="0 0 24 24" width="16" 
 const placeIcon = (k: keyof typeof svgPath, label: string) => L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="saved-pin" title="${label}">${glyph(k)}</div>` })
 const destIcon = L.divIcon({ className: '', iconSize: [34, 42], iconAnchor: [17, 40], html: `<div class="dest-pin">${glyph('flag')}</div>` })
 const originIcon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: '<div class="origin-dot"></div>' })
-const viaIcon = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: '<div class="pin" style="background:#6b7a93"><b>P</b></div>' })
+const viaIcon = (n: number) => L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: `<div class="pin" style="background:#6b7a93"><b>${n}</b></div>` })
 const dotIcon = L.divIcon({ className: 'smooth', iconSize: [22, 22], iconAnchor: [11, 11], html: '<div class="me-dot"></div>' })
 const BIKE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3.4"/><circle cx="18" cy="16" r="3.4"/><path d="M6 16l3.6-6.4h5.6L18 16M9.6 9.6L8.6 7H7M15.2 9.6l-1-2.6h2.2M6 16h5.6l3.6-6.4"/></svg>'
 // a seta gira na tela: direção do movimento + giro atual do mapa (no modo bússola, aponta sempre para cima)
@@ -71,7 +71,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   const [inst, setInst] = useState<{ map: L.Map; ly: Lyr } | null>(null)
   const slots = useRef<Slots>({ me: null, acc: null, handle: null, meBike: null })
   const view = useTripView()
-  const mode = useTrip(s => s.mode), origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), via = useTrip(s => s.via)
+  const mode = useTrip(s => s.mode), origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), vias = useTrip(s => s.vias)
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), radar = useTrip(s => s.radar)
   const me = useTrip(s => s.me), ride = useTrip(s => s.ride), pickMode = useTrip(s => s.pickMode)
   const fitNonce = useTrip(s => s.fitNonce), centerNonce = useTrip(s => s.centerNonce)
@@ -185,11 +185,16 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     const d = endpointLL(dest, null)
     if (origin.kind === 'place') L.marker(origin.ll, { icon: originIcon, interactive: false, keyboard: false }).addTo(ly.ends)
     if (d) L.marker(d, { icon: destIcon, title: dest?.kind === 'place' ? dest.name : '' }).addTo(ly.ends)
-    if (via) {
-      const m = L.marker(via, { icon: viaIcon, draggable: true, title: 'Passar por (arraste para mudar)' }).addTo(ly.ends)
-      m.on('dragend', () => { const p = m.getLatLng(); setTripVia([p.lat, p.lng]) })
-    }
-  }, [map, ly, mode, origin, dest, via])
+    // pontos de passagem: arraste para mudar; toque para remover
+    vias.forEach((v, i) => {
+      const box = document.createElement('div'); box.className = 'drop'
+      const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn'; rm.textContent = 'Remover este ponto'
+      rm.onclick = () => { map.closePopup(); removeTripVia(i) }
+      box.append(Object.assign(document.createElement('b'), { textContent: `Ponto de passagem ${i + 1}` }), Object.assign(document.createElement('small'), { textContent: 'Arraste para mudar o caminho.' }), rm)
+      const m = L.marker(v, { icon: viaIcon(i + 1), draggable: !ride?.pos, title: `Ponto de passagem ${i + 1} (arraste para mudar)` }).bindPopup(box, { className: 'drop-pop', offset: [0, -26] }).addTo(ly.ends)
+      m.on('dragend', () => { const p = m.getLatLng(); moveTripVia(i, [p.lat, p.lng]) })
+    })
+  }, [map, ly, mode, origin, dest, vias, ride?.pos]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // rotas coloridas pela chuva
   useEffect(() => {

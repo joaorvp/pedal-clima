@@ -2,6 +2,7 @@ import { bearing, hav, project } from '../domain/geo'
 import { evaluate, isRainy, rateAt } from '../domain/weather'
 import type { LatLon } from '../domain/types'
 import { readJson, writeJson } from '../services/cache'
+import { appendTrack } from '../domain/savedRoutes'
 import { say } from './voice'
 import { baseSpeed, useSettings } from '../store/settings'
 import { endpointLL, useTrip, type Endpoint, type Me, type Ride, type RideSummary } from '../store/trip'
@@ -12,7 +13,7 @@ const RESUME_WINDOW = 3 * 3600e3
 
 /** Pedal em andamento salvo no aparelho: se o celular fechar o app no meio do caminho, dá para continuar de onde parou. */
 export interface RideSnap {
-  dest: Extract<Endpoint, { kind: 'place' }>; via: LatLon | null; viaName: string
+  dest: Extract<Endpoint, { kind: 'place' }>; vias?: LatLon[]; via?: LatLon | null; viaName: string; track?: LatLon[]
   startedAt: number; dist: number; rain: number; moving: number; pace: number; pred: Ride['pred']; savedAt: number
 }
 let lastSave = 0
@@ -20,7 +21,7 @@ function saveRide(force = false) {
   const t = useTrip.getState(), r = t.ride
   if (!r || t.dest?.kind !== 'place' || (!force && Date.now() - lastSave < 10e3)) return
   lastSave = Date.now()
-  const snap: RideSnap = { dest: t.dest, via: t.via, viaName: t.viaName, startedAt: r.startedAt, dist: r.dist, rain: r.rain, moving: r.moving, pace: r.pace, pred: r.pred, savedAt: lastSave }
+  const snap: RideSnap = { dest: t.dest, vias: t.vias, viaName: t.viaName, track: r.track, startedAt: r.startedAt, dist: r.dist, rain: r.rain, moving: r.moving, pace: r.pace, pred: r.pred, savedAt: lastSave }
   writeJson(RIDE_KEY, snap)
 }
 export function discardRide() { try { localStorage.removeItem(RIDE_KEY) } catch { /* sem armazenamento */ } }
@@ -34,7 +35,7 @@ export function pendingRide(): RideSnap | null {
 /** Reabre o trajeto saindo de onde você está e retoma o pedal com o tempo, a distância e a chuva já acumulados. */
 export function resumeRide(s: RideSnap): Promise<string | null> {
   const t = useTrip.getState()
-  t.set({ mode: 'trip', origin: { kind: 'me' }, dest: s.dest, dep: null, routes: [], via: s.via, viaName: s.viaName, shelters: null, sheet: 'peek', error: '', arrived: false, summary: null })
+  t.set({ mode: 'trip', origin: { kind: 'me' }, dest: s.dest, dep: null, routes: [], vias: s.vias ?? (s.via ? [s.via] : []), viaName: s.viaName, shelters: null, sheet: 'peek', error: '', arrived: false, summary: null })
   t.refresh()
   return new Promise(resolve => {
     const t0 = Date.now()
@@ -44,7 +45,7 @@ export function resumeRide(s: RideSnap): Promise<string | null> {
         clearInterval(id)
         const err = startRide(); if (err) { resolve(err); return }
         const r = useTrip.getState().ride!
-        useTrip.getState().set({ ride: { ...r, startedAt: s.startedAt, dist: s.dist, rain: s.rain, moving: s.moving, pace: s.pace, pred: s.pred ?? r.pred } })
+        useTrip.getState().set({ ride: { ...r, startedAt: s.startedAt, dist: s.dist, rain: s.rain, moving: s.moving, pace: s.pace, pred: s.pred ?? r.pred, track: [...(s.track ?? []), ...r.track] } })
         saveRide(true); resolve(null)
       } else if (Date.now() - t0 > 25e3) { clearInterval(id); resolve('Não deu para recalcular a rota agora. Tente de novo em instantes.') }
     }, 300)
@@ -94,7 +95,7 @@ export function startRide(): string | null {
   const t = useTrip.getState()
   if (t.locStatus === 'denied') return 'Permita o acesso à localização no navegador para usar o modo pedal.'
   if (!navigator.geolocation) return 'Este navegador não fornece localização.'
-  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
+  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null, track: [] }, arrived: false, feedbackPred: null, summary: null, lastTrack: null, sheet: 'peek' })
   startLocation()
   if (t.me) rideStep(t.me, null)
   keepAwake(); buzz(30); saveRide(true)
@@ -140,7 +141,9 @@ function rideStep(me: Me, speedMs: number | null) {
     buzz(20)
     queueMicrotask(() => useTrip.getState().setEnd('origin', { kind: 'me' }))
   }
-  t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false, offSince, dist, rain, moving, pace, recalcAt } })
+  const jumpOk = !r.last || (() => { const dt = (now - r.last.t) / 3600e3; return dt <= 0 || hav(r.last.pos, pos) / dt < 70 })()
+  const track = appendTrack(r.track ?? [], pos, jumpOk)
+  t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false, offSince, dist, rain, moving, pace, recalcAt, track } })
   saveRide()
 }
 
@@ -156,5 +159,6 @@ export function stopRide(arrived = false) {
     summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now() }
   }
   if (summary) useSettings.getState().addHistory(summary)
-  t.set({ ride: null, dep: null, arrived, summary, feedbackPred: arrived ? r?.pred ?? null : null })
+  // o caminho gravado só fica disponível para salvar se o pedal chegou ao destino; senão é descartado
+  t.set({ ride: null, dep: null, arrived, summary, feedbackPred: arrived ? r?.pred ?? null : null, lastTrack: arrived && r && r.track.length >= 3 ? [...r.track, ...(r.pos ? [r.pos] : [])] : null })
 }

@@ -10,7 +10,7 @@ const PROVIDER_COUNT = 11
 
 const FEATURES = [
   { icon: CloudRain, title: 'Chuva trecho a trecho', text: 'Cruza a sua rota com a previsão de 15 em 15 minutos e mostra onde vai chover na hora exata em que você passar.' },
-  { icon: Bike, title: 'Rotas por ciclovia', text: 'Prioriza ciclovias e ruas calmas e mostra quanto de cada caminho é em ciclovia. Escolha a rota tocando nela no mapa.' },
+  { icon: Bike, title: 'Rotas por ciclovia', text: 'Prioriza ciclovias e ruas calmas. Molde o caminho arrastando a rota no mapa e salve as suas rotas, ou grave o caminho de um pedal para usar de referência.' },
   { icon: Volume2, title: 'Curvas e chuva por voz', text: '"Em 250 metros, vire à direita." "Chuva em 1 quilômetro." Com o celular no guidão, sem tirar os olhos da rua.' },
   { icon: Radar, title: 'Radar e alertas', text: 'Radar de chuva da última hora e os alertas oficiais do INMET, direto no mapa.' },
   { icon: Umbrella, title: 'Onde se abrigar', text: 'Vai pegar chuva? Mostra pontos de ônibus cobertos, postos e shoppings perto de onde ela começa.' },

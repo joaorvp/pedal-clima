@@ -177,6 +177,32 @@ await page.evaluate(() => { const hits = [...document.querySelectorAll("path.rou
 await page.waitForTimeout(500);
 assert.notEqual(await page.getAttribute('.rt[aria-checked="true"]', "data-i"), before, "tocar numa rota alternativa no mapa escolhe ela");
 await page.evaluate(i => document.querySelector(`.rt[data-i="${i}"]`).click(), before); await page.waitForTimeout(400);
+// moldar o caminho: tocar na rota escolhida e arrastar o ponto, duas vezes (vários pontos de passagem)
+const dragRoute = async frac => {
+  const pt = await page.evaluate(f => {
+    const hits = [...document.querySelectorAll("path.route-hit")], p = hits[hits.length - 1], L = p.getTotalLength(), q = p.getPointAtLength(L * f), m = p.getScreenCTM();
+    const x = q.x * m.a + q.y * m.c + m.e, y = q.x * m.b + q.y * m.d + m.f;
+    p.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y })); return { x, y };
+  }, frac);
+  await page.waitForTimeout(300);
+  const h = await page.locator(".rhandle").boundingBox();
+  assert.ok(h, "tocar na rota mostra o ponto para arrastar");
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2); await page.mouse.down();
+  await page.mouse.move(h.x + 40, h.y - 30, { steps: 6 }); await page.mouse.up();
+  await page.waitForTimeout(1400);
+  return pt;
+};
+await dragRoute(0.5);
+assert.match(await page.textContent(".triphead"), /Passando por 1 ponto escolhido/);
+await dragRoute(0.25);
+assert.match(await page.textContent(".triphead"), /Passando por 2 pontos escolhidos/);
+assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll(".pin b")].map(b => b.textContent).filter(t => /^\d$/.test(t)).sort()), ["1", "2"], "pontos numerados no mapa");
+// salvar a rota moldada com nome: ela passa a ser a primeira opção deste trajeto
+await page.click("#route-save"); await page.fill("#route-name", "Caminho teste"); await page.click("#route-save-ok");
+await page.waitForTimeout(1500);
+assert.match(await page.textContent("#route-saved"), /Caminho teste/);
+assert.match(await page.textContent('.rt[data-i="0"]'), /Caminho teste.*sua rota/s);
+assert.ok(!/Passando por/.test(await page.textContent(".triphead")), "a rota salva já guarda o caminho; os pontos são limpos");
 assert.match(await page.textContent("#alert"), /INMET/);
 assert.ok(await page.evaluate(() => !document.getElementById("alert").classList.contains("compact")), "na primeira vez, o alerta aparece por inteiro");
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
@@ -251,12 +277,17 @@ await page.waitForTimeout(1500);
 assert.ok(await page.locator(".offroute").count() === 0, "depois do recálculo automático, você volta a estar na rota");
 assert.ok(await page.locator(".bike-disc").count() === 1, "o pedal continua depois de recalcular");
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);
+// anda uns metros em ritmo de bike (o caminho gravado ignora saltos impossíveis do GPS)
+for (let k = 1; k <= 3; k++) { await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0063 + k * 0.0002, longitude: -48.093 + 0.137 * 0.3 - 0.0041 }); await page.waitForTimeout(1400); }
 await ctx.setGeolocation({ latitude: work[0], longitude: work[1] });
 await page.waitForTimeout(1200);
 assert.equal(await page.textContent("#v-title"), "Você chegou");
 assert.ok(await page.evaluate(() => !!document.getElementById("fb")), "deve perguntar se a previsão acertou");
 assert.match(await page.textContent(".summary"), /\d+,\d km.*\d+ min/s);
 assert.ok(await page.locator("#share").count() === 1, "deve ter o botão de compartilhar o resumo");
+// ao chegar: salvar o caminho que você fez como rota
+await page.click("#track-save"); await page.fill("#route-name", "Caminho do pedal"); await page.click("#route-save-ok"); await page.waitForTimeout(800);
+assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).savedRoutes.map(r => r.name).join("|")) === "Caminho teste|Caminho do pedal", "as duas rotas ficam salvas");
 // o pedal concluído entra no histórico
 await page.click("#open-history"); await page.waitForTimeout(400);
 assert.ok((await page.locator(".hist-list li").count()) >= 1, "o pedal deve aparecer em Seus pedais");

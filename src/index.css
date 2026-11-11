@@ -681,3 +681,16 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 @media (min-width:640px){.ld-priv-grid{grid-template-columns:1fr 1fr}}
 .ld-sec{scroll-margin-top:72px}
 .ld-fold-body .ld-prov{padding-left:0}
+/* salvar rota */
+.save-btn{width:100%;justify-content:center;min-height:44px;margin-top:10px}
+.save-form{display:grid;gap:8px;margin-top:10px;padding:12px;border-radius:12px;background:var(--surface-2)}
+.save-form label{font-size:13px;font-weight:600;color:var(--muted)}
+.save-form input{width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:11px 12px;font-size:16px}
+.save-form input:focus{outline:none;border-color:var(--link)}
+.save-form .row{display:flex;gap:8px}
+.save-form .btn{flex:1;justify-content:center;min-height:44px}
+.saved-note{display:flex;align-items:flex-start;gap:6px;margin:10px 0 0;font-size:13.5px;color:var(--muted)}
+.saved-note .i{width:18px;height:18px;color:var(--link)}
+.saved-note b{color:var(--ink)}
+.badge.mine{background:color-mix(in srgb,var(--link) 16%,transparent);color:var(--link)}
+.dlg-body .sec{scroll-margin-top:64px}

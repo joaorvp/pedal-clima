@@ -6,6 +6,7 @@ import { useLabels, useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { OpenIn } from './TripHeader'
+import { SaveRoute } from './SaveRoute'
 
 const color = (c: number) => `var(${CATS[c].color})`
 
@@ -18,6 +19,7 @@ export function TripCard() {
     <section className="card">
       <h2>Seu trajeto, minuto a minuto <span className="aside num" id="tl-dist">{view ? fmt1(view.route.total) + ' km' : ''}</span></h2>
       <Routes />
+      <SaveRoute />
       {view && <>
         <div className="routebar" id="routebar" aria-hidden="true">
           {view.ev.segs.map((sg, i) => <i key={i} style={{ width: (sg.to - sg.from) / view.route.total * 100 + '%', background: color(cat(sg.rate)) }} />)}
@@ -52,12 +54,12 @@ function Routes() {
       {routes.map((r, i) => { const e = evs[i]!; return (
         <button key={i} className="rt" type="button" role="radio" aria-checked={i === sel} data-i={i} onClick={() => useTrip.getState().selectRoute(i)}>
           <span className="rd" />
-          <span className="nm">{r.name}{(i === dry || i === fast || i === most) && <span className="badges">{i === dry && <span className="badge">mais seca</span>}{i === fast && <span className="badge fast">mais rápida</span>}{i === most && <span className="badge cyc">mais ciclovia</span>}</span>}</span>
+          <span className="nm">{r.name}{(i === dry || i === fast || i === most || r.saved) && <span className="badges">{r.saved && <span className="badge mine">sua rota</span>}{i === dry && <span className="badge">mais seca</span>}{i === fast && <span className="badge fast">mais rápida</span>}{i === most && <span className="badge cyc">mais ciclovia</span>}</span>}</span>
           <span className="rain">{e.exposure < 0.05 ? '0 mm' : fmt1(e.exposure) + ' mm'}<small>chuva</small></span>
           <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
         </button>
       ) })}
-      {!ride && <p className="routes-hint">No mapa: toque numa rota para escolher. Para ir por outro caminho, toque na rota escolhida e arraste o ponto.</p>}
+      {!ride && <p className="routes-hint">No mapa: toque numa rota para escolher. Para moldar o caminho, toque na rota escolhida e arraste o ponto; repita para usar vários pontos.</p>}
     </div>
   )
 }

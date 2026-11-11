@@ -71,6 +71,28 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           <p className="note">Toque no nome para renomear. A ordem aqui é a mesma dos atalhos da tela inicial.</p>
         </div>
 
+        <div className="sec" id="sec-routes">
+          <h3>Rotas salvas</h3>
+          {s.savedRoutes.length ? (
+            <div className="places">
+              {s.savedRoutes.map(r => (
+                <div className="prow" key={r.id}>
+                  <div className="pname"><input aria-label={'Nome da rota ' + r.name} defaultValue={r.name} maxLength={40} onBlur={e => s.renameRoute(r.id, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
+                    <small>{String(r.km.toFixed(1)).replace('.', ',')} km · salva em {new Date(r.createdAt).toLocaleDateString('pt-BR')}</small></div>
+                  <div className="pact">
+                    <button className="ibtn sm" type="button" aria-label={'Remover a rota ' + r.name} onClick={() => {
+                      const prev = useSettings.getState().savedRoutes
+                      s.removeRoute(r.id); refreshTrip()
+                      useUndo.getState().show('Rota removida', () => { useSettings.getState().patch({ savedRoutes: prev }); refreshTrip() })
+                    }}><Trash2 className="i" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Num trajeto, toque em "Salvar esta rota" (dá para moldar o caminho arrastando a rota no mapa) ou, ao chegar de um pedal, em "Salvar o caminho que você fez".'}</p>
+        </div>
+
         <div className="sec">
           <h3>Rotina</h3>
           <div className="grid2">
@@ -118,7 +140,7 @@ function DataSection() {
   return (
     <div className="sec" id="sec-data">
       <h3>Seus dados</h3>
-      <p className="note" style={{ margin: '0 0 8px' }}>Tudo fica só neste aparelho. Guarde um backup (casa, trabalho, lugares, rotina e histórico) para levar para outro celular ou não perder nada se limpar o navegador.</p>
+      <p className="note" style={{ margin: '0 0 8px' }}>Tudo fica só neste aparelho. Guarde um backup (casa, trabalho, lugares, rotas salvas, rotina e histórico) para levar para outro celular ou não perder nada se limpar o navegador.</p>
       <div className="row data-row">
         <button className="btn" type="button" id="backup-export" onClick={() => {
           const { name, text } = makeBackup(useSettings.getState()); downloadText(name, text); setMsg('Backup salvo: ' + name)
@@ -151,3 +173,6 @@ function DataSection() {
     </div>
   )
 }
+
+/** Recalcula o trajeto aberto (para uma rota salva entrar ou sair da lista). */
+function refreshTrip() { const t = useTrip.getState(); if (t.mode === 'trip' && !t.ride) { t.set({ routes: [] }); t.refresh() } }

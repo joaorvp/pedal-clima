@@ -3,12 +3,13 @@ import { useState } from 'react'
 import { useSettings } from '../store/settings'
 import { endpointLL, endpointName, useTrip, type Endpoint } from '../store/trip'
 import { AddressCombo } from './AddressCombo'
+import { removeTripVia } from '../store/actions'
 
 type Which = 'origin' | 'dest'
 
 /** Cabeçalho do trajeto: de onde, para onde (toque para trocar), ponto de passagem, inverter e fechar. */
 export function TripHeader() {
-  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), ride = useTrip(s => s.ride), via = useTrip(s => s.via), viaName = useTrip(s => s.viaName)
+  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), ride = useTrip(s => s.ride), vias = useTrip(s => s.vias), viaName = useTrip(s => s.viaName)
   const [editing, setEditing] = useState<Which | null>(null)
   const t = useTrip.getState
   if (ride) return null
@@ -27,8 +28,8 @@ export function TripHeader() {
         <button className="ibtn" type="button" aria-label="Inverter origem e destino" onClick={() => { setEditing(null); t().swap() }}><ArrowLeftRight className="i" /></button>
         <button className="ibtn" type="button" aria-label="Fechar trajeto" onClick={() => t().closeTrip()}><X className="i" /></button>
       </div>
-      {via && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">{viaName ? 'Passando por ' + viaName : 'Passando pelo ponto P'}</span>
-        <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => { t().set({ via: null, viaName: '', routes: [] }); t().refresh() }}><X className="i" /></button></div>}
+      {vias.length > 0 && <div className="end via"><i className="dot-v" aria-hidden="true">{vias.length}</i><span className="nm">{viaName ? 'Passando por ' + viaName : vias.length === 1 ? 'Passando por 1 ponto escolhido' : `Passando por ${vias.length} pontos escolhidos`}</span>
+        <button type="button" className="ibtn sm" aria-label={vias.length > 1 ? 'Remover todos os pontos de passagem' : 'Remover ponto de passagem'} onClick={() => removeTripVia()}><X className="i" /></button></div>}
       {editing && <EndPicker which={editing} onDone={() => setEditing(null)} />}
     </section>
   )
@@ -56,12 +57,12 @@ function EndPicker({ which, onDone }: { which: Which; onDone: () => void }) {
 
 /** Abrir o trajeto em outro app, para a navegação curva a curva. */
 export function OpenIn() {
-  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), me = useTrip(s => s.me), via = useTrip(s => s.via)
+  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), me = useTrip(s => s.me), vias = useTrip(s => s.vias)
   const a = endpointLL(origin, me), b = endpointLL(dest, me), f = (p: [number, number]) => p[0] + ',' + p[1]
   if (!b) return null
   const g = new URLSearchParams({ api: '1', destination: f(b), travelmode: 'bicycling' })
   if (a && origin.kind !== 'me') g.set('origin', f(a))
-  if (via) g.set('waypoints', f(via))
+  if (vias.length) g.set('waypoints', vias.map(f).join('|'))
   return (
       <div className="open-in">
         <a className="btn" id="open-gmaps" href={'https://www.google.com/maps/dir/?' + g} target="_blank" rel="noopener">Abrir no Google Maps</a>

@@ -2,6 +2,7 @@ import { buildSamples, cumulative, hav } from './geo'
 import type { LatLon, Route, RouteCandidate } from './types'
 
 export function routeName(r: RouteCandidate): string {
+  if (r.saved) return r.saved.name
   const roads = (r.roads || []).filter(x => !/^\d+$/.test(x)).slice(0, 2)
   if (roads.length) return roads.join(' e ')
   if (r.viaP) return 'Passando pelo ponto P'

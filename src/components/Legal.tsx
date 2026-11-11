@@ -80,11 +80,12 @@ export function PrivacyText() {
       <li><b>Endereços de casa, trabalho e lugares salvos</b>, e os últimos destinos buscados: para montar trajetos e atalhos.</li>
       <li><b>Rotina e preferências</b> (horários, velocidade, tipo de rota, voz, tema do mapa): para sugerir o trajeto na hora certa e manter as suas escolhas.</li>
       <li><b>Histórico de pedais</b> (data, destino, distância, duração, média e chuva prevista) e avaliações "choveu ou não choveu": para o resumo da semana, a chegada prevista e a precisão da previsão.</li>
-      <li><b>Pedal em andamento</b> (destino, início, distância): para continuar o pedal se o app fechar. É apagado ao encerrar ou chegar.</li>
+      <li><b>Pedal em andamento</b> (destino, início, distância e o caminho percorrido até ali): para continuar o pedal se o app fechar e para você poder salvar o caminho ao chegar. É apagado ao encerrar ou chegar.</li>
+      <li><b>Rotas salvas</b>: o desenho e o nome das rotas que você escolher salvar, inclusive o caminho gravado num pedal, para sugeri-las nos próximos trajetos.</li>
       <li><b>Cópias temporárias</b> de previsões, rotas e imagens do mapa: para abrir mais rápido e funcionar com sinal fraco. As imagens do mapa expiram em até 30 dias.</li>
     </ul>
     <h4>3. Localização</h4>
-    <p>A localização só é usada com a sua permissão, dada no próprio navegador, que pode ser revogada a qualquer momento nas configurações dele. Ela serve para mostrar onde você está, acompanhar o pedal e consultar a chuva ao seu redor. O caminho percorrido não é registrado nem enviado a ninguém: o histórico guarda apenas os totais de cada pedal. Sem a permissão, o app funciona com limitações, a partir dos endereços que você informar.</p>
+    <p>A localização só é usada com a sua permissão, dada no próprio navegador, que pode ser revogada a qualquer momento nas configurações dele. Ela serve para mostrar onde você está, acompanhar o pedal e consultar a chuva ao seu redor. Durante o pedal, o caminho percorrido é gravado só no aparelho, para você poder salvá-lo como rota ao chegar. Se você não salvar, ou se encerrar antes de chegar, ele é descartado. Ele nunca é enviado a ninguém, e o histórico guarda apenas os totais de cada pedal. Sem a permissão, o app funciona com limitações, a partir dos endereços que você informar.</p>
     <h4>4. O que é enviado a terceiros</h4>
     <p>Para calcular rotas, previsão e mapa, o seu navegador consulta diretamente os serviços listados em "Serviços e créditos". Eles recebem apenas o necessário para responder a cada consulta (coordenadas, texto da busca ou região do mapa). Como em qualquer acesso à internet, também recebem dados técnicos, como o endereço IP e o tipo de navegador. O app não envia nome, e-mail, telefone, identificador do aparelho nem qualquer dado que identifique você. Cada serviço trata essas informações conforme a própria política de privacidade.</p>
     <h4>5. O que o app não faz</h4>
@@ -92,9 +93,9 @@ export function PrivacyText() {
     <h4>6. Bases legais</h4>
     <p>Como o responsável pelo projeto não tem acesso aos dados, não há tratamento por ele. O uso da localização depende do seu consentimento, dado no navegador (art. 7º, I, da LGPD). Os demais dados são inseridos por você e permanecem sob o seu controle exclusivo, no seu aparelho.</p>
     <h4>7. Por quanto tempo</h4>
-    <p>Os dados ficam no aparelho até você apagá-los: remova lugares em Ajustes, use "Apagar histórico" em Seus pedais ou limpe os dados do site nas configurações do navegador. Desinstalar o app ou limpar os dados do navegador apaga tudo de uma vez.</p>
+    <p>Os dados ficam no aparelho até você apagá-los: remova lugares e rotas salvas em Ajustes, use "Apagar histórico" em Seus pedais ou limpe os dados do site nas configurações do navegador. Desinstalar o app ou limpar os dados do navegador apaga tudo de uma vez.</p>
     <h4>8. Seus direitos</h4>
-    <p>Os direitos previstos no art. 18 da LGPD (acesso, correção, eliminação e portabilidade, entre outros) são exercidos por você mesmo, diretamente no app: veja e corrija os dados em Ajustes, apague-os como descrito acima e exporte uma cópia em Ajustes → Seus dados → Exportar backup. O arquivo de backup contém os endereços de casa e trabalho: guarde-o em local seguro.</p>
+    <p>Os direitos previstos no art. 18 da LGPD (acesso, correção, eliminação e portabilidade, entre outros) são exercidos por você mesmo, diretamente no app: veja e corrija os dados em Ajustes, apague-os como descrito acima e exporte uma cópia em Ajustes → Seus dados → Exportar backup. O arquivo de backup contém os endereços de casa e trabalho e as rotas salvas: guarde-o em local seguro.</p>
     <h4>9. Segurança</h4>
     <p>O app é servido apenas por conexão segura (HTTPS), não tem servidor próprio que possa vazar dados e restringe de onde a página pode carregar scripts e para onde pode se conectar. A proteção do aparelho (bloqueio de tela, atualizações) cabe a quem o usa.</p>
     <h4>10. Alterações e contato</h4>

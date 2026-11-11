@@ -11,11 +11,28 @@ export async function setPointFromMap(k: PointKey, ll: LatLon) {
 }
 
 
-/** Faz o trajeto atual passar por um ponto (arrastando a rota no mapa). Vale só para este trajeto. */
+const r5 = (ll: LatLon): LatLon => [+ll[0].toFixed(5), +ll[1].toFixed(5)]
+
+/** Acrescenta um ponto de passagem (arrastando a rota no mapa), na ordem do caminho. Vale só para este trajeto. */
 export async function setTripVia(ll: LatLon) {
   const { useTrip } = await import('./trip')
+  const { insertVia } = await import('../domain/savedRoutes')
+  const t = useTrip.getState(), line = t.routes[t.sel]?.line ?? []
+  t.set({ vias: insertVia(t.vias, r5(ll), line).slice(0, 8), viaName: '', routes: [] })
+  t.refresh()
+}
+/** Move um ponto de passagem já existente. */
+export async function moveTripVia(i: number, ll: LatLon) {
+  const { useTrip } = await import('./trip')
   const t = useTrip.getState()
-  t.set({ via: [+ll[0].toFixed(5), +ll[1].toFixed(5)], viaName: '', routes: [] })
+  t.set({ vias: t.vias.map((p, k) => k === i ? r5(ll) : p), viaName: '', routes: [] })
+  t.refresh()
+}
+/** Remove um ponto de passagem (ou todos, sem índice). */
+export async function removeTripVia(i?: number) {
+  const { useTrip } = await import('./trip')
+  const t = useTrip.getState()
+  t.set({ vias: i == null ? [] : t.vias.filter((_, k) => k !== i), viaName: '', routes: [] })
   t.refresh()
 }
 
@@ -31,6 +48,6 @@ export async function findShelters(ref: LatLon) {
 export async function goViaShelter(ll: LatLon, name: string) {
   const { useTrip } = await import('./trip')
   const t = useTrip.getState()
-  t.set({ via: ll, viaName: name, routes: [], shelters: null, ...(t.ride ? { origin: { kind: 'me' as const } } : {}) })
+  t.set({ vias: [ll], viaName: name, routes: [], shelters: null, ...(t.ride ? { origin: { kind: 'me' as const } } : {}) })
   t.refresh()
 }

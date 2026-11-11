@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.22.1'
+export const CURRENT_APP_VERSION = '2.23.0'
 export const CHANGELOG = [
+  {
+    version: '2.23.0',
+    title: 'Suas rotas: molde o caminho e salve',
+    items: [
+      'Molde a rota com vários pontos: toque na rota escolhida e arraste o ponto, quantas vezes quiser. Cada ponto pode ser arrastado de novo ou removido tocando nele.',
+      '"Salvar esta rota" guarda o caminho com nome. Da próxima vez que você for para lá (ou voltar), ela aparece primeiro, com chuva e tempo calculados.',
+      'Ao chegar de um pedal, "Salvar o caminho que você fez" transforma o trajeto real em rota de referência.',
+      'Gerencie as rotas em Ajustes → Rotas salvas. Elas entram no backup.',
+    ],
+  },
   {
     version: '2.22.1',
     title: 'Ajustes mais enxutos',

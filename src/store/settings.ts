@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lineKm, simplify } from '../domain/savedRoutes'
 import { create } from 'zustand'
 import { persist, type PersistStorage } from 'zustand/middleware'
 import { calibrate, type FeedbackEntry } from '../domain/calibration'
@@ -53,6 +54,8 @@ export const settingsSchema = z.object({
   voice: z.boolean().catch(true),
   /** últimos destinos buscados ou marcados no mapa (fora os lugares salvos) */
   recent: z.array(z.object({ name: z.string(), lat: z.number(), lon: z.number(), t: z.number() })).catch([]),
+  /** rotas salvas com nome (desenhadas no mapa ou gravadas num pedal) */
+  savedRoutes: z.array(z.object({ id: z.string(), name: z.string(), line: z.array(latLon), km: z.number(), createdAt: z.number() })).catch([]),
   /** alertas do INMET já mostrados por inteiro (depois aparecem numa linha só) */
   seenAlerts: z.array(z.string()).catch([]),
 })
@@ -92,6 +95,10 @@ interface Actions {
   addFeedback: (e: FeedbackEntry) => void
   resetFeedback: () => void
   setProfile: (p: Profile) => void
+  /** salva uma rota com nome; devolve o id */
+  saveRoute: (name: string, line: LatLon[]) => string
+  renameRoute: (id: string, name: string) => void
+  removeRoute: (id: string) => void
 }
 
 const round = (ll: LatLon): LatLon => [+ll[0].toFixed(5), +ll[1].toFixed(5)]
@@ -103,6 +110,14 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
   setName: (k, name) => set(s => ({ names: { ...s.names, [k]: name } })),
   clearVia: () => set(s => ({ via: null, names: { ...s.names, via: '' } })),
   addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },
+  saveRoute: (name, line) => {
+    const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+    const clean = simplify(line)
+    set(s => ({ savedRoutes: [...s.savedRoutes, { id, name: name.trim().slice(0, 40) || 'Minha rota', line: clean, km: +lineKm(clean).toFixed(2), createdAt: Date.now() }].slice(-30) }))
+    return id
+  },
+  renameRoute: (id, name) => set(s => ({ savedRoutes: s.savedRoutes.map(r => r.id === id ? { ...r, name: name.trim().slice(0, 40) || r.name } : r) })),
+  removeRoute: id => set(s => ({ savedRoutes: s.savedRoutes.filter(r => r.id !== id) })),
   removePlace: id => {
     const s = get(), i = s.places.findIndex(p => p.id === id), place = s.places[i]
     if (!place) return
