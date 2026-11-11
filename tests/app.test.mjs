@@ -114,11 +114,23 @@ assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike n
 assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz no pedal");
 assert.ok(await page.evaluate(() => !!document.querySelector("body > video")), "o vídeo da janela flutuante fica preparado ao iniciar o pedal");
 assert.match(await page.textContent("#v-title"), /Chuva em|Seco até|Chuva no seu trecho/);
+// fora da rota por mais de 20 s: oferece recalcular a partir de onde você está
+await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.006, longitude: -48.093 + 0.137 * 0.3 - 0.004 });
+await page.waitForTimeout(1500);
+await page.waitForTimeout(21000);
+await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0062, longitude: -48.093 + 0.137 * 0.3 - 0.004 });
+await page.waitForTimeout(1500);
+assert.ok(await page.locator("#recalc").count() === 1, "deve oferecer recalcular depois de 20 s fora da rota");
+await page.evaluate(() => document.getElementById("recalc").click());
+await page.waitForTimeout(1500);
+assert.ok(await page.locator(".bike-disc").count() === 1, "o pedal continua depois de recalcular");
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);
 await ctx.setGeolocation({ latitude: work[0], longitude: work[1] });
 await page.waitForTimeout(1200);
 assert.equal(await page.textContent("#v-title"), "Você chegou");
 assert.ok(await page.evaluate(() => !!document.getElementById("fb")), "deve perguntar se a previsão acertou");
+assert.match(await page.textContent(".summary"), /\d+,\d km.*\d+ min/s);
+assert.ok(await page.locator("#share").count() === 1, "deve ter o botão de compartilhar o resumo");
 
 // fechar o trajeto volta para a tela inicial
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());

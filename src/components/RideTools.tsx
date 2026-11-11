@@ -93,8 +93,8 @@ export function RideTools() {
       else if (distRain <= 0.4) once('rain-300', `Chuva em ${spokenDistance(distRain)}.`)
       else if (distRain <= 1.1) once('rain-1k', `Chuva em ${spokenDistance(distRain)}.`)
     }
-    if (ride!.off > 0.2) once('off-' + Math.floor(ride!.d), 'Você saiu da rota.')
-  }, [voice, riding, eta, storm, distRain, ride?.off, ride?.d]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (ride!.offSince != null && (ride!.last?.t ?? 0) - ride!.offSince > 20e3) once('off-' + ride!.offSince, 'Você saiu da rota. Se quiser, toque em recalcular.')
+  }, [voice, riding, eta, storm, distRain, ride?.offSince, ride?.last?.t]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (arrived && voice) say('Você chegou. Bom trabalho!') }, [arrived, voice])
 
   if (!ride) return null

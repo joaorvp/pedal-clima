@@ -1,9 +1,9 @@
 import { bearing, hav, project } from '../domain/geo'
-import { evaluate, isRainy } from '../domain/weather'
+import { evaluate, isRainy, rateAt } from '../domain/weather'
 import type { LatLon } from '../domain/types'
 import { readJson, writeJson } from '../services/cache'
 import { useSettings } from '../store/settings'
-import { endpointLL, useTrip, type Me } from '../store/trip'
+import { endpointLL, useTrip, type Me, type RideSummary } from '../store/trip'
 import { rideSpeed } from './useTripView'
 
 const VIEW_KEY = 'pedalclima.view'
@@ -51,7 +51,7 @@ export function startRide(): string | null {
   const t = useTrip.getState()
   if (t.locStatus === 'denied') return 'Permita o acesso à localização no navegador para usar o modo pedal.'
   if (!navigator.geolocation) return 'Este navegador não fornece localização.'
-  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null }, arrived: false, feedbackPred: null, sheet: 'peek' })
+  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0 }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
   startLocation()
   if (t.me) rideStep(t.me, null)
   keepAwake(); buzz(30)
@@ -76,12 +76,27 @@ function rideStep(me: Me, speedMs: number | null) {
   if (!pred) { const sp = rideSpeed(ema, s.speed), e0 = evaluate(route, 'ida', now - d / sp * 3600e3, sp); pred = { t: now, dir: 'ida', rainy: isRainy(e0, s.probTh), prob: e0.maxProb, exp: +e0.exposure.toFixed(2) } }
   const dest = endpointLL(t.dest, t.me)
   if ((route.total - d < 0.12 && pr.off < 0.15) || (dest && hav(pos, dest) < 0.15)) { stopRide(true); return }
-  t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false } })
+  // acumulados do resumo: km rodados (ignora saltos do GPS) e chuva prevista onde você está
+  let dist = r.dist, rain = r.rain
+  if (r.last) {
+    const step = hav(r.last.pos, pos), dt = (now - r.last.t) / 3600e3
+    if (dt > 0 && step / dt < 70) dist += step  // ignora saltos impossíveis do GPS
+    const i = route.samples.findIndex(sm => sm.km >= d), w = route.wx?.[Math.max(0, i)]
+    if (w && dt > 0 && dt < 0.05) rain += rateAt(w, now) * dt
+  }
+  const offSince = pr.off > 0.2 ? r.offSince ?? now : null
+  t.set({ ride: { ...r, pos, acc: me.acc, d, off: pr.off, ema, heading, last: { pos, t: now }, pred, weakSignal: false, offSince, dist, rain } })
 }
 
 export function stopRide(arrived = false) {
   if (arrived) buzz([40, 60, 40])
   wakeLock?.release().catch(() => {}); wakeLock = null
-  const t = useTrip.getState()
-  t.set({ ride: null, dep: null, arrived, feedbackPred: arrived ? t.ride?.pred ?? null : null })
+  const t = useTrip.getState(), r = t.ride
+  let summary: RideSummary | null = null
+  if (arrived && r) {
+    const mins = Math.max(1, Math.round((Date.now() - r.startedAt) / 60e3)), km = Math.max(r.dist, r.d)
+    const s = useSettings.getState()
+    summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now() }
+  }
+  t.set({ ride: null, dep: null, arrived, summary, feedbackPred: arrived ? r?.pred ?? null : null })
 }

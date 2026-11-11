@@ -1,11 +1,11 @@
-import { Navigation } from 'lucide-react'
+import { Navigation, Share2 } from 'lucide-react'
 import { rideVerdict, verdict, type Verdict } from '../domain/advice'
 import { accuracyText } from '../domain/calibration'
 import { fmt1, hhmm } from '../domain/format'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
 import { buzz, startRide, stopRide } from '../hooks/location'
 import { useSettings } from '../store/settings'
-import { endpointName, useTrip } from '../store/trip'
+import { endpointName, useTrip, type RideSummary } from '../store/trip'
 import { Icon } from './icons'
 import { RideTools } from './RideTools'
 import { useEffect, useRef, useState } from 'react'
@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 export function Hero() {
   const view = useTripView()
   const dep = useTrip(s => s.dep), ride = useTrip(s => s.ride), dest = useTrip(s => s.dest)
-  const arrived = useTrip(s => s.arrived), pred = useTrip(s => s.feedbackPred), error = useTrip(s => s.error)
+  const arrived = useTrip(s => s.arrived), pred = useTrip(s => s.feedbackPred), error = useTrip(s => s.error), summary = useTrip(s => s.summary)
   const speed = useSettings(s => s.speed)
   const warned = useRef(false)
   const [thanks, setThanks] = useState('')
@@ -40,7 +40,7 @@ export function Hero() {
     const after = useSettings.getState()
     setThanks('Obrigado! ' + accuracyText(after.log, after.probTh))
     set({ feedbackPred: null })
-    setTimeout(() => { setThanks(''); set({ arrived: false }) }, 6000)
+    setTimeout(() => setThanks(''), 6000)
   }
   function toggleRide() {
     if (ride) { stopRide(); return }
@@ -63,6 +63,13 @@ export function Hero() {
           <p className="sub" id="v-sub">{v?.sub ?? (error || 'Buscando rota, previsão e radar.')}</p>
         </div>
       </div>
+      {riding && ride!.offSince != null && (ride!.last?.t ?? 0) - ride!.offSince > 20e3 && (
+        <div className="offroute" role="alert">
+          <span><b>Você saiu da rota</b><small>Está a {Math.round(ride!.off * 1000)} m do caminho.</small></span>
+          <button className="btn primary" type="button" id="recalc" onClick={() => useTrip.getState().setEnd('origin', { kind: 'me' })}>Recalcular a partir daqui</button>
+        </div>
+      )}
+      {arrived && summary && !riding ? <Summary s={summary} /> : <>
       {!riding && rideButton}
       <div className="meta">
         <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : 'de viagem'}</span></div>
@@ -70,6 +77,7 @@ export function Hero() {
         <div><b id="s-rain">{!ev ? '–' : riding ? (ride!.ema > 2 ? Math.round(ride!.ema) + ' km/h' : 'parado') : ev.exposure < 0.05 ? '0 mm' : fmt1(ev.exposure) + ' mm'}</b><span id="m-l3">{riding ? 'velocidade' : 'chuva no trajeto'}</span></div>
         <div><b id="s-wind">{!ev ? '–' : Math.abs(ev.head).toFixed(0) + ' km/h'}</b><span id="s-wind-l">{!ev ? 'vento' : Math.abs(ev.head) < 3 ? 'vento fraco' : ev.head > 0 ? 'vento contra' : 'vento a favor'}</span></div>
       </div>
+      </>}
       {arrived && pred && (
         <div className="fb" id="fb">
           <span>A previsão acertou? Choveu no caminho?</span>
@@ -92,5 +100,29 @@ export function Hero() {
           }} />
       </div>
     </section>
+  )
+}
+
+/** Resumo do pedal ao chegar, com botão de compartilhar. */
+function Summary({ s }: { s: RideSummary }) {
+  const [msg, setMsg] = useState('')
+  const text = `Pedalei ${fmt1(s.km)} km até ${s.dest} em ${s.mins} min` + (s.avg > 0 && s.avg < 70 ? ` (média ${Math.round(s.avg)} km/h)` : '') +
+    (s.rain >= 0.1 ? `, com ${fmt1(s.rain)} mm de chuva prevista no caminho.` : ', sem chuva no caminho.') + ' Pedágua · pedal com previsão'
+  async function share() {
+    try { if (navigator.share) { await navigator.share({ title: 'Pedágua', text }); return } } catch { return }
+    try { await navigator.clipboard.writeText(text); setMsg('Resumo copiado.') } catch { setMsg(text) }
+  }
+  return (
+    <div className="summary">
+      <div className="meta">
+        <div><b>{fmt1(s.km)} km</b><span>percorridos</span></div>
+        <div><b>{s.mins} min</b><span>de pedal</span></div>
+        <div><b>{s.avg > 0 && s.avg < 70 ? Math.round(s.avg) + ' km/h' : '–'}</b><span>média</span></div>
+        <div><b>{s.rain >= 0.1 ? fmt1(s.rain) + ' mm' : 'seco'}</b><span>chuva no caminho</span></div>
+      </div>
+      {s.wh != null && <p className="note" style={{ margin: '8px 0 0' }}>Bateria usada: ~{Math.round(s.wh)} Wh (estimativa).</p>}
+      <button className="btn" type="button" id="share" onClick={share} style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}><Share2 className="i" />Compartilhar resumo</button>
+      {msg && <p className="note" style={{ margin: '6px 0 0' }}>{msg}</p>}
+    </div>
   )
 }

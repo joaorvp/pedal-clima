@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.5.0'
+export const CURRENT_APP_VERSION = '2.6.0'
 export const CHANGELOG = [
+  {
+    version: '2.6.0',
+    title: 'Saiu da rota? Recalcula.',
+    items: [
+      'Se você sair do caminho, o app avisa e oferece recalcular a partir de onde você está, sem encerrar o pedal.',
+      'Ao chegar, um resumo mostra distância, tempo, média, chuva no caminho e bateria. Dá para compartilhar.',
+    ],
+  },
   {
     version: '2.5.0',
     title: 'Agora o app se chama Pedágua',

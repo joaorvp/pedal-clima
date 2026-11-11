@@ -420,3 +420,8 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .ride-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
 .ride-tools .btn{flex:1;justify-content:center;min-height:44px}
 .ride-tools .btn[aria-pressed="false"]{color:var(--muted)}
+.offroute{display:grid;gap:10px;margin-top:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--warn) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 50%,transparent)}
+.offroute b{display:block;font-weight:600}
+.offroute small{display:block;color:var(--muted);font-size:13px}
+.offroute .btn{justify-content:center;min-height:44px}
+.summary{margin-top:14px}

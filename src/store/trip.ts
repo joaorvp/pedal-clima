@@ -29,7 +29,14 @@ export interface Ride {
   weakSignal: boolean
   last: { pos: LatLon; t: number } | null
   pred: { t: number; dir: string; rainy: boolean; prob: number; exp: number } | null
+  /** desde quando está fora da rota (para oferecer recalcular) */
+  offSince: number | null
+  /** acumulados para o resumo: início, km rodados e chuva prevista nos trechos por onde passou */
+  startedAt: number; dist: number; rain: number
 }
+
+/** Resumo mostrado ao chegar. */
+export interface RideSummary { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number }
 export type SheetState = 'peek' | 'half' | 'full'
 export type Mode = 'explore' | 'trip'
 
@@ -56,6 +63,7 @@ interface TripState {
   ride: Ride | null
   feedbackPred: Ride['pred']
   arrived: boolean
+  summary: RideSummary | null
   pickMode: PointKey | 'dest' | 'origin' | null
   sheet: SheetState
   sheetVisible: number
@@ -101,7 +109,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
