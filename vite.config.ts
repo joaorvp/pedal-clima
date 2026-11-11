@@ -6,9 +6,27 @@ import { VitePWA } from 'vite-plugin-pwa'
 // No GitHub Pages o app fica em /pedal-clima/; localmente, na raiz.
 const base = process.env.VITE_BASE_PATH ?? '/'
 
+// Política de segurança (CSP): a página só roda scripts próprios e só conversa com os serviços que o app usa.
+// O GitHub Pages não permite cabeçalhos, então vai como <meta>, só no build (o modo dev do Vite injeta scripts).
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com https://*.tile-cyclosm.openstreetmap.fr https://*.rainviewer.com",
+  "connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://*.rainviewer.com https://apiprevmet3.inmet.gov.br https://brouter.de https://router.project-osrm.org https://routing.openstreetmap.de https://photon.komoot.io https://overpass-api.de",
+  "font-src 'self' data:",
+  "media-src 'self' blob:",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'",
+].join('; ')
+
 export default defineConfig({
   base,
   plugins: [
+    { name: 'pedagua-csp', apply: 'build', transformIndexHtml: html => html.replace('<meta charset="utf-8" />', `<meta charset="utf-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />`) },
     react(),
     tailwindcss(),
     VitePWA({

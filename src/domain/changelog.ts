@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.20.1'
+export const CURRENT_APP_VERSION = '2.21.0'
 export const CHANGELOG = [
+  {
+    version: '2.21.0',
+    title: 'Página de apresentação, privacidade e backup',
+    items: [
+      'Quem abre o link pela primeira vez vê uma página explicando o app e como instalar. Ela também fica em "Sobre e privacidade", no rodapé.',
+      'A privacidade explica o que fica no seu celular e o que cada serviço de mapa e previsão recebe.',
+      'Em Ajustes → Seus dados: exporte um backup dos seus lugares, rotina e histórico e importe em outro aparelho.',
+      'Mais proteção: a página só carrega scripts próprios e só se conecta aos serviços que o app usa.',
+    ],
+  },
   {
     version: '2.20.1',
     title: 'Radar de volta ao normal',

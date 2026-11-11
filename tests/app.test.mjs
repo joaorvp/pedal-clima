@@ -26,6 +26,8 @@ const ctx = await browser.newContext({ viewport: { width: 400, height: 860 }, ha
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", e => errors.push(e.message));
+const cspErrors = [];
+page.on("console", m => { if (/Content Security Policy|Content-Security-Policy/i.test(m.text())) cspErrors.push(m.text()); });
 let offline = false;
 await page.route("**/*", r => {
   const u = r.request().url();
@@ -47,6 +49,13 @@ await page.route("**/*", r => {
 
 await page.goto(APP);
 await page.waitForTimeout(1200);
+
+// primeira visita pelo navegador: a página de apresentação vem antes do app
+assert.match(await page.textContent(".landing h1"), /Saiba onde vai chover/);
+assert.match(await page.textContent("#privacidade"), /Sem conta.*Open-Meteo/s);
+assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "as boas-vindas esperam a apresentação");
+await page.click("#landing-start"); await page.waitForTimeout(500);
+assert.ok(await page.locator(".landing").count() === 0, "Começar fecha a apresentação");
 
 // primeira abertura: boas-vindas com casa e trabalho
 assert.ok(await page.evaluate(() => document.getElementById("welcome").open), "boas-vindas deve abrir na primeira vez");
@@ -93,6 +102,26 @@ await page.evaluate(() => { const b = document.getElementById("open-history"); b
 await page.waitForTimeout(300);
 assert.ok(!(await page.evaluate(() => document.getElementById("history")?.open)), "o toque longo não abre o histórico");
 await page.waitForTimeout(2600);
+
+// "Sobre e privacidade" no rodapé reabre a apresentação, agora com "Voltar ao app"
+await page.evaluate(() => document.getElementById("open-about").click()); await page.waitForTimeout(400);
+assert.match(await page.textContent("#landing-start"), /Voltar ao app/);
+await page.click("#landing-start"); await page.waitForTimeout(300);
+
+// backup: exporta um arquivo e importa de volta (com confirmação)
+await page.click("#open-settings"); await page.waitForTimeout(300);
+const [dl] = await Promise.all([page.waitForEvent("download"), page.evaluate(() => document.getElementById("backup-export").click())]);
+assert.match(dl.suggestedFilename(), /^pedagua-backup-\d{4}-\d{2}-\d{2}\.json$/);
+const bkPath = await dl.path();
+const bk = JSON.parse((await import("node:fs")).readFileSync(bkPath, "utf8"));
+assert.equal(bk.app, "pedagua"); assert.ok(Array.isArray(bk.settings.home), "o backup traz a casa");
+await page.setInputFiles("#backup-file", bkPath); await page.waitForTimeout(400);
+assert.match(await page.textContent(".confirm-box"), /Substituir os dados/);
+await page.evaluate(() => document.getElementById("backup-apply").click()); await page.waitForTimeout(300);
+assert.match(await page.textContent("#backup-msg"), /Backup importado/);
+await page.setInputFiles("#backup-file", { name: "x.json", mimeType: "application/json", buffer: Buffer.from("{}") }); await page.waitForTimeout(300);
+assert.match(await page.textContent("#backup-msg"), /não é um backup/);
+await page.click("#settings-done"); await page.waitForTimeout(300);
 
 // relatar problema: relatório técnico sem coordenadas
 await page.click("#open-settings"); await page.waitForTimeout(300);
@@ -263,6 +292,7 @@ assert.match(await page.textContent("#updated"), /sem conexão/);
 assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
 
 assert.deepEqual(errors, [], "a página não deve ter erros de JavaScript");
+assert.deepEqual(cspErrors, [], "nada bloqueado pela política de segurança (CSP)");
 await browser.close();
 stopping = true; server.kill();
 console.log("app.test: ok");

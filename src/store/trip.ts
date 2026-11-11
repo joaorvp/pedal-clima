@@ -78,6 +78,8 @@ interface TripState {
   viaName: string
   /** tela "Seus pedais" aberta */
   historyOpen: boolean
+  /** página de apresentação (primeira visita pelo navegador ou link "Sobre") */
+  landing: boolean
   /** qualidade do ar onde você está */
   air: { aqi: number; pm25: number } | null
   pickMode: PointKey | 'dest' | 'origin' | null
@@ -112,13 +114,22 @@ const SNAP_KEY = 'pedalclima.last'
 const LOCAL_KEY = 'pedalclima.local'
 const round3 = (ll: LatLon | null) => ll ? ll.map(v => v.toFixed(3)).join(',') : '-'
 
+/** Mostra a apresentação na primeira visita pelo navegador (não no app instalado nem nos atalhos) ou com #sobre / #privacidade. */
+function initialLanding() {
+  if (typeof window === 'undefined') return false
+  if (/^#(sobre|privacidade)$/.test(location.hash)) return true
+  const s = useSettings.getState()
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone
+  return !s.onboarded && !s.customized && !standalone && !new URLSearchParams(location.search).has('ir')
+}
+
 export const useTrip = create<TripState>()((set, get) => ({
   mode: 'explore', origin: { kind: 'me' }, dest: null, via: null, dep: null,
   me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, shelters: null, viaName: '', historyOpen: false, air: null, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, shelters: null, viaName: '', historyOpen: false, landing: initialLanding(), air: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 

@@ -1,10 +1,13 @@
-import { ChevronDown, ChevronUp, Crosshair, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronDown, ChevronUp, Crosshair, Download, Trash2, Upload, X } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { accuracyText } from '../domain/calibration'
 import { STOP_FACTOR, useSettings, type PointKey } from '../store/settings'
 import { useTrip } from '../store/trip'
 import { setPointFromMap } from '../store/actions'
 import { buildReport } from '../services/report'
+import { downloadText, makeBackup, readBackup } from '../services/backup'
+import { useUndo } from '../store/undo'
+import type { Settings } from '../store/settings'
 import { learnedSpeed } from '../domain/speed'
 import { AddressCombo } from './AddressCombo'
 import { Dialog } from './Dialog'
@@ -94,6 +97,8 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           <p className="note">Com os horários preenchidos, o app abre no sentido certo e já mostra a previsão para a sua próxima saída.</p>
         </div>
 
+        <DataSection />
+
         <div className="sec">
           <h3>Algo estranho?</h3>
           <p className="note" style={{ margin: '0 0 8px' }}>Gera um relatório técnico (versão, celular, GPS, rota e últimos erros) para você mandar a quem cuida do app. Não inclui suas coordenadas nem endereços.</p>
@@ -116,5 +121,48 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
       </div>
       <div className="dlg-foot"><button className="btn primary" type="button" id="settings-done" onClick={onClose}>Pronto</button></div>
     </Dialog>
+  )
+}
+
+/** Seus dados: exportar um backup em arquivo e importar (em outro aparelho, ou depois de limpar o navegador). */
+function DataSection() {
+  const [pending, setPending] = useState<{ settings: Settings; exportedAt: number } | null>(null)
+  const [msg, setMsg] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+  const when = (t: number) => t ? new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'data desconhecida'
+  return (
+    <div className="sec" id="sec-data">
+      <h3>Seus dados</h3>
+      <p className="note" style={{ margin: '0 0 8px' }}>Tudo fica só neste aparelho. Guarde um backup (casa, trabalho, lugares, rotina e histórico) para levar para outro celular ou não perder nada se limpar o navegador.</p>
+      <div className="row data-row">
+        <button className="btn" type="button" id="backup-export" onClick={() => {
+          const { name, text } = makeBackup(useSettings.getState()); downloadText(name, text); setMsg('Backup salvo: ' + name)
+        }}><Download className="i" />Exportar backup</button>
+        <button className="btn" type="button" id="backup-import" onClick={() => fileRef.current?.click()}><Upload className="i" />Importar backup</button>
+        <input ref={fileRef} type="file" accept="application/json,.json" hidden id="backup-file" onChange={async e => {
+          const f = e.target.files?.[0]; e.target.value = ''; if (!f) return
+          const r = readBackup(await f.text())
+          if (!r.ok) { setMsg(r.error); setPending(null); return }
+          setMsg(''); setPending({ settings: r.settings, exportedAt: r.exportedAt })
+        }} />
+      </div>
+      {pending && (
+        <div className="confirm-box" role="alert">
+          <p>Substituir os dados deste aparelho pelo backup de <b>{when(pending.exportedAt)}</b>? ({pending.settings.places.length} lugares salvos, {pending.settings.history.length} pedais)</p>
+          <div className="row">
+            <button className="btn primary" type="button" id="backup-apply" onClick={() => {
+              const prev = useSettings.getState()
+              const before = JSON.parse(JSON.stringify({ ...prev })) as Settings
+              try { localStorage.setItem('pedalclima.v1.antes-do-backup', JSON.stringify(before)) } catch { /* sem espaço: segue com o desfazer */ }
+              useSettings.setState(pending.settings)
+              setPending(null); setMsg('Backup importado.')
+              useUndo.getState().show('Backup importado', () => useSettings.setState(before))
+            }}>Substituir</button>
+            <button className="btn" type="button" onClick={() => setPending(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+      {msg && <p className="note" style={{ margin: '8px 0 0' }} id="backup-msg">{msg}</p>}
+    </div>
   )
 }

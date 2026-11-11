@@ -14,6 +14,7 @@ import { rainStopped } from './hooks/alerts'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
+import { Landing } from './components/Landing'
 import { InstallBanner, UpdatePrompt, WhatsNew } from './components/Pwa'
 import { startLocation } from './hooks/location'
 import { useSettings } from './store/settings'
@@ -25,6 +26,7 @@ export default function App() {
   const mode = useTrip(s => s.mode)
   const view = useTrip(s => s.mode + s.routes.length + ':' + s.sel + ':' + s.loading + ':' + !!s.ride?.pos + ':' + s.arrived + ':' + !!s.local + ':' + (s.alerts?.length ?? 0) + s.locStatus)
   const profile = useSettings(s => s.profile)
+  const landing = useTrip(s => s.landing)
 
   // ao abrir: se a localização já foi permitida, usa direto; senão, o card explica antes do pedido do navegador
   useEffect(() => {
@@ -106,7 +108,8 @@ export default function App() {
       </Sheet>
     </main>
     <SettingsDialog open={settings.open} focus={settings.focus} onClose={() => setSettings({ open: false })} />
-    <Welcome />
+    {!landing && <Welcome />}
+    <Landing />
     <UndoToast />
     <Tooltips />
     <HistoryDialog />
