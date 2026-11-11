@@ -35,6 +35,19 @@ export default function App() {
       else if (p.state === 'denied') useTrip.getState().set({ locStatus: 'denied' })
     }).catch(() => {})
   }, [])
+  // atalhos do ícone do app (?ir=trabalho / ?ir=casa): abre o trajeto direto, saindo de onde você está
+  useEffect(() => {
+    const ir = new URLSearchParams(location.search).get('ir'); if (!ir) return
+    history.replaceState(history.state, '', location.pathname)
+    const s = useSettings.getState()
+    const dest = ir === 'trabalho' && s.workSet ? { ll: s.work, name: 'Trabalho', key: 'work' } : ir === 'casa' && s.homeSet ? { ll: s.home, name: 'Casa', key: 'home' } : null
+    if (!dest) return
+    const go = () => useTrip.getState().startTrip({ kind: 'place', ...dest })
+    if (useTrip.getState().me) { go(); return }
+    // espera a localização por alguns segundos para sair de onde você está
+    const t0 = Date.now(), id = setInterval(() => { if (useTrip.getState().me || Date.now() - t0 > 5000) { clearInterval(id); go() } }, 300)
+    return () => clearInterval(id)
+  }, [])
   // "me avise quando parar": confere a cada 5 min e avisa quando a chuva passar
   const watchClear = useTrip(s => s.watchClear), local = useTrip(s => s.local)
   useEffect(() => {

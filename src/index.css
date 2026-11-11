@@ -472,3 +472,6 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
   animation:rise .25s cubic-bezier(.2,.8,.2,1) both;max-width:calc(100vw - 24px)}
 .undo button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--accent);font-weight:700;padding:10px 12px;border-radius:999px;cursor:pointer;min-height:44px}
 @media (min-width:1000px){.undo{bottom:24px}}
+/* ciclovias: o mapa CyclOSM já tem cores próprias; não inverte no tema escuro */
+.cycle .leaflet-tile-pane{filter:none!important}
+.fab#cycle-toggle[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}

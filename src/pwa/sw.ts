@@ -14,7 +14,7 @@ registerRoute(new NavigationRoute(createHandlerBoundToURL(new URL('index.html', 
 
 // Pedaços de mapa já vistos (com limite, para não encher o aparelho).
 registerRoute(
-  ({ url }) => url.hostname === 'tile.openstreetmap.org' || url.hostname === 'server.arcgisonline.com',
+  ({ url }) => url.hostname === 'tile.openstreetmap.org' || url.hostname === 'server.arcgisonline.com' || url.hostname.endsWith('tile-cyclosm.openstreetmap.fr'),
   new CacheFirst({ cacheName: 'pedal-tiles', plugins: [new ExpirationPlugin({ maxEntries: 400, maxAgeSeconds: 30 * 24 * 3600 })] }),
 )
 // Fontes do Google

@@ -33,6 +33,11 @@ export default defineConfig({
         background_color: '#1b2b4b',
         theme_color: '#1b2b4b',
         categories: ['weather', 'navigation', 'travel'],
+        // segurar o ícone do app na tela inicial mostra estes atalhos
+        shortcuts: [
+          { name: 'Ir para o Trabalho', short_name: 'Trabalho', url: './?ir=trabalho', icons: [{ src: 'pwa-192.png', sizes: '192x192', type: 'image/png' }] },
+          { name: 'Ir para Casa', short_name: 'Casa', url: './?ir=casa', icons: [{ src: 'pwa-192.png', sizes: '192x192', type: 'image/png' }] },
+        ],
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

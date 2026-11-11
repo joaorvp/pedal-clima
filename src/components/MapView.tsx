@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import { Layers, LocateFixed, Maximize, Play, Route as RouteIcon, Square } from 'lucide-react'
+import { Bike, Layers, LocateFixed, Maximize, Play, Route as RouteIcon, Square } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { hhmm, fmt1 } from '../domain/format'
 import { placeName } from '../domain/advice'
@@ -131,6 +131,16 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     if (!map || !routes.length) return
     map.flyToBounds(L.latLngBounds(routes.flatMap(r => r.line)).pad(0.06), { paddingTopLeft: [16, 40], paddingBottomRight: [56, useTrip.getState().sheetVisible + 16], duration: reduceMotion() ? 0 : 0.7 })
   }, [map, routes])
+
+  // mapa de ciclovias (CyclOSM) por cima do mapa comum, que fica de reserva
+  const cycleMap = useSettings(s => s.cycleMap)
+  useEffect(() => {
+    if (!map || !cycleMap) return
+    const layer = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { subdomains: 'abc', maxZoom: 19, zIndex: 2,
+      attribution: '<a href="https://www.cyclosm.org" target="_blank" rel="noopener">CyclOSM</a> · &copy; OpenStreetMap' }).addTo(map)
+    map.getContainer().classList.add('cycle')
+    return () => { map.removeLayer(layer); map.getContainer().classList.remove('cycle') }
+  }, [map, cycleMap])
 
   // lugares salvos (só na tela inicial): um toque monta o trajeto
   useEffect(() => {
@@ -288,6 +298,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         <div id="map" ref={el} aria-label="Mapa com a sua posição, o trajeto e o radar de chuva" />
         <div className="mapfab">
           <button className="fab" id="full" type="button" aria-label="Mapa em tela cheia" onClick={onToggleFull}><Maximize className="i" /></button>
+          <button className="fab" id="cycle-toggle" type="button" aria-pressed={cycleMap} aria-label={cycleMap ? 'Voltar ao mapa comum' : 'Mostrar ciclovias'} title="Ciclovias" onClick={() => useSettings.getState().patch({ cycleMap: !cycleMap })}><Bike className="i" /></button>
           <button className="fab" id="radar-toggle" type="button" aria-pressed={radar.on} aria-label="Mostrar radar" onClick={() => T().set({ radar: { ...radar, on: !radar.on } })}><Layers className="i" /></button>
           <button className="fab" id="radar-play" type="button" aria-label={radar.playing ? 'Parar animação do radar' : 'Animar radar da última hora'}
             onClick={() => T().set({ radar: radar.playing ? { ...radar, playing: false, idx: Math.max(0, radar.frames.length - 1) } : { ...radar, on: true, playing: radar.frames.length > 0, idx: 0 } })}>

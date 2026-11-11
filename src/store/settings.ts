@@ -40,6 +40,8 @@ export const settingsSchema = z.object({
   installDismissed: z.boolean().catch(false),
   /** a pessoa já tocou em "Permitir localização" no card de explicação */
   locAllowed: z.boolean().catch(false),
+  /** mapa de ciclovias (CyclOSM) no lugar do mapa comum */
+  cycleMap: z.boolean().catch(false),
   /** avisos falados durante o pedal */
   voice: z.boolean().catch(true),
   /** últimos destinos buscados ou marcados no mapa (fora os lugares salvos) */

@@ -147,6 +147,17 @@ await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]'
 await page.waitForTimeout(500);
 assert.ok(await page.locator(".whereto").count() === 1, "deve voltar para a tela inicial");
 
+// atalho do ícone do app: ?ir=trabalho abre o trajeto direto e limpa o endereço
+await page.goto(APP + "?ir=trabalho"); await page.waitForTimeout(2000);
+assert.match(await page.textContent(".triphead"), /Trabalho/);
+assert.ok(!page.url().includes("ir="), "o endereço fica limpo depois do atalho");
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
+
+// ciclovias: liga o mapa CyclOSM e a escolha fica salva
+await page.evaluate(() => document.getElementById("cycle-toggle").click()); await page.waitForTimeout(400);
+assert.ok(await page.evaluate(() => document.getElementById("map").classList.contains("cycle")), "o mapa de ciclovias deve ligar");
+assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).cycleMap === true), "a escolha das ciclovias fica salva");
+
 // sem conexão: o clima de onde você está continua aparecendo
 offline = true;
 await page.reload(); await page.waitForTimeout(1500);

@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.8.0'
+export const CURRENT_APP_VERSION = '2.9.0'
 export const CHANGELOG = [
+  {
+    version: '2.9.0',
+    title: 'Atalhos e ciclovias',
+    items: [
+      'Segure o ícone do Pedágua na tela inicial: "Ir para o Trabalho" e "Ir para Casa" abrem o trajeto direto.',
+      'Novo botão de bicicleta no mapa mostra ciclovias e ciclofaixas.',
+    ],
+  },
   {
     version: '2.8.0',
     title: 'Avise quando a chuva passar',
