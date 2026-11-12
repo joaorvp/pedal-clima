@@ -1,12 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.23.1'
+export const CURRENT_APP_VERSION = '2.24.0'
 export const CHANGELOG = [
   {
-    version: '2.23.1',
-    title: 'Seus dados protegidos contra falta de espaço',
+    version: '2.24.0',
+    title: 'Tema claro, aviso de chegada e previsão com vento',
     items: [
-      'As cópias de rotas que o app guarda para abrir rápido agora têm limite: as antigas são apagadas sozinhas e não ocupam mais o espaço dos seus dados.',
-      'Se o espaço do navegador acabar, o app libera as cópias antes de salvar e, se ainda assim não couber, avisa para você exportar um backup.',
+      'Ajustes → Aparência: Automática, Clara ou Escura. Sob sol forte, a clara é mais fácil de ler no guidão.',
+      'No pedal, o botão "Avisar" manda pelo WhatsApp (ou outro app) a hora em que você vai chegar.',
+      'A chegada prevista agora considera o vento de cada trecho: com vento contra forte ela fica mais tarde, com vento a favor um pouco mais cedo.',
+      'Seus dados mais protegidos: as cópias de rotas que o app guarda para abrir rápido agora têm limite e não ocupam mais o espaço dos seus pedais e ajustes.',
     ],
   },
   {

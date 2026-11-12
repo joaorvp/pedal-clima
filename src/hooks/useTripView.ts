@@ -39,7 +39,8 @@ export function useTripView() {
   return useMemo(() => {
     if (!route?.wx) return null
     const depMs = riding ? (ride!.last?.t ?? now) - ride!.d / sp * 3600e3 : dep ?? now
-    const ev = evaluate(route, 'ida', depMs, sp)
+    // no pedal o ritmo medido já inclui o vento de verdade; antes de sair, a estimativa considera o vento previsto
+    const ev = evaluate(route, 'ida', depMs, sp, { wind: !riding })
     const ctx: TripCtx = { route, dir: 'ida', speed: sp, probTh, depLabel: labels.dep, arrLabel: labels.arr, now }
     const prof = elevFor(route, 'ida')
     const battery = batteryEstimate(ev, route.total, prof, whkm, batt)

@@ -717,3 +717,12 @@ button.hist-row{cursor:pointer}
 .imp-actions{display:flex;flex-wrap:wrap;gap:8px}
 .imp-actions .btn{flex:1 1 140px;justify-content:center;min-height:44px}
 .imp-open{width:100%;justify-content:center;min-height:44px;margin-top:8px}
+.hero.riding .ride-tools .ride-btn{white-space:nowrap}
+.upd{white-space:nowrap}
+@media (max-width:419px){
+  .ride-tools{gap:6px}
+  .ride-tools .tool{width:52px;font-size:11px}
+  .hero.riding .ride-tools .ride-btn{padding-inline:10px;font-size:15px}
+  .hero.riding .ride-tools .ride-btn .i{display:none}
+}
+@media (max-width:379px){.upd{font-size:12px}.brand{font-size:21px}}

@@ -1,4 +1,4 @@
-import { PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
+import { MessageCircle, PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { rideVerdict } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
@@ -114,6 +114,11 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
     <>
       <div className="ride-tools">
         {endButton}
+        <button className="btn tool" type="button" id="share-eta" aria-label="Avisar que estou a caminho (manda a hora de chegada)" onClick={async () => {
+          const text = etaMessage(dest, eta, left)
+          try { if (navigator.share) { await navigator.share({ text }); return } } catch { return }
+          try { await navigator.clipboard.writeText(text); setPipMsg('Mensagem copiada: é só colar na conversa.') } catch { setPipMsg(text) }
+        }}><MessageCircle className="i" /><span>Avisar</span></button>
         {canSpeak() && <button className="btn tool" type="button" id="voice" aria-pressed={voice} aria-label={voice ? 'Desligar avisos por voz' : 'Ligar avisos por voz'}
           onClick={() => { const on = !voice; useSettings.getState().patch({ voice: on }); if (on) say('Avisos por voz ligados.') }}>
           {voice ? <Volume2 className="i" /> : <VolumeX className="i" />}<span>{voice ? 'Voz' : 'Mudo'}</span></button>}
@@ -136,4 +141,10 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, x: number, y: number,
     } else line = test
   }
   ctx.fillText(line, x, y + n * lh)
+}
+
+/** "A caminho do trabalho: chego por volta das 08:42 (faltam 6,3 km)." Só sai do aparelho se você enviar. */
+function etaMessage(dest: ReturnType<typeof useTrip.getState>['dest'], eta: number, leftKm: number) {
+  const to = dest?.kind === 'place' ? (dest.key === 'home' ? 'de casa' : dest.key === 'work' ? 'do trabalho' : 'de ' + dest.name) : 'do destino'
+  return `A caminho ${to} de bike: chego por volta das ${hhmm(eta)} (faltam ${fmt1(leftKm)} km). Enviado pelo Pedágua.`
 }

@@ -112,6 +112,13 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
             <input type="checkbox" id="speed-auto" checked={s.speedAuto} onChange={e => s.patch({ speedAuto: e.target.checked })} />
             <span><b>Aprender com meus pedais</b><small>{learned ? `Sua média real, de porta a porta: ${String(learned.kmh).replace('.', ',')} km/h (${learned.n} pedais). É ela que o app usa para prever a chegada.` : `Até você concluir 2 pedais, o app desconta as paradas da velocidade de cruzeiro: prevê com ${String(Math.round(s.speed * STOP_FACTOR * 10) / 10).replace('.', ',')} km/h de porta a porta. Depois, usa a sua média real.`}</small></span>
           </label>
+          <div className="fld" style={{ marginTop: 12 }}>Aparência
+            <div className="dirs" role="group" aria-label="Aparência" style={{ margin: '2px 0 0' }}>
+              {([['auto', 'Automática'], ['light', 'Clara'], ['dark', 'Escura']] as const).map(([k, l]) =>
+                <button key={k} type="button" id={'theme-' + k} aria-pressed={s.theme === k} onClick={() => s.patch({ theme: k })}>{l}</button>)}
+            </div>
+            <small className="note" style={{ margin: '4px 0 0' }}>Automática segue o celular. Sob sol forte, a clara é mais fácil de ler no guidão.</small>
+          </div>
           <div className="fld" style={{ marginTop: 12 }}>Tipo de rota
             <div className="dirs" role="group" aria-label="Tipo de rota" style={{ margin: '2px 0 0' }}>
               <button type="button" id="prof-bike" aria-pressed={s.profile !== 'main'} onClick={() => s.setProfile('bike')}>Bike: ciclovias</button>

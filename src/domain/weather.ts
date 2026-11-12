@@ -45,21 +45,36 @@ export function ordered(route: Route, dir: Dir): OrderedSample[] {
 }
 
 /** Avalia o trajeto saindo em `depMs`: chuva em cada trecho no horário em que você passa por ele. */
-export function evaluate(route: Route, dir: Dir, depMs: number, speed: number): Evaluation {
-  const wx = route.wx ?? [], sp = Math.max(5, speed || 22), pts = ordered(route, dir), segs: Seg[] = []
-  let exposure = 0, maxRate = 0, maxProb = 0, storm = false, headSum = 0, gustMax = 0
+/**
+ * Velocidade com o vento: contra, o ciclista perde ~0,35 km/h por km/h de vento (medido a 10 m de altura);
+ * a favor, ganha ~0,2. Limitado entre 55% e 125% da velocidade de base.
+ */
+export function windSpeed(speed: number, head: number): number {
+  const v = speed - (head > 0 ? 0.35 : 0.2) * head
+  return Math.min(speed * 1.25, Math.max(speed * 0.55, v))
+}
+
+/**
+ * Avalia o trajeto saindo em `depMs`. Cada trecho é percorrido na velocidade de base ajustada pelo vento daquele
+ * trecho (opts.wind = false desliga, como no pedal, em que o ritmo medido já inclui o vento real).
+ */
+export function evaluate(route: Route, dir: Dir, depMs: number, speed: number, opts: { wind?: boolean } = {}): Evaluation {
+  const wx = route.wx ?? [], sp = Math.max(5, speed || 22), pts = ordered(route, dir), segs: Seg[] = [], useWind = opts.wind !== false
+  let exposure = 0, maxRate = 0, maxProb = 0, storm = false, headSum = 0, gustMax = 0, elapsed = 0, covered = 0
   for (let k = 0; k < pts.length - 1; k++) {
-    const a = pts[k], b = pts[k + 1], wa = wx[a.wi], wb = wx[b.wi]
-    if (!wa || !wb) continue
-    const len = b.d - a.d, t = depMs + (a.d + b.d) / 2 / sp * 3600e3
+    const a = pts[k], b = pts[k + 1], wa = wx[a.wi], wb = wx[b.wi], len = b.d - a.d
+    if (!wa || !wb) { elapsed += len / sp * 3600e3; covered += len; continue }
+    const t0 = depMs + elapsed + len / 2 / sp * 3600e3
+    const head = (hourlyAt(wa, t0, 'wind_speed_10m') ?? 0) * Math.cos(toRad((hourlyAt(wa, t0, 'wind_direction_10m') ?? 0) - a.brg))
+    const v = useWind ? windSpeed(sp, head) : sp, tA = depMs + elapsed, t = tA + len / 2 / v * 3600e3
     const rate = (rateAt(wa, t) + rateAt(wb, t)) / 2, prob = Math.max(probAt(wa, t), probAt(wb, t))
     const code = Math.max(hourlyAt(wa, t, 'weather_code') ?? 0, hourlyAt(wb, t, 'weather_code') ?? 0)
-    const head = (hourlyAt(wa, t, 'wind_speed_10m') ?? 0) * Math.cos(toRad((hourlyAt(wa, t, 'wind_direction_10m') ?? 0) - a.brg))
-    exposure += rate * (len / sp); maxRate = Math.max(maxRate, rate); maxProb = Math.max(maxProb, prob)
+    exposure += rate * (len / v); maxRate = Math.max(maxRate, rate); maxProb = Math.max(maxProb, prob)
     storm = storm || code >= 95; headSum += head * len; gustMax = Math.max(gustMax, hourlyAt(wa, t, 'wind_gusts_10m') ?? 0)
-    segs.push({ a, b, from: a.d, to: b.d, t, tA: depMs + a.d / sp * 3600e3, rate, prob, code })
+    segs.push({ a, b, from: a.d, to: b.d, t, tA, rate, prob, code })
+    elapsed += len / v * 3600e3; covered += len
   }
-  const dur = route.total / sp * 3600e3
+  const dur = elapsed + Math.max(0, route.total - covered) / sp * 3600e3
   return { segs, exposure, maxRate, maxProb, storm, head: route.total ? headSum / route.total : 0, gustMax, dur, arr: depMs + dur, depMs }
 }
 

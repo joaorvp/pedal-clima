@@ -57,6 +57,8 @@ export const settingsSchema = z.object({
   voice: z.boolean().catch(true),
   /** últimos destinos buscados ou marcados no mapa (fora os lugares salvos) */
   recent: z.array(z.object({ name: z.string(), lat: z.number(), lon: z.number(), t: z.number() })).catch([]),
+  /** aparência: segue o celular, ou sempre clara/escura (sol forte no guidão pede o claro) */
+  theme: z.enum(['auto', 'light', 'dark']).catch('auto'),
   /** rotas salvas com nome (desenhadas no mapa ou gravadas num pedal) */
   savedRoutes: z.array(z.object({ id: z.string(), name: z.string(), line: z.array(latLon), km: z.number(), createdAt: z.number() })).catch([]),
   /** alertas do INMET já mostrados por inteiro (depois aparecem numa linha só) */
@@ -166,3 +168,11 @@ export const STOP_FACTOR = 0.82
  * desligado → o valor fixo, exatamente como você digitou.
  */
 export const baseSpeed = (s: Settings) => s.speedAuto ? learnedSpeed(s.history)?.kmh ?? Math.round(s.speed * STOP_FACTOR * 10) / 10 : s.speed
+
+/** Aplica o tema na página (antes do primeiro desenho e a cada mudança) e ajusta a cor da barra do celular. */
+export function applyTheme(t: Settings['theme']) {
+  const root = document.documentElement
+  if (t === 'auto') delete root.dataset.theme; else root.dataset.theme = t
+  const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0a1020' : '#1b2b4b')
+}

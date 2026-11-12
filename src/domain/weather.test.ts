@@ -35,3 +35,19 @@ describe('avaliação do trajeto', () => {
     expect(checklist(ev, c, { sunrise: [set - 12 * 3600], sunset: [set] }, null).some(i => /Escurece/.test(i.title))).toBe(true)
   })
 })
+
+describe('chegada com o vento', async () => {
+  const { windSpeed } = await import('./weather')
+  it('vento contra deixa mais lento, a favor um pouco mais rápido, com limites', () => {
+    expect(windSpeed(18, 10)).toBeCloseTo(14.5, 5)
+    expect(windSpeed(18, -10)).toBeCloseTo(20, 5)
+    expect(windSpeed(18, 60)).toBeCloseTo(18 * 0.55, 5)
+    expect(windSpeed(18, -60)).toBeCloseTo(18 * 1.25, 5)
+  })
+  it('a duração do trajeto muda com o vento previsto e não muda com wind: false', () => {
+    const r = sampleRoute(now / 1000)
+    const plain = evaluate(r, 'ida', now, 18, { wind: false }), withWind = evaluate(r, 'ida', now, 18)
+    expect(plain.dur).toBeCloseTo(r.total / 18 * 3600e3, -3)
+    if (Math.abs(withWind.head) >= 1) expect(Math.sign(withWind.dur - plain.dur)).toBe(Math.sign(withWind.head))
+  })
+})

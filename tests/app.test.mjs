@@ -135,6 +135,14 @@ await page.click("#settings-done"); await page.waitForTimeout(300);
 
 assert.ok(await page.evaluate(async () => { document.getElementById("open-settings").click(); await new Promise(r => setTimeout(r, 300)); const ok = !document.getElementById("report"); document.getElementById("settings-done").click(); return ok; }), "o Relatar problema saiu dos Ajustes");
 
+// aparência: clara/escura fica salva e vale na hora
+await page.click("#open-settings"); await page.waitForTimeout(300);
+await page.evaluate(() => document.getElementById("theme-dark").click()); await page.waitForTimeout(200);
+assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+await page.evaluate(() => document.getElementById("theme-auto").click()); await page.waitForTimeout(200);
+assert.equal(await page.evaluate(() => document.documentElement.dataset.theme ?? null), null);
+await page.click("#settings-done"); await page.waitForTimeout(300);
+
 // rotina: com a saída daqui a 20 min, a tela inicial sugere o trajeto
 const soon = await page.evaluate(() => { const d = new Date(Date.now() + 20 * 60e3); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); });
 await page.click("#open-settings"); await page.waitForTimeout(300);
@@ -238,6 +246,7 @@ await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
 assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike no mapa durante o pedal");
 assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz no pedal");
+assert.ok(await page.locator("#share-eta").count() === 1, "botão de avisar que está a caminho no pedal");
 assert.ok(await page.locator("#dash").count() === 0, "o modo painel saiu: o mapa fica sempre visível");
 assert.match(await page.textContent("#speedo"), /\d+\s*km\/h/, "velocímetro sobre o mapa durante o pedal");
 assert.match(await page.textContent(".speedo-wind"), /contra|a favor|vento fraco/);

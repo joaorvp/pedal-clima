@@ -41,7 +41,7 @@ function Routes() {
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel)
   const dep = useTrip(s => s.dep), now = useTrip(s => s.now), ride = useTrip(s => s.ride)
   const speed = useSettings(baseSpeed), lastT = ride?.last?.t
-  const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, 'ida', lastT ?? dep ?? now, speed) : null), [routes, dep, now, lastT, speed])
+  const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, 'ida', lastT ?? dep ?? now, speed, { wind: lastT == null }) : null), [routes, dep, now, lastT, speed])
   if (routes.length < 2 || evs.some(e => !e)) return null
   const ex = evs.map(e => e!.exposure), du = evs.map(e => e!.dur)
   const dryI = ex.indexOf(Math.min(...ex)), fastI = du.indexOf(Math.min(...du))
