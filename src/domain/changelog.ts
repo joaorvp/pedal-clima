@@ -3,8 +3,10 @@ export const CURRENT_APP_VERSION = '2.25.0'
 export const CHANGELOG = [
   {
     version: '2.25.0',
-    title: 'Busca de lugares bem melhor',
+    title: 'Busca melhor e Meus lugares',
     items: [
+      'Nova tela Meus lugares (estrela no topo): seus lugares organizados por tipo, como Academia, Mercado, Estudo, Família, Amigos, Comida e Saúde, cada um com ícone e cor, também nos atalhos e no mapa.',
+      'Salve um lugar pela estrela ao lado de um resultado da busca ou segurando o dedo no mapa e tocando em "Salvar lugar". O tipo é sugerido pelo nome.',
       'A busca agora usa dois buscadores ao mesmo tempo (Photon e o Nominatim, do OpenStreetMap) e junta os resultados, sem repetir.',
       'Mostra primeiro o que fica perto de você, com a distância de cada resultado, e também acha lugares fora do DF.',
       'Seus lugares (Casa, Trabalho, salvos e recentes) aparecem na hora, enquanto você digita.',

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Crosshair, Download, ImagePlus, Trash2, Upload, X } from 'lucide-react'
+import { Crosshair, Download, ImagePlus, Star, Trash2, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { accuracyText } from '../domain/calibration'
 import { STOP_FACTOR, useSettings, type PointKey } from '../store/settings'
@@ -18,7 +18,6 @@ const PLACE_DEF: { k: PointKey; label: string; caption: string; ph: string; colo
 ]
 export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClose: () => void; focus?: string }) {
   const s = useSettings()
-  const [plName, setPlName] = useState('')
   const [gpsMsg, setGpsMsg] = useState('')
   const [importing, setImporting] = useState(false), [importMsg, setImportMsg] = useState('')
   const learned = learnedSpeed(s.history)
@@ -52,25 +51,10 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
         </div>
 
         <div className="sec" id="sec-places" ref={el => { if (el && focus === 'places') el.scrollIntoView({ block: 'start' }) }}>
-          <h3>Lugares salvos</h3>
-          <div className="plist" id="plist">
-            {s.places.map((p, i) => (
-              <div className="prow" key={p.id}>
-                <div className="pname"><input aria-label={'Nome de ' + p.name} defaultValue={p.name} maxLength={30} onBlur={e => s.renamePlace(p.id, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} /><small>{p.addr || 'Ponto marcado'}</small></div>
-                <div className="pact">
-                  <button className="ibtn sm" type="button" aria-label={'Subir ' + p.name} disabled={i === 0} onClick={() => s.shiftPlace(p.id, -1)}><ChevronUp className="i" /></button>
-                  <button className="ibtn sm" type="button" aria-label={'Descer ' + p.name} disabled={i === s.places.length - 1} onClick={() => s.shiftPlace(p.id, 1)}><ChevronDown className="i" /></button>
-                  <button className="ibtn sm" type="button" aria-label={'Remover ' + p.name} onClick={() => s.removePlace(p.id)}><Trash2 className="i" /></button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="padd">
-            <input id="pl-name" type="text" placeholder="Nome (ex.: Academia)" aria-label="Nome do lugar" maxLength={30} value={plName} onChange={e => setPlName(e.target.value)} autoFocus={focus === 'places'} />
-            <AddressCombo id="pl-addr" label="Endereço do lugar" placeholder="Endereço do lugar" value=""
-              onPick={(pt, label) => { s.addPlace((plName.trim() || (label || 'Lugar').split(',')[0]).slice(0, 30), label, pt); setPlName('') }} />
-          </div>
-          <p className="note">Toque no nome para renomear. A ordem aqui é a mesma dos atalhos da tela inicial.</p>
+          <h3>Meus lugares</h3>
+          <button className="btn imp-open" type="button" id="open-places-settings" onClick={() => { onClose(); useTrip.getState().set({ placesOpen: {} }) }}>
+            <Star className="i" />{s.places.length ? `Ver e organizar (${s.places.length} ${s.places.length === 1 ? 'lugar' : 'lugares'})` : 'Adicionar lugares'}</button>
+          <p className="note">Academia, mercado, família, amigos…: cada lugar com o seu tipo e ícone. Também fica no botão de estrela no topo do app.</p>
         </div>
 
         <div className="sec" id="sec-routes">

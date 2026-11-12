@@ -9,6 +9,7 @@ import { UndoToast } from './components/UndoToast'
 import { Tooltips } from './components/Tooltips'
 import { ShelterCard } from './components/ShelterCard'
 import { HistoryDialog } from './components/HistoryDialog'
+import { PlacesDialog } from './components/PlacesDialog'
 import { localSummary } from './domain/local'
 import { rainStopped } from './hooks/alerts'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
@@ -94,7 +95,7 @@ export default function App() {
           <ResumeRide />
           <LocationAsk />
           <RoutineCard />
-          <WhereTo onAddPlace={() => setSettings({ open: true, focus: 'places' })} />
+          <WhereTo onAddPlace={() => { const s = useSettings.getState(); if (s.homeSet && s.workSet) useTrip.getState().set({ placesOpen: {} }); else setSettings({ open: true }) }} />
           <LocalCard />
         </> : <>
           <TripHeader />
@@ -113,6 +114,7 @@ export default function App() {
     <UndoToast />
     <Tooltips />
     <HistoryDialog />
+    <PlacesDialog />
     <UpdatePrompt />
     <InstallBanner />
     <WhatsNew />

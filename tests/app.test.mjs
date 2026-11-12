@@ -87,7 +87,27 @@ assert.ok(/Lugar Teste/.test(sugg) && /Lugar Nominatim/.test(sugg), "resultados 
 assert.ok(await page.locator(".sugg .dist").count() >= 1, "mostra a distância de você");
 await page.fill("#where", "72000-000"); await page.waitForTimeout(900);
 assert.match(await page.textContent(".sugg"), /Rua 9.*CEP 72000-000/s);
+// estrela no resultado da busca: salva na hora em Meus lugares
+await page.fill("#where", "lugar"); await page.waitForTimeout(900);
+await page.click(".sugg li[data-kind='search'] .star"); await page.waitForTimeout(300);
+assert.match(await page.textContent(".undo, .toast"), /Salvo em Meus lugares/);
+assert.ok(await page.locator(".sugg .star.on").count() === 1, "a estrela fica marcada");
 await page.fill("#where", ""); await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+
+// Meus lugares: adicionar com tipo (adivinhado pelo nome), agrupar por tipo e trocar o tipo
+await page.click("#open-places"); await page.waitForTimeout(300);
+await page.fill("#pl-search", "lugar"); await page.waitForTimeout(900); await page.keyboard.press("Enter"); await page.waitForTimeout(200);
+await page.fill("#pl-name", "Academia do bairro");
+assert.equal(await page.getAttribute("#pl-kind-academia", "aria-checked"), "true", "o tipo é adivinhado pelo nome");
+await page.click("#pl-save"); await page.waitForTimeout(300);
+assert.match(await page.textContent("#pl-msg"), /Academia do bairro.*Academia/);
+const groupNames = g => page.evaluate(sel => [...document.querySelectorAll(`.pl-group[aria-label='${sel}'] .pname input`)].map(i => i.value).join("|"), g);
+assert.match(await groupNames("Academia"), /Academia do bairro/);
+await page.click('[aria-label="Trocar o tipo de Academia do bairro"]'); await page.waitForTimeout(150);
+await page.evaluate(() => [...document.querySelectorAll(".pl-list .kind")].find(b => b.textContent.includes("Família")).click()); await page.waitForTimeout(200);
+assert.match(await groupNames("Família"), /Academia do bairro/);
+await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
+assert.ok(await page.locator(".sc[data-kind]").count() >= 1, "o lugar vira atalho com o ícone do tipo");
 
 // tela inicial: você no mapa e o clima onde você está
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
@@ -175,6 +195,11 @@ const mapBox = await page.locator("#map").boundingBox();
 await page.mouse.click(mapBox.x + mapBox.width * 0.7, mapBox.y + 120, { button: "right" });
 await page.waitForTimeout(500);
 assert.ok(await page.locator(".drop").count() === 1, "deve abrir o alfinete com as opções");
+await page.evaluate(() => document.querySelector('.drop [data-a="save"]').click()); await page.waitForTimeout(400);
+assert.ok(await page.evaluate(() => document.getElementById("places")?.open), "Salvar lugar no mapa abre Meus lugares");
+assert.ok((await page.inputValue("#pl-name")).length > 0, "com o nome da rua já preenchido");
+await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
+await page.mouse.click(mapBox.x + mapBox.width * 0.7, mapBox.y + 120, { button: "right" }); await page.waitForTimeout(500);
 await page.evaluate(() => document.querySelector('.drop [data-a="dest"]').click());
 await page.waitForTimeout(1200);
 assert.match(await page.textContent(".triphead"), /Rua 9|Ponto no mapa/);

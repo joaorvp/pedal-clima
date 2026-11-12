@@ -1,4 +1,6 @@
-import { ArrowLeftRight, ArrowRight, Briefcase, House, LocateFixed, MapPinned, Star, X } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Briefcase, House, LocateFixed, MapPinned, X } from 'lucide-react'
+import { KindIcon } from './KindIcon'
+import { guessKind, kindOf } from '../domain/placeKinds'
 import { useState } from 'react'
 import { useSettings } from '../store/settings'
 import { endpointLL, endpointName, useTrip, type Endpoint } from '../store/trip'
@@ -42,13 +44,13 @@ function EndPicker({ which, onDone }: { which: Which; onDone: () => void }) {
   const place = (ll: [number, number], name: string, key?: string) => pick({ kind: 'place', ll, name, key })
   return (
     <div className="endpick">
-      <AddressCombo id={'end-' + which} label={which === 'origin' ? 'De onde?' : 'Para onde?'} placeholder={which === 'origin' ? 'De onde você sai?' : 'Para onde vamos?'} value="" autoFocus
+      <AddressCombo id={'end-' + which} saveStar label={which === 'origin' ? 'De onde?' : 'Para onde?'} placeholder={which === 'origin' ? 'De onde você sai?' : 'Para onde vamos?'} value="" autoFocus
         onPick={(ll, name) => place(ll, name || 'Ponto colado')} />
       <div className="shortcuts" role="list">
         {me && <button type="button" role="listitem" className="sc" onClick={() => pick({ kind: 'me' })}><LocateFixed className="i" /><span>Sua localização</span></button>}
         {s.homeSet && <button type="button" role="listitem" className="sc" onClick={() => place(s.home, 'Casa', 'home')}><House className="i" /><span>Casa</span></button>}
         {s.workSet && <button type="button" role="listitem" className="sc" onClick={() => place(s.work, 'Trabalho', 'work')}><Briefcase className="i" /><span>Trabalho</span></button>}
-        {s.places.map(p => <button key={p.id} type="button" role="listitem" className="sc" onClick={() => place([p.lat, p.lon], p.name, p.id)}><Star className="i" /><span>{p.name}</span></button>)}
+        {s.places.map(p => <button key={p.id} type="button" role="listitem" className="sc" onClick={() => place([p.lat, p.lon], p.name, p.id)} style={{ '--kc': kindOf(p.kind ?? guessKind(p.name)).color } as React.CSSProperties} data-kind="1"><KindIcon kind={p.kind ?? guessKind(p.name)} /><span>{p.name}</span></button>)}
         <button type="button" role="listitem" className="sc" onClick={() => { onDone(); t().set({ pickMode: which, sheet: 'peek' }) }}><MapPinned className="i" /><span>Escolher no mapa</span></button>
       </div>
     </div>

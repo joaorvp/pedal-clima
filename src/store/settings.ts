@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { storageWrite } from '../services/cache'
 import { lineKm, simplify } from '../domain/savedRoutes'
+import { guessKind } from '../domain/placeKinds'
 import { create } from 'zustand'
 import { persist, type PersistStorage } from 'zustand/middleware'
 import { calibrate, type FeedbackEntry } from '../domain/calibration'
@@ -12,7 +13,9 @@ import type { LatLon, Profile } from '../domain/types'
 export const STORE_KEY = 'pedalclima.v1'
 
 const latLon = z.tuple([z.number(), z.number()])
-const place = z.object({ id: z.string(), name: z.string(), addr: z.string().optional(), lat: z.number(), lon: z.number() })
+const place = z.object({ id: z.string(), name: z.string(), addr: z.string().optional(), lat: z.number(), lon: z.number(),
+  /** tipo (academia, mercado…); sem tipo, o app adivinha pelo nome */
+  kind: z.string().optional().catch(undefined) })
 const feedback = z.object({ t: z.number(), dir: z.string(), rainy: z.boolean(), prob: z.number(), exp: z.number(), rained: z.boolean() })
 const names = z.object({ home: z.string().catch(''), via: z.string().catch(''), work: z.string().catch('') })
 
@@ -91,7 +94,8 @@ interface Actions {
   setPoint: (k: PointKey, ll: LatLon, name?: string) => void
   setName: (k: PointKey, name: string) => void
   clearVia: () => void
-  addPlace: (name: string, addr: string, ll: LatLon) => void
+  addPlace: (name: string, addr: string, ll: LatLon, kind?: string) => string
+  setPlaceKind: (id: string, kind: string) => void
   removePlace: (id: string) => void
   renamePlace: (id: string, name: string) => void
   shiftPlace: (id: string, by: -1 | 1) => void
@@ -115,7 +119,8 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
   setPoint: (k, ll, name) => set(s => ({ [k]: round(ll), customized: k === 'via' ? s.customized : true, ...(k === 'home' ? { homeSet: true } : k === 'work' ? { workSet: true } : {}), names: { ...s.names, [k]: name ?? '' } })),
   setName: (k, name) => set(s => ({ names: { ...s.names, [k]: name } })),
   clearVia: () => set(s => ({ via: null, names: { ...s.names, via: '' } })),
-  addPlace: (name, addr, ll) => { const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon }], destId: id })) },
+  addPlace: (name, addr, ll, kind) => { const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); const [lat, lon] = round(ll); set(s => ({ places: [...s.places, { id, name, addr, lat, lon, kind: kind ?? guessKind(name) }], destId: id })); return id },
+  setPlaceKind: (id, kind) => set(s => ({ places: s.places.map(p => p.id === id ? { ...p, kind } : p) })),
   saveRoute: (name, line) => {
     const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
     const clean = simplify(line)

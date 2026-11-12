@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFixed, MapPinned, Navigation, Plus, Search, Star } from 'lucide-react'
+import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFixed, MapPinned, Navigation, Plus, Search } from 'lucide-react'
 import { discardRide, pendingRide, resumeRide, startLocation } from '../hooks/location'
 import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
@@ -10,6 +10,8 @@ import { useTrip } from '../store/trip'
 import { readJson } from '../services/cache'
 import { useState } from 'react'
 import { AddressCombo } from './AddressCombo'
+import { KindIcon } from './KindIcon'
+import { guessKind, kindOf } from '../domain/placeKinds'
 import { Icon } from './icons'
 
 /** Clima onde você está agora: o resumo que aparece ao abrir o app. */
@@ -59,13 +61,13 @@ export function WhereTo({ onAddPlace }: { onAddPlace: () => void }) {
     <section className="card whereto">
       <div className="search">
         <Search className="i" aria-hidden="true" />
-        <AddressCombo id="where" label="Para onde vamos?" placeholder="Para onde vamos?" value="" onPick={(ll, name) => go(ll, name || 'Ponto colado')}
+        <AddressCombo id="where" saveStar label="Para onde vamos?" placeholder="Para onde vamos?" value="" onPick={(ll, name) => go(ll, name || 'Ponto colado')}
           onFocusField={() => t().set({ sheet: 'full' })} />
       </div>
       <div className="shortcuts" role="list" aria-label="Atalhos">
         {s.homeSet && <button type="button" role="listitem" className="sc" onClick={() => go(s.home, 'Casa', 'home')}><House className="i" /><span>Casa</span></button>}
         {s.workSet && <button type="button" role="listitem" className="sc" onClick={() => go(s.work, 'Trabalho', 'work')}><Briefcase className="i" /><span>Trabalho</span></button>}
-        {s.places.map(p => <button key={p.id} type="button" role="listitem" className="sc" onClick={() => go([p.lat, p.lon], p.name, p.id)}><Star className="i" /><span>{p.name}</span></button>)}
+        {s.places.map(p => <button key={p.id} type="button" role="listitem" className="sc" onClick={() => go([p.lat, p.lon], p.name, p.id)} style={{ '--kc': kindOf(p.kind ?? guessKind(p.name)).color } as React.CSSProperties} data-kind="1"><KindIcon kind={p.kind ?? guessKind(p.name)} /><span>{p.name}</span></button>)}
         {s.recent.map(r => <button key={r.t} type="button" role="listitem" className="sc recent" onClick={() => go([r.lat, r.lon], r.name)}><Clock className="i" /><span>{r.name.split(',')[0]}</span></button>)}
         {hasLast && <button type="button" role="listitem" className="sc" onClick={() => t().loadSnapshot()}><History className="i" /><span>Último: {last!.dest!.name}</span></button>}
         <button type="button" role="listitem" className="sc" onClick={() => t().set({ pickMode: 'dest', sheet: 'peek' })}><MapPinned className="i" /><span>Escolher no mapa</span></button>

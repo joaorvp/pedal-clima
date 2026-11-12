@@ -33,3 +33,20 @@ describe('busca de lugares', () => {
     expect(distLabel(null, [0, 0])).toBe('')
   })
 })
+
+describe('tipos de lugar', async () => {
+  const { guessKind, kindOf } = await import('./placeKinds')
+  it('adivinha o tipo pelo nome', () => {
+    expect(guessKind('Academia do bairro')).toBe('academia')
+    expect(guessKind('Casa da mãe')).toBe('familia')
+    expect(guessKind('Casa da vó')).toBe('familia')
+    expect(guessKind('Vovó')).toBe('outro')
+    expect(guessKind('Casa do João')).toBe('amigos')
+    expect(guessKind('Supermercado X')).toBe('mercado')
+    expect(guessKind('Padaria Pão Bom')).toBe('comida')
+    expect(guessKind('Farmácia 24h')).toBe('saude')
+    expect(guessKind('Faculdade')).toBe('estudo')
+    expect(guessKind('Lugar qualquer')).toBe('outro')
+  })
+  it('tipo desconhecido vira "Outro"', () => { expect(kindOf('xyz').id).toBe('outro'); expect(kindOf(undefined).id).toBe('outro') })
+})

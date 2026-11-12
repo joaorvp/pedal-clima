@@ -8,6 +8,7 @@ import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
 import { lastView, saveView, startLocation } from '../hooks/location'
 import { Speedometer } from './Speedometer'
+import { guessKind, kindOf } from '../domain/placeKinds'
 import { radarHasRain } from '../services/radarProbe'
 import { NextTurn } from './NextTurn'
 import { useTripView } from '../hooks/useTripView'
@@ -50,7 +51,9 @@ const svgPath = {
   umbrella: '<path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9zM12 12v7a2 2 0 0 1-4 0"/>',
 }
 const glyph = (k: keyof typeof svgPath) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${svgPath[k]}</svg>`
-const placeIcon = (k: keyof typeof svgPath, label: string) => L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="saved-pin" title="${label}">${glyph(k)}</div>` })
+const esc = (t: string) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
+const placeIcon = (k: keyof typeof svgPath, label: string) => L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="saved-pin" title="${esc(label)}">${glyph(k)}</div>` })
+const kindPin = (kind: string | undefined, label: string) => { const k = kindOf(kind); return L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="saved-pin kinded" style="--kc:${k.color}" title="${esc(label)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${k.path}</svg></div>` }) }
 const destIcon = L.divIcon({ className: '', iconSize: [34, 42], iconAnchor: [17, 40], html: `<div class="dest-pin">${glyph('flag')}</div>` })
 const originIcon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: '<div class="origin-dot"></div>' })
 const viaIcon = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 30], html: '<div class="pin" style="background:#6b7a93"><b>P</b></div>' })
@@ -121,7 +124,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       box.addEventListener('click', ev => {
         const a = (ev.target as HTMLElement).closest('button')?.dataset.a; if (!a) return
         map.closePopup(pop)
-        if (a === 'save') { useSettings.getState().addPlace(name.split(',')[0].slice(0, 30), name, ll); return }
+        if (a === 'save') { useTrip.getState().set({ placesOpen: { ll, name } }); return }
         useTrip.getState().setEnd(a as 'dest' | 'origin', { kind: 'place', ll, name })
       })
     })
@@ -174,7 +177,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       L.marker(ll, { icon: placeIcon(k, name), title: name, keyboard: true }).on('click', () => useTrip.getState().startTrip({ kind: 'place', ll, name, key })).addTo(ly.places)
     if (homeSet) add(home, 'home', names.home ? 'Casa · ' + names.home : 'Casa', 'home')
     if (workSet) add(work, 'work', names.work ? 'Trabalho · ' + names.work : 'Trabalho', 'work')
-    places.forEach(p => add([p.lat, p.lon], 'star', p.name, p.id))
+    places.forEach(p => { const ll: LatLon = [p.lat, p.lon]; L.marker(ll, { icon: kindPin(p.kind ?? guessKind(p.name), p.name), title: p.name, keyboard: true }).on('click', () => useTrip.getState().startTrip({ kind: 'place', ll, name: p.name, key: p.id })).addTo(ly.places) })
   }, [map, ly, mode, home, work, places, names, homeSet, workSet])
 
   // origem, destino e ponto P do trajeto

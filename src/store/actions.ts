@@ -61,3 +61,12 @@ export async function goViaShelter(ll: LatLon, name: string) {
   t.set({ vias: [ll], viaName: name, routes: [], shelters: null, ...(t.ride ? { origin: { kind: 'me' as const } } : {}) })
   t.refresh()
 }
+
+/** Salvar na hora (estrela da busca), com desfazer. */
+export async function quickSave(name: string, addr: string, ll: LatLon) {
+  const { useUndo } = await import('./undo')
+  const { kindOf } = await import('../domain/placeKinds')
+  const s = useSettings.getState(), id = s.addPlace(name.slice(0, 30), addr, ll)
+  const k = kindOf(useSettings.getState().places.find(p => p.id === id)?.kind)
+  useUndo.getState().show(`Salvo em Meus lugares · ${k.label}`, () => useSettings.getState().removePlace(id))
+}

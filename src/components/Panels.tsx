@@ -1,4 +1,4 @@
-import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal, Star } from 'lucide-react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
@@ -20,6 +20,7 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
         <p className="brand">Pedágua</p>
         <span className="upd" id="updated">{label}</span>
         <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
+        <button className="ibtn" id="open-places" type="button" aria-label="Meus lugares: salvos por tipo" onClick={() => useTrip.getState().set({ placesOpen: {} })}><Star className="i" /></button>
         <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais: histórico e totais" onClick={() => useTrip.getState().set({ historyOpen: true })}><History className="i" /></button>
         <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes: lugares, velocidade e rotina" onClick={onSettings}><SlidersHorizontal className="i" /></button>
       </div>
