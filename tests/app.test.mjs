@@ -49,8 +49,12 @@ await page.route("**/*", r => {
   return r.fulfill({ status: 204, body: "" });
 });
 
+// cópias de rota de versões anteriores (sem limite) são apagadas ao abrir; os dados do usuário ficam
 await page.goto(APP);
+await page.evaluate(() => { localStorage.setItem("routes4:bike:velha", "x".repeat(1000)); localStorage.setItem("elev1:velha", "[]"); });
+await page.reload();
 await page.waitForTimeout(1200);
+assert.ok(await page.evaluate(() => !localStorage.getItem("routes4:bike:velha") && !localStorage.getItem("elev1:velha")), "cópias antigas apagadas ao abrir");
 
 // primeira visita pelo navegador: a página de apresentação vem antes do app
 assert.match(await page.textContent(".landing h1"), /Saiba onde vai chover/);

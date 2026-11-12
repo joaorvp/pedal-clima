@@ -1,11 +1,12 @@
 import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, clearTime, evaluate } from '../domain/weather'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
+import { onStorageFull, storageFull } from '../services/cache'
 import { Icon } from './icons'
 
 export function AppBar({ onSettings }: { onSettings: () => void }) {
@@ -34,6 +35,7 @@ export function Banners() {
   const error = useTrip(s => s.error), routeNote = useTrip(s => s.routeNote), alerts = useTrip(s => s.alerts)
   const loc = useTrip(s => s.locStatus), mode = useTrip(s => s.mode), now = useTrip(s => s.now)
   const riding = useTrip(s => !!s.ride?.pos)
+  const noSpace = useSyncExternalStore(onStorageFull, storageFull)
   const seen = useSettings(s => s.seenAlerts)
   const a = alerts?.[0]
   const key = a ? alertKey(a) : ''
@@ -46,6 +48,7 @@ export function Banners() {
   const when = a ? (!isNaN(a.start) && a.start > now ? `a partir de ${hhmm(a.start)}` : !isNaN(a.end) ? `até ${new Date(a.end).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : '') : ''
   return <>
     {(error || routeNote) && <div id="error" className="err">{error || routeNote}</div>}
+    {noSpace && <div id="storage-full" className="err" role="alert">O espaço do navegador para o app acabou e as últimas mudanças podem não ter sido salvas. Exporte um backup em Ajustes → Seus dados e apague pedais antigos em Seus pedais.</div>}
     {a && (
       <a id="alert" className={'alert' + (full ? '' : ' compact')} href="https://portal.inmet.gov.br/" target="_blank" rel="noopener" data-sev={a.level}
         aria-label={`Alerta do INMET: ${a.title}${a.sev ? ', ' + a.sev : ''} ${when}. Abrir no site do INMET.`}>

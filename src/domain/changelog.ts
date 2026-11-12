@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.23.0'
+export const CURRENT_APP_VERSION = '2.23.1'
 export const CHANGELOG = [
+  {
+    version: '2.23.1',
+    title: 'Seus dados protegidos contra falta de espaço',
+    items: [
+      'As cópias de rotas que o app guarda para abrir rápido agora têm limite: as antigas são apagadas sozinhas e não ocupam mais o espaço dos seus dados.',
+      'Se o espaço do navegador acabar, o app libera as cópias antes de salvar e, se ainda assim não couber, avisa para você exportar um backup.',
+    ],
+  },
   {
     version: '2.23.0',
     title: 'Sua rota: pelo histórico ou por um print',

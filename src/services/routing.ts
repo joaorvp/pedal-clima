@@ -1,6 +1,6 @@
 import { removeSpurs, similar } from '../domain/geo'
 import type { LatLon, Profile, RouteCandidate } from '../domain/types'
-import { readJson, writeJson } from './cache'
+import { readCache, writeCache } from './cache'
 import { parseBRouter } from '../domain/brouter'
 
 interface OsrmRoute { geometry: { coordinates: [number, number][] }; legs: { summary: string }[] }
@@ -45,7 +45,7 @@ export async function snapToRoads(pts: LatLon[]): Promise<LatLon[] | null> {
 export async function fetchRoutes(home: LatLon, vias: LatLon[], dest: LatLon, profile: Profile): Promise<{ routes: RouteCandidate[]; fallback: boolean }> {
   const ends = [home, dest], pts = [home, ...vias, dest], via = vias.length > 0
   const key = 'routes5:' + profile + ':' + pts.flat().join(',')
-  const cached = readJson<RouteCandidate[]>(key)
+  const cached = readCache<RouteCandidate[]>(key)
   if (cached?.length) return { routes: cached, fallback: false }
   const cands: RouteCandidate[] = []
   const add = (c: RouteCandidate | undefined | null) => {
@@ -72,6 +72,6 @@ export async function fetchRoutes(home: LatLon, vias: LatLon[], dest: LatLon, pr
     add(alts[0]); add(bike); alts.slice(1).forEach(add)
   }
   if (!cands.length) return { routes: [{ line: pts, roads: [], profile, viaP: via }], fallback: true }
-  writeJson(key, cands)
+  writeCache(key, cands)
   return { routes: cands, fallback: false }
 }

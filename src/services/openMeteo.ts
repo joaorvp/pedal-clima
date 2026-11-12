@@ -1,7 +1,7 @@
 import { smooth } from '../domain/battery'
 import { pointAt } from '../domain/geo'
 import type { ElevPoint, PointWeather, Route, SunTimes } from '../domain/types'
-import { readJson, writeJson } from './cache'
+import { readCache, writeCache } from './cache'
 
 const HOURLY = 'precipitation_probability,precipitation,temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day'
 
@@ -26,7 +26,7 @@ export async function fetchWeather(routes: Route[]): Promise<{ perRoute: PointWe
 /** Perfil de altitude com até 100 pontos (fica salvo: o relevo não muda). */
 export async function fetchElevation(r: Route): Promise<ElevPoint[] | undefined> {
   const key = 'elev1:' + r.line.length + ':' + r.line[0] + ':' + r.line[r.line.length - 1] + ':' + r.total.toFixed(3)
-  const cached = readJson<ElevPoint[]>(key)
+  const cached = readCache<ElevPoint[]>(key)
   if (cached) return cached
   const n = Math.max(20, Math.min(100, Math.round(r.total / 0.2)))
   const pts = Array.from({ length: n }, (_, k) => { const km = r.total * k / (n - 1); return { km, p: pointAt(r.line, r.cum, km) } })
@@ -36,7 +36,7 @@ export async function fetchElevation(r: Route): Promise<ElevPoint[] | undefined>
     const z = (await res.json() as { elevation?: number[] }).elevation
     if (!Array.isArray(z) || z.length !== pts.length) return undefined
     const zs = smooth(z), elev = pts.map((x, i) => ({ km: x.km, z: zs[i] }))
-    writeJson(key, elev)
+    writeCache(key, elev)
     return elev
   } catch { return undefined }
 }

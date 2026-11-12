@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { storageWrite } from '../services/cache'
 import { lineKm, simplify } from '../domain/savedRoutes'
 import { create } from 'zustand'
 import { persist, type PersistStorage } from 'zustand/middleware'
@@ -78,7 +79,8 @@ export function parseSettings(raw: unknown): Settings {
 /** Grava o objeto puro (sem o envelope {state, version} do zustand), como o app antigo. */
 const rawStorage: PersistStorage<Settings> = {
   getItem: name => { try { const v = localStorage.getItem(name); return { state: parseSettings(v ? JSON.parse(v) : {}), version: 0 } } catch { return { state: parseSettings({}), version: 0 } } },
-  setItem: (name, value) => { try { localStorage.setItem(name, JSON.stringify(value.state)) } catch { /* cota cheia ou modo privado */ } },
+  // sem espaço: apaga as cópias temporárias e tenta de novo; se não der, o app avisa (banner)
+  setItem: (name, value) => { storageWrite(name, JSON.stringify(value.state)) },
   removeItem: name => { try { localStorage.removeItem(name) } catch { /* ignora */ } },
 }
 
