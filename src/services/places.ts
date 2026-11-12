@@ -35,8 +35,10 @@ async function nominatim(q: string): Promise<PlaceHit[]> {
  */
 async function overpassNames(q: string, near: LatLon): Promise<PlaceHit[]> {
   const words = nameWords(q); if (!words.length) return []
-  const filt = words.map(w => `["name"~"${accentRegex(w)}",i]`).join('')
-  const ql = `[out:json][timeout:8];nwr${filt}(around:15000,${near[0].toFixed(2)},${near[1].toFixed(2)});out center 12;`
+  // procura no nome e na marca cadastrada (algumas unidades de rede só têm a marca)
+  const f = (tag: string) => words.map(w => `["${tag}"~"${accentRegex(w)}",i]`).join('')
+  const around = `(around:15000,${near[0].toFixed(2)},${near[1].toFixed(2)})`
+  const ql = `[out:json][timeout:8];(nwr${f('name')}${around};nwr${f('brand')}${around};);out center 12;`
   const r = await fetchT('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(ql), 9000)
   if (!r.ok) throw new Error('HTTP ' + r.status)
   return (((await r.json()) as { elements?: OverpassEl[] }).elements ?? []).map(overpassHit).filter((h): h is PlaceHit => !!h)

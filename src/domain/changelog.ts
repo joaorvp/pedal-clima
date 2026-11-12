@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.25.1'
+export const CURRENT_APP_VERSION = '2.25.2'
 export const CHANGELOG = [
+  {
+    version: '2.25.2',
+    title: 'Busca acha nomes escritos de outro jeito',
+    items: [
+      '"Smartfit", "Smart Fit" e "Smart-Fit" agora são a mesma coisa na busca, e o que fica perto de você aparece primeiro.',
+      'Unidades de rede cadastradas só com a marca também aparecem.',
+    ],
+  },
   {
     version: '2.25.1',
     title: 'Busca consertada',

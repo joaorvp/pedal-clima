@@ -78,12 +78,14 @@ export function photonHit(f: PhotonFeature): PlaceHit {
  */
 export function mergeHits(q: string, lists: PlaceHit[][], near: [number, number] | null, limit = 8): PlaceHit[] {
   const words = norm(q).split(' ').filter(Boolean), out: PlaceHit[] = []
+  // compara também sem espaços: "smartfit" e "Smart Fit" são o mesmo nome
+  const q0 = words.join(' '), qc = q0.replace(/ /g, '')
   const nameScore = (h: PlaceHit) => {
-    const n = norm(h.main), all = norm(h.main + ' ' + h.sub)
+    const n = norm(h.main), nc = n.replace(/ /g, ''), all = norm(h.main + ' ' + h.sub), allc = all.replace(/ /g, '')
     let s = 0
-    if (n === words.join(' ')) s += 3
-    else if (n.startsWith(words.join(' '))) s += 2
-    s += words.filter(w => all.includes(w)).length / Math.max(1, words.length) * 2
+    if (n === q0 || nc === qc) s += 3
+    else if (n.startsWith(q0) || nc.startsWith(qc)) s += 2
+    s += words.filter(w => all.includes(w) || allc.includes(w)).length / Math.max(1, words.length) * 2
     return s
   }
   for (const list of lists) for (const h of list) {
@@ -115,7 +117,9 @@ export function nameWords(q: string): string[] {
 /** Expressão para comparar com o nome sem ligar para acentos ("cafe" acha "Café"). */
 export function accentRegex(w: string): string {
   const map: Record<string, string> = { a: '[aáàâã]', e: '[eéê]', i: '[ií]', o: '[oóôõ]', u: '[uúü]', c: '[cç]' }
-  return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split('').map(ch => map[ch] ?? ch).join('')
+  // palavras de 4+ letras aceitam espaço, ponto ou hífen entre as letras: "smartfit" acha "Smart Fit" e "Smart-Fit"
+  const sep = w.length >= 4 ? '[ .-]?' : ''
+  return w.split('').map(ch => map[ch] ?? ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join(sep)
 }
 const CATEGORY: Record<string, string> = { supermarket: 'Supermercado', convenience: 'Mercado', fitness_centre: 'Academia', sports_centre: 'Centro esportivo', pharmacy: 'Farmácia',
   restaurant: 'Restaurante', fast_food: 'Lanchonete', cafe: 'Café', bakery: 'Padaria', fuel: 'Posto', bar: 'Bar', pub: 'Bar', hospital: 'Hospital', clinic: 'Clínica',
@@ -123,9 +127,10 @@ const CATEGORY: Record<string, string> = { supermarket: 'Supermercado', convenie
 export interface OverpassEl { lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }
 export function overpassHit(el: OverpassEl): PlaceHit | null {
   const t = el.tags ?? {}, lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon
-  if (lat == null || lon == null || !t.name) return null
+  const name = t.name || t.brand
+  if (lat == null || lon == null || !name) return null
   const cat = CATEGORY[t.shop ?? ''] ?? CATEGORY[t.amenity ?? ''] ?? CATEGORY[t.leisure ?? ''] ?? ''
   const street = [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ')
   const sub = [...new Set([cat, street, t['addr:suburb'], t['addr:city']].filter((x): x is string => !!x))].join(' · ')
-  return { ll: [lat, lon], main: t.name, sub, kind: 'search' }
+  return { ll: [lat, lon], main: name, sub, kind: 'search' }
 }

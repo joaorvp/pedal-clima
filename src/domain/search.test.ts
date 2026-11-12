@@ -58,8 +58,19 @@ describe('comércios pelo nome', async () => {
     expect(nameWords('Smart Fit')).toEqual(['smart', 'fit'])
     expect(nameWords('academia')).toEqual(['academia'])
   })
-  it('compara sem acento', () => {
+  it('compara sem acento e sem ligar para espaço ou hífen no meio da palavra', () => {
     expect(new RegExp(accentRegex('cafe'), 'i').test('Café do Ponto')).toBe(true)
+    const re = new RegExp(accentRegex('smartfit'), 'i')
+    expect(re.test('Smart Fit')).toBe(true); expect(re.test('Smart-Fit')).toBe(true); expect(re.test('SmartFit')).toBe(true)
+  })
+  it('"smartfit" perto vem antes de "SmartFit" longe', async () => {
+    const { mergeHits } = await import('./places')
+    const me: [number, number] = [-15.8, -48.0]
+    const r = mergeHits('smartfit', [[{ main: 'SmartFit', sub: '', ll: [-15.75, -47.8], kind: 'search' }], [{ main: 'Smart Fit', sub: 'Academia', ll: [-15.81, -48.01], kind: 'search' }]], me)
+    expect(r[0].main).toBe('Smart Fit')
+  })
+  it('unidade só com a marca cadastrada também aparece', () => {
+    expect(overpassHit({ lat: -15.8, lon: -48, tags: { brand: 'Smart Fit', leisure: 'fitness_centre' } })!.main).toBe('Smart Fit')
   })
   it('lê o lugar do OpenStreetMap com a categoria', () => {
     const h = overpassHit({ center: { lat: -15.8, lon: -48 }, tags: { name: 'Smart Fit', leisure: 'fitness_centre', 'addr:street': 'Avenida 1' } })!
