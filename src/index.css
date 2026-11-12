@@ -289,8 +289,8 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
   .shell{display:block;padding:0}
   .mapcard{position:fixed;left:0;right:0;bottom:0;top:calc(56px + env(safe-area-inset-top,0px));border-radius:0;box-shadow:none;z-index:1}
   .mapwrap,#map{height:100%!important;max-height:none!important;min-height:0!important}
-  #full,.leaflet-control-zoom{display:none!important}
-  .leaflet-bottom.leaflet-right{top:0;bottom:auto;left:0;right:auto}
+  #full,#map .leaflet-control-zoom{display:none!important}
+  #map .leaflet-bottom.leaflet-right{top:0;bottom:auto;left:0;right:auto}
   .radarpill{top:30px;bottom:auto!important}
   .side{position:fixed;left:0;right:0;bottom:0;z-index:15;height:calc(100dvh - 68px - env(safe-area-inset-top,0px));
     background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2);overflow:hidden;overscroll-behavior:contain;
@@ -775,3 +775,8 @@ button.hist-row{cursor:pointer}
 .sugg .star.on{color:var(--accent);cursor:default}
 .sugg .star.on svg{fill:currentColor}
 .sugg .star:hover{background:var(--surface-2)}
+/* mapinha para acertar o lugar */
+.minimap{height:220px;border-radius:12px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line);z-index:0}
+.dest-pin.mini{transform:none}
+.pl-precise{margin:0;font-size:13px;color:var(--muted)}
+.pl-precise.approx{color:var(--warn)}

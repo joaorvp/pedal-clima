@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { distLabel, matchLocal, parseCep, parseCoords, type PlaceHit } from '../domain/places'
 import type { LatLon } from '../domain/types'
 import { lastView } from '../hooks/location'
-import { searchPlaces } from '../services/places'
+import { resolveShared, searchPlaces } from '../services/places'
+import { looksShared, parseShared } from '../domain/shareParse'
 import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 
@@ -55,6 +56,21 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
     setText(q); clearTimeout(timer.current)
     const t = q.trim(), co = parseCoords(t)
     if (co) { seq.current++; setBusy(false); setOpen(false); onPick(co, ''); setText('Ponto colado'); return }
+    // texto compartilhado do Google Maps (nome, endereço, link) colado aqui: acha o lugar pelo endereço
+    if (looksShared(q)) {
+      const sh = parseShared({ text: q })
+      if (sh) {
+        const my = ++seq.current
+        setItems([]); setMsg(''); setOpen(true); setBusy(true)
+        resolveShared(sh, near()).then(r => {
+          if (my !== seq.current) return
+          setBusy(false)
+          if (r) { setOpen(false); setText(r.name); onPick(r.ll, r.name) }
+          else setMsg('Não achei o endereço desse link. Busque pelo nome ou marque no mapa.')
+        })
+        return
+      }
+    }
     const mine = t ? matchLocal(t, localHits()).slice(0, 4) : []
     // texto curto: cancela a busca anterior (senão o "Procurando…" ficava preso)
     if (t.length < 3) { seq.current++; setBusy(false) }
@@ -92,6 +108,8 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
         role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={sel >= 0 ? `${listId}-${sel}` : undefined}
         enterKeyHint="search"
         onChange={e => onInput(e.target.value)}
+        // colar um compartilhamento do Google Maps: lê com as quebras de linha (o campo de uma linha as apagaria)
+        onPaste={e => { const t = e.clipboardData.getData('text'); if (looksShared(t)) { e.preventDefault(); onInput(t) } }}
         onFocus={e => { focused.current = true; e.target.select(); onFocusField?.() }}
         onBlur={() => setTimeout(() => { focused.current = false; setOpen(false); setText(value) }, 150)}
         onKeyDown={e => {

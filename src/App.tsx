@@ -10,6 +10,7 @@ import { Tooltips } from './components/Tooltips'
 import { ShelterCard } from './components/ShelterCard'
 import { HistoryDialog } from './components/HistoryDialog'
 import { PlacesDialog } from './components/PlacesDialog'
+import { parseShared } from './domain/shareParse'
 import { localSummary } from './domain/local'
 import { rainStopped } from './hooks/alerts'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
@@ -39,6 +40,14 @@ export default function App() {
       if (p.state === 'granted') { useSettings.getState().patch({ locAllowed: true }); go() }
       else if (p.state === 'denied') useTrip.getState().set({ locStatus: 'denied' })
     }).catch(() => {})
+  }, [])
+  // lugar compartilhado de outro app (Compartilhar → Pedágua): abre Meus lugares com ele para salvar
+  useEffect(() => {
+    const q = new URLSearchParams(location.search)
+    if (!q.has('text') && !q.has('url') && !q.has('title')) return
+    history.replaceState(history.state, '', location.pathname)
+    const shared = parseShared({ title: q.get('title'), text: q.get('text'), url: q.get('url') })
+    if (shared) useTrip.getState().set({ placesOpen: { shared }, landing: false })
   }, [])
   // atalhos do ícone do app (?ir=trabalho / ?ir=casa): abre o trajeto direto, saindo de onde você está
   useEffect(() => {

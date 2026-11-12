@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { KINDS, guessKind, kindOf, type KindId } from '../domain/placeKinds'
 import type { LatLon } from '../domain/types'
 import { useSettings } from '../store/settings'
@@ -7,6 +7,10 @@ import { useTrip } from '../store/trip'
 import { AddressCombo } from './AddressCombo'
 import { Dialog } from './Dialog'
 import { KindIcon } from './KindIcon'
+import { MiniMapPin } from './MiniMapPin'
+import { lastView } from '../hooks/location'
+import { resolveShared } from '../services/places'
+import type { SharedPlace } from '../domain/shareParse'
 
 /** Escolha do tipo: fileira de botões com ícone. */
 function KindPicker({ value, onChange, idPrefix }: { value: string; onChange: (k: KindId) => void; idPrefix: string }) {
@@ -27,17 +31,32 @@ export function PlacesDialog() {
   const close = () => useTrip.getState().set({ placesOpen: null })
   return (
     <Dialog open={!!open} onClose={close} labelledBy="places-title" className="places-dlg">
-      {open && <PlacesBody key={open.ll?.join(',') ?? 'novo'} start={open} close={close} />}
+      {open && <PlacesBody key={open.ll?.join(',') ?? (open.shared ? 'compartilhado' : 'novo')} start={open} close={close} />}
     </Dialog>
   )
 }
 
-function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string }; close: () => void }) {
+function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; shared?: SharedPlace }; close: () => void }) {
   const s = useSettings()
   // veio do mapa ("Salvar lugar"): já traz o ponto e o nome da rua
   const [name, setName] = useState((start.name ?? '').split(',')[0].slice(0, 30)), [kind, setKind] = useState<KindId | null>(null)
   const [pt, setPt] = useState<{ ll: LatLon; addr: string } | null>(start.ll ? { ll: start.ll, addr: start.name ?? '' } : null)
   const [editing, setEditing] = useState<string | null>(null), [msg, setMsg] = useState('')
+  // lugar compartilhado de outro app (Google Maps…): procura o ponto pelas coordenadas, endereço, CEP ou nome
+  const [sharing, setSharing] = useState(!!start.shared && !start.ll), [precise, setPrecise] = useState<boolean | null>(start.ll ? true : null)
+  useEffect(() => {
+    const sh = start.shared; if (!sh || start.ll) return
+    const near = useTrip.getState().me?.pos ?? lastView()?.c ?? null
+    let alive = true
+    resolveShared(sh, near).then(r => {
+      if (!alive) return
+      setSharing(false)
+      if (r) { setPt({ ll: r.ll, addr: r.addr }); setName(r.name.slice(0, 30)); setPrecise(r.precise) }
+      else { setPt({ ll: near ?? [-15.82, -48.0], addr: sh.address ?? '' }); setName((sh.name ?? '').slice(0, 30)); setPrecise(false)
+        setMsg('Não achei o endereço desse link. Arraste o alfinete até o lugar no mapinha abaixo.') }
+    })
+    return () => { alive = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const autoKind = kind ?? guessKind(name)
   function add() {
     if (!pt) return
@@ -54,10 +73,17 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string }; c
       <div className="dlg-body">
         <section className="pl-add" aria-labelledby="pl-add-title">
           <h3 id="pl-add-title">Adicionar lugar</h3>
+          {sharing && <p className="note" id="pl-sharing" style={{ margin: 0 }}>Procurando o lugar compartilhado…</p>}
           {pt
-            ? <div className="pl-picked"><span><b>{pt.addr.split(',')[0] || 'Ponto no mapa'}</b><small>{pt.addr.split(',').slice(1).join(',').trim()}</small></span><button className="linkbtn" type="button" onClick={() => setPt(null)}>Trocar</button></div>
+            ? <div className="pl-picked"><span><b>{pt.addr.split(',')[0] || 'Ponto no mapa'}</b><small>{pt.addr.split(',').slice(1).join(',').trim()}</small></span><button className="linkbtn" type="button" onClick={() => { setPt(null); setPrecise(null) }}>Trocar</button></div>
             : <AddressCombo id="pl-search" label="Endereço do lugar" placeholder="Busque o endereço ou o nome do lugar" value=""
-                onPick={(ll, label) => { setPt({ ll, addr: label }); if (!name) setName((label || '').split(',')[0].slice(0, 30)) }} />}
+                onPick={(ll, label) => { setPt({ ll, addr: label }); setPrecise(null); if (!name) setName((label || '').split(',')[0].slice(0, 30)) }} />}
+          {pt && <>
+            <MiniMapPin ll={pt.ll} onMove={ll => { setPt(p => p ? { ...p, ll } : p); setPrecise(true) }} />
+            <p className={'pl-precise' + (precise === false ? ' approx' : '')} id="pl-precise">{precise === false
+              ? 'Posição aproximada (pelo endereço). Arraste o alfinete até a porta do lugar.'
+              : 'Arraste o alfinete ou toque no mapa para acertar o lugar.'}</p>
+          </>}
           <input className="pl-name" id="pl-name" type="text" placeholder="Nome (ex.: Academia, Casa da mãe)" aria-label="Nome do lugar" maxLength={30} value={name} onChange={e => setName(e.target.value)} />
           <KindPicker value={autoKind} onChange={setKind} idPrefix="pl-kind" />
           <button className="btn primary pl-save" type="button" id="pl-save" disabled={!pt} onClick={add}><Plus className="i" />Salvar lugar</button>

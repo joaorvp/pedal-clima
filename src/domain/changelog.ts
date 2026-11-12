@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.25.2'
+export const CURRENT_APP_VERSION = '2.26.0'
 export const CHANGELOG = [
+  {
+    version: '2.26.0',
+    title: 'Salve lugares direto do Google Maps',
+    items: [
+      'No Google Maps, toque em Compartilhar e escolha Pedágua: o lugar abre em Meus lugares, com o nome, pronto para salvar (precisa do app instalado).',
+      'No iPhone ou sem o app instalado: copie o que o Google Maps compartilha e cole na busca do Pedágua.',
+      'Antes de salvar, um mapinha com alfinete deixa você acertar o lugar exato (o endereço às vezes cai no quarteirão).',
+    ],
+  },
   {
     version: '2.25.2',
     title: 'Busca acha nomes escritos de outro jeito',

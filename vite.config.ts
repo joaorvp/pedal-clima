@@ -57,6 +57,8 @@ export default defineConfig({
           { name: 'Ir para o Trabalho', short_name: 'Trabalho', url: './?ir=trabalho', icons: [{ src: 'pwa-192.png', sizes: '192x192', type: 'image/png' }] },
           { name: 'Ir para Casa', short_name: 'Casa', url: './?ir=casa', icons: [{ src: 'pwa-192.png', sizes: '192x192', type: 'image/png' }] },
         ],
+        // aparece na lista de "Compartilhar" do celular (app instalado): um lugar do Google Maps vira lugar salvo
+        share_target: { action: './', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

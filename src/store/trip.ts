@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { InmetAlert } from '../domain/alerts'
 import { prepRoute } from '../domain/routes'
 import { matchSaved } from '../domain/savedRoutes'
+import type { SharedPlace } from '../domain/shareParse'
 import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import type { Shelter } from '../domain/shelter'
 import { readJson, removeKey, writeJson } from '../services/cache'
@@ -82,7 +83,7 @@ interface TripState {
   /** tela "Seus pedais" aberta */
   historyOpen: boolean
   /** tela "Meus lugares" aberta (com um ponto para salvar, quando vem do mapa) */
-  placesOpen: null | { ll?: LatLon; name?: string }
+  placesOpen: null | { ll?: LatLon; name?: string; shared?: SharedPlace }
   /** página de apresentação (primeira visita pelo navegador ou link "Sobre") */
   landing: boolean
   /** qualidade do ar onde você está */
@@ -125,7 +126,8 @@ function initialLanding() {
   if (/^#(sobre|privacidade|termos|creditos)$/.test(location.hash)) return true
   const s = useSettings.getState()
   const standalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone
-  return !s.onboarded && !s.customized && !standalone && !new URLSearchParams(location.search).has('ir')
+  const q = new URLSearchParams(location.search)
+  return !s.onboarded && !s.customized && !standalone && !q.has('ir') && !q.has('text') && !q.has('url')
 }
 
 export const useTrip = create<TripState>()((set, get) => ({

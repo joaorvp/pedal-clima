@@ -1,5 +1,6 @@
 import { accentRegex, areaName, mergeHits, nameWords, nominatimHit, overpassHit, parseCep, photonHit, type NominatimItem, type OverpassEl, type PhotonFeature, type PlaceHit } from '../domain/places'
 import type { LatLon } from '../domain/types'
+import { addressQuery, type SharedPlace } from '../domain/shareParse'
 
 // região metropolitana (DF e arredores): a busca prefere esta região, mas não se limita a ela
 const DF_CENTER: LatLon = [-15.82, -48.0]
@@ -80,4 +81,14 @@ export async function reverseName(p: LatLon): Promise<string | null> {
     const f = ((await r.json()) as { features?: PhotonFeature[] }).features?.[0]
     return f ? areaName(f) : null
   } catch { return null }
+}
+
+/** Ponto de um lugar compartilhado de outro app: coordenadas (exato) ou, na falta delas, endereço, CEP e nome (aproximado). */
+export async function resolveShared(s: SharedPlace, near: LatLon | null): Promise<{ ll: LatLon; name: string; addr: string; precise: boolean } | null> {
+  const name = s.name ?? '', addr = s.address ?? ''
+  if (s.coords) return { ll: s.coords, name: name || addr.split(',')[0] || 'Lugar compartilhado', addr, precise: true }
+  const first = async (q: string | undefined) => { if (!q) return null; try { return (await searchPlaces(q, near))[0] ?? null } catch { return null } }
+  const hit = await first(addr ? addressQuery(addr) : undefined) ?? await first(s.cep) ?? await first(name || undefined)
+  if (!hit) return null
+  return { ll: hit.ll, name: name || hit.main, addr: addr || [hit.main, hit.sub].filter(Boolean).join(', '), precise: false }
 }

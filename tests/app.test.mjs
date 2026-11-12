@@ -118,6 +118,12 @@ assert.match(await groupNames("Família"), /Academia do bairro/);
 await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 assert.ok(await page.locator(".sc[data-kind]").count() >= 1, "o lugar vira atalho com o ícone do tipo");
 
+// colar na busca o que o Google Maps compartilha (nome, endereço, link): abre o trajeto até o lugar
+await page.evaluate(() => { const i = document.getElementById("where"); i.focus(); const dt = new DataTransfer(); dt.setData("text/plain", "Mercado do Teste\nRua 9, 12 - Bairro Z, Cidade - UF, 72000-000\nhttps://maps.app.goo.gl/abc"); i.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })); });
+await page.waitForTimeout(1600);
+assert.match(await page.textContent(".triphead"), /Mercado do Teste/, "o lugar colado vira o destino com o nome do Google");
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
+
 // tela inicial: você no mapa e o clima onde você está
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
 assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);
@@ -389,6 +395,19 @@ assert.match(await page.textContent(".triphead"), /Trabalho/);
 assert.ok(!page.url().includes("ir="), "o endereço fica limpo depois do atalho");
 assert.ok(await page.evaluate(() => document.getElementById("alert").classList.contains("compact")), "alerta do INMET já visto aparece numa linha só na próxima abertura");
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
+
+// Compartilhar → Pedágua no Google Maps: abre Meus lugares com o lugar, o mapinha e o aviso de posição aproximada
+await page.goto(APP + "?title=" + encodeURIComponent("Academia Compartilhada") + "&text=" + encodeURIComponent("Academia Compartilhada\nRua 9, 12 - Bairro Z, Cidade - UF, 72000-000\nhttps://maps.app.goo.gl/xyz"));
+await page.waitForTimeout(2200);
+assert.ok(await page.evaluate(() => document.getElementById("places")?.open), "o compartilhamento abre Meus lugares");
+assert.equal(await page.inputValue("#pl-name"), "Academia Compartilhada");
+assert.equal(await page.getAttribute("#pl-kind-academia", "aria-checked"), "true");
+assert.ok(await page.locator(".minimap .leaflet-marker-icon").count() === 1, "mapinha com o alfinete para acertar");
+assert.match(await page.textContent("#pl-precise"), /aproximada/);
+assert.ok(!page.url().includes("text="), "o endereço da página fica limpo");
+await page.click("#pl-save"); await page.waitForTimeout(300);
+assert.match(await page.textContent("#pl-msg"), /Academia Compartilhada/);
+await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 
 // ciclovias: liga o mapa CyclOSM e a escolha fica salva
 await page.evaluate(() => document.getElementById("cycle-toggle").click()); await page.waitForTimeout(400);
