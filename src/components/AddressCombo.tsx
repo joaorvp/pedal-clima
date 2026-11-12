@@ -54,8 +54,10 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
   function onInput(q: string) {
     setText(q); clearTimeout(timer.current)
     const t = q.trim(), co = parseCoords(t)
-    if (co) { setOpen(false); onPick(co, ''); setText('Ponto colado'); return }
+    if (co) { seq.current++; setBusy(false); setOpen(false); onPick(co, ''); setText('Ponto colado'); return }
     const mine = t ? matchLocal(t, localHits()).slice(0, 4) : []
+    // texto curto: cancela a busca anterior (senão o "Procurando…" ficava preso)
+    if (t.length < 3) { seq.current++; setBusy(false) }
     if (t.length < 3 && !mine.length) { setOpen(false); return }
     setItems(mine); setSel(-1); setMsg(''); setOpen(true)
     if (t.length < 3) return
@@ -64,9 +66,11 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
     // espera uma pausa na digitação: uma busca por pausa (os serviços gratuitos pedem uso leve)
     timer.current = setTimeout(async () => {
       try {
-        const found = await searchPlaces(t, near())
+        const withMine = (found: PlaceHit[]) => [...mine, ...found.filter(f => !mine.some(m => Math.abs(m.ll[0] - f.ll[0]) + Math.abs(m.ll[1] - f.ll[1]) < 0.0004))]
+        // o que chegar primeiro já aparece; o resto se junta quando chegar
+        const found = await searchPlaces(t, near(), part => { if (my === seq.current) { setItems(withMine(part)); setSavedIdx([]) } })
         if (my !== seq.current) return
-        const all = [...mine, ...found.filter(f => !mine.some(m => Math.abs(m.ll[0] - f.ll[0]) + Math.abs(m.ll[1] - f.ll[1]) < 0.0004))]
+        const all = withMine(found)
         setItems(all); setSel(-1); setSavedIdx([])
         setMsg(all.length ? '' : parseCep(t) ? 'CEP não encontrado. Confira os números ou procure pelo nome da rua.' : 'Nada encontrado. Tente o nome do lugar, a rua com a cidade ou o CEP, ou marque no mapa.')
       } catch {

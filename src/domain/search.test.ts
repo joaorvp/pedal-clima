@@ -50,3 +50,20 @@ describe('tipos de lugar', async () => {
   })
   it('tipo desconhecido vira "Outro"', () => { expect(kindOf('xyz').id).toBe('outro'); expect(kindOf(undefined).id).toBe('outro') })
 })
+
+describe('comércios pelo nome', async () => {
+  const { nameWords, accentRegex, overpassHit } = await import('./places')
+  it('ignora palavras genéricas', () => {
+    expect(nameWords('supermercado Kaique')).toEqual(['kaique'])
+    expect(nameWords('Smart Fit')).toEqual(['smart', 'fit'])
+    expect(nameWords('academia')).toEqual(['academia'])
+  })
+  it('compara sem acento', () => {
+    expect(new RegExp(accentRegex('cafe'), 'i').test('Café do Ponto')).toBe(true)
+  })
+  it('lê o lugar do OpenStreetMap com a categoria', () => {
+    const h = overpassHit({ center: { lat: -15.8, lon: -48 }, tags: { name: 'Smart Fit', leisure: 'fitness_centre', 'addr:street': 'Avenida 1' } })!
+    expect(h.main).toBe('Smart Fit'); expect(h.sub).toBe('Academia · Avenida 1'); expect(h.ll).toEqual([-15.8, -48])
+    expect(overpassHit({ lat: 1, lon: 2, tags: {} })).toBeNull()
+  })
+})

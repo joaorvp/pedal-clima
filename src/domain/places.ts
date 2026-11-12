@@ -101,3 +101,31 @@ export function distLabel(from: [number, number] | null, to: [number, number]): 
   const d = km(from, to)
   return d < 1 ? Math.max(50, Math.round(d * 20) * 50) + ' m' : d < 20 ? String(Math.round(d * 10) / 10).replace('.', ',') + ' km' : Math.round(d) + ' km'
 }
+
+// ---- busca de comércios pelo nome, perto de você (Overpass, dados do OpenStreetMap) ----
+const GENERIC = new Set(['supermercado', 'mercado', 'academia', 'farmacia', 'drogaria', 'padaria', 'restaurante', 'lanchonete', 'loja', 'posto', 'bar',
+  'cafe', 'cafeteria', 'pizzaria', 'hospital', 'clinica', 'escola', 'colegio', 'faculdade', 'parque', 'praca', 'shopping', 'igreja', 'banco', 'hotel',
+  'de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'em', 'no', 'na'])
+/** Palavras que identificam o lugar (sem as genéricas: "supermercado Kaique" procura "kaique"). Sem nenhuma, usa todas. */
+export function nameWords(q: string): string[] {
+  const all = norm(q).split(' ').filter(w => w.length > 1 && !/^\d+$/.test(w))
+  const key = all.filter(w => !GENERIC.has(w))
+  return (key.length ? key : all).slice(0, 3)
+}
+/** Expressão para comparar com o nome sem ligar para acentos ("cafe" acha "Café"). */
+export function accentRegex(w: string): string {
+  const map: Record<string, string> = { a: '[aáàâã]', e: '[eéê]', i: '[ií]', o: '[oóôõ]', u: '[uúü]', c: '[cç]' }
+  return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split('').map(ch => map[ch] ?? ch).join('')
+}
+const CATEGORY: Record<string, string> = { supermarket: 'Supermercado', convenience: 'Mercado', fitness_centre: 'Academia', sports_centre: 'Centro esportivo', pharmacy: 'Farmácia',
+  restaurant: 'Restaurante', fast_food: 'Lanchonete', cafe: 'Café', bakery: 'Padaria', fuel: 'Posto', bar: 'Bar', pub: 'Bar', hospital: 'Hospital', clinic: 'Clínica',
+  school: 'Escola', university: 'Universidade', college: 'Faculdade', bank: 'Banco', mall: 'Shopping', park: 'Parque', place_of_worship: 'Igreja', marketplace: 'Feira' }
+export interface OverpassEl { lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }
+export function overpassHit(el: OverpassEl): PlaceHit | null {
+  const t = el.tags ?? {}, lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon
+  if (lat == null || lon == null || !t.name) return null
+  const cat = CATEGORY[t.shop ?? ''] ?? CATEGORY[t.amenity ?? ''] ?? CATEGORY[t.leisure ?? ''] ?? ''
+  const street = [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ')
+  const sub = [...new Set([cat, street, t['addr:suburb'], t['addr:city']].filter((x): x is string => !!x))].join(' · ')
+  return { ll: [lat, lon], main: t.name, sub, kind: 'search' }
+}

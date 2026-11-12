@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.25.0'
+export const CURRENT_APP_VERSION = '2.25.1'
 export const CHANGELOG = [
+  {
+    version: '2.25.1',
+    title: 'Busca consertada',
+    items: [
+      'A busca não fica mais carregando para sempre: cada serviço tem um tempo máximo, e o que responder primeiro já aparece.',
+      'Nova busca de comércios pelo nome perto de você (academias, mercados, farmácias…). "Supermercado X" também acha um lugar cadastrado só como "X".',
+    ],
+  },
   {
     version: '2.25.0',
     title: 'Busca melhor e Meus lugares',
