@@ -42,6 +42,8 @@ await page.route("**/*", r => {
   if (u.includes("overpass-api")) return r.fulfill({ json: M.overpassJson });
   if (u.includes("open-meteo")) return r.fulfill({ json: M.weatherJson(u) });
   if (u.includes("photon.komoot.io/api")) return r.fulfill({ json: M.photonJson });
+  if (u.includes("nominatim.openstreetmap.org")) return r.fulfill({ json: M.nominatimJson });
+  if (u.includes("viacep.com.br")) return r.fulfill({ json: M.viacepJson });
   if (u.includes("photon.komoot.io/reverse")) return r.fulfill({ json: M.reverseJson });
   if (u.includes("inmet")) return r.fulfill({ json: M.inmetJson });
   if (u.includes("weather-maps.json")) return r.fulfill({ json: M.radarJson() });
@@ -75,6 +77,17 @@ await page.fill("#wl-work", "lugar"); await page.waitForTimeout(500); await page
 await page.click("#wl-next"); await page.click("#wl-next");
 await page.waitForTimeout(800);
 assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "boas-vindas deve fechar ao concluir");
+
+// busca: seus lugares aparecem na hora; Photon e Nominatim juntos, com a distância; CEP acha a rua
+await page.fill("#where", "casa"); await page.waitForTimeout(150);
+assert.match(await page.textContent(".sugg li[data-kind]"), /Casa/, "Casa aparece na hora, antes da internet");
+await page.waitForTimeout(700);
+const sugg = await page.textContent(".sugg");
+assert.ok(/Lugar Teste/.test(sugg) && /Lugar Nominatim/.test(sugg), "resultados das duas fontes juntos: " + sugg);
+assert.ok(await page.locator(".sugg .dist").count() >= 1, "mostra a distância de você");
+await page.fill("#where", "72000-000"); await page.waitForTimeout(900);
+assert.match(await page.textContent(".sugg"), /Rua 9.*CEP 72000-000/s);
+await page.fill("#where", ""); await page.keyboard.press("Escape"); await page.waitForTimeout(200);
 
 // tela inicial: você no mapa e o clima onde você está
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");

@@ -62,3 +62,5 @@ export function routeShot() {
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr.set([8, 6, 0, 0, 0], 8);
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(Buffer.concat(rows))), chunk("IEND", Buffer.alloc(0))]);
 }
+export const nominatimJson = [{ lat: "-15.95", lon: "-48.20", name: "Lugar Nominatim", address: { road: "Rua 7", suburb: "Bairro W", city: "Cidade" } }];
+export const viacepJson = { cep: "72000-000", logradouro: "Rua 9", bairro: "Bairro Z", localidade: "Cidade", uf: "UF" };

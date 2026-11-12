@@ -1,6 +1,17 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.24.0'
+export const CURRENT_APP_VERSION = '2.25.0'
 export const CHANGELOG = [
+  {
+    version: '2.25.0',
+    title: 'Busca de lugares bem melhor',
+    items: [
+      'A busca agora usa dois buscadores ao mesmo tempo (Photon e o Nominatim, do OpenStreetMap) e junta os resultados, sem repetir.',
+      'Mostra primeiro o que fica perto de você, com a distância de cada resultado, e também acha lugares fora do DF.',
+      'Seus lugares (Casa, Trabalho, salvos e recentes) aparecem na hora, enquanto você digita.',
+      'Digite um CEP para achar a rua.',
+      'A lista de sugestões não fica mais escondida atrás dos cartões de baixo.',
+    ],
+  },
   {
     version: '2.24.0',
     title: 'Tema claro, aviso de chegada e previsão com vento',

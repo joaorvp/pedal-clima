@@ -726,3 +726,12 @@ button.hist-row{cursor:pointer}
   .hero.riding .ride-tools .ride-btn .i{display:none}
 }
 @media (max-width:379px){.upd{font-size:12px}.brand{font-size:21px}}
+/* busca: ícone por tipo, distância à direita, "procurando…" */
+.sugg li{grid-template-columns:20px minmax(0,1fr) auto;min-height:44px;align-items:center}
+.sugg li .dist{font-size:12.5px;color:var(--muted);white-space:nowrap;align-self:center}
+.sugg li[data-kind="home"] svg,.sugg li[data-kind="work"] svg,.sugg li[data-kind="saved"] svg{color:var(--link)}
+.sugg .empty.busy{display:flex;align-items:center;gap:8px}
+.sugg .spin-i{animation:spin 1s linear infinite}
+.sugg{max-height:min(360px,50dvh)}
+/* com a busca aberta, o cartão dela fica por cima dos de baixo (antes a lista de sugestões ficava cortada atrás do cartão seguinte) */
+.card:has(.combo:focus-within),.side > :has(.combo:focus-within){position:relative;z-index:30;overflow:visible}

@@ -6,8 +6,6 @@ import { useTrip } from '../store/trip'
 
 interface BeforeInstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
 
-const PROVIDER_COUNT = 11
-
 const FEATURES = [
   { icon: CloudRain, title: 'Chuva trecho a trecho', text: 'Cruza a sua rota com a previsão de 15 em 15 minutos e mostra onde vai chover na hora exata em que você passar.' },
   { icon: Bike, title: 'Rotas por ciclovia', text: 'Prioriza ciclovias e ruas calmas. Fez um caminho melhor? Use um pedal do histórico ou importe um print do Google Maps como sua rota, que passa a aparecer primeiro.' },
@@ -120,7 +118,7 @@ export function Landing() {
       <section className="ld-sec" id="creditos" aria-labelledby="ld-cred">
         <h2 id="ld-cred"><Globe className="i" />Serviços e créditos</h2>
         <p className="ld-p">Tudo o que o app mostra vem destes serviços gratuitos e projetos abertos, a quem o Pedágua agradece. Cada um tem os próprios termos e política de privacidade.</p>
-        <Fold title={`Ver os ${PROVIDER_COUNT} serviços usados e o que cada um recebe`}><ProvidersList /></Fold>
+        <Fold title="Ver os serviços usados e o que cada um recebe"><ProvidersList /></Fold>
       </section>
 
       <section className="ld-sec" id="privacidade" aria-labelledby="ld-priv">

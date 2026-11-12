@@ -13,7 +13,7 @@ const CSP = [
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com https://*.tile-cyclosm.openstreetmap.fr https://*.rainviewer.com",
-  "connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://*.rainviewer.com https://apiprevmet3.inmet.gov.br https://brouter.de https://router.project-osrm.org https://routing.openstreetmap.de https://photon.komoot.io https://overpass-api.de",
+  "connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://*.rainviewer.com https://apiprevmet3.inmet.gov.br https://brouter.de https://router.project-osrm.org https://routing.openstreetmap.de https://photon.komoot.io https://nominatim.openstreetmap.org https://viacep.com.br https://overpass-api.de",
   "font-src 'self' data:",
   "media-src 'self' blob:",
   "worker-src 'self'",

@@ -1,8 +1,11 @@
-import { MapPin, X } from 'lucide-react'
+import { Briefcase, Clock, Hash, House, Loader2, MapPin, Star, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
-import { featLabel, parseCoords, shortName, type PhotonFeature } from '../domain/places'
+import { distLabel, matchLocal, parseCep, parseCoords, type PlaceHit } from '../domain/places'
 import type { LatLon } from '../domain/types'
+import { lastView } from '../hooks/location'
 import { searchPlaces } from '../services/places'
+import { useSettings } from '../store/settings'
+import { useTrip } from '../store/trip'
 
 interface Props {
   id: string
@@ -16,38 +19,70 @@ interface Props {
   onFocusField?: () => void
 }
 
-/** Campo de endereço com sugestões enquanto digita (Photon), link do Google Maps ou coordenadas. */
+const ICON = { home: House, work: Briefcase, saved: Star, recent: Clock, search: MapPin, cep: Hash }
+
+/** Seus lugares (casa, trabalho, salvos e recentes) como resultados de busca. */
+function localHits(): PlaceHit[] {
+  const s = useSettings.getState(), out: PlaceHit[] = []
+  if (s.homeSet) out.push({ ll: s.home, main: 'Casa', sub: s.names.home, kind: 'home' })
+  if (s.workSet) out.push({ ll: s.work, main: 'Trabalho', sub: s.names.work, kind: 'work' })
+  s.places.forEach(p => out.push({ ll: [p.lat, p.lon], main: p.name, sub: p.addr ?? '', kind: 'saved' }))
+  s.recent.forEach(r => out.push({ ll: [r.lat, r.lon], main: r.name.split(',')[0], sub: r.name.split(',').slice(1).join(',').trim(), kind: 'recent' }))
+  return out
+}
+
+/**
+ * Campo de endereço: seus lugares aparecem na hora; nome, rua, bairro ou CEP são procurados na internet
+ * (Photon e Nominatim juntos, perto de você primeiro). Também aceita link do Google Maps ou coordenadas.
+ */
 export function AddressCombo({ id, value, placeholder, label, onPick, onClear, caption, autoFocus, onFocusField }: Props) {
   const [text, setText] = useState(value)
-  const [items, setItems] = useState<PhotonFeature[]>([])
+  const [items, setItems] = useState<PlaceHit[]>([])
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
   const [sel, setSel] = useState(-1)
   const seq = useRef(0), timer = useRef<ReturnType<typeof setTimeout>>(undefined), focused = useRef(false)
   const listId = useId()
   useEffect(() => { if (!focused.current) setText(value) }, [value])
+  const near = (): LatLon | null => useTrip.getState().me?.pos ?? lastView()?.c ?? null
 
   function onInput(q: string) {
     setText(q); clearTimeout(timer.current)
-    const co = parseCoords(q.trim())
+    const t = q.trim(), co = parseCoords(t)
     if (co) { setOpen(false); onPick(co, ''); setText('Ponto colado'); return }
-    if (q.trim().length < 3) { setOpen(false); return }
+    const mine = t ? matchLocal(t, localHits()).slice(0, 4) : []
+    if (t.length < 3 && !mine.length) { setOpen(false); return }
+    setItems(mine); setSel(-1); setMsg(''); setOpen(true)
+    if (t.length < 3) return
+    const my = ++seq.current
+    setBusy(true)
+    // espera uma pausa na digitação: uma busca por pausa (os serviços gratuitos pedem uso leve)
     timer.current = setTimeout(async () => {
-      const my = ++seq.current
-      try { const res = await searchPlaces(q.trim()); if (my !== seq.current) return; setItems(res); setSel(-1); setMsg(res.length ? '' : 'Nada encontrado. Tente outro termo ou marque no mapa.'); setOpen(true) }
-      catch { setItems([]); setMsg('Busca indisponível agora. Marque no mapa.'); setOpen(true) }
-    }, 280)
+      try {
+        const found = await searchPlaces(t, near())
+        if (my !== seq.current) return
+        const all = [...mine, ...found.filter(f => !mine.some(m => Math.abs(m.ll[0] - f.ll[0]) + Math.abs(m.ll[1] - f.ll[1]) < 0.0004))]
+        setItems(all); setSel(-1)
+        setMsg(all.length ? '' : parseCep(t) ? 'CEP não encontrado. Confira os números ou procure pelo nome da rua.' : 'Nada encontrado. Tente o nome do lugar, a rua com a cidade ou o CEP, ou marque no mapa.')
+      } catch {
+        if (my !== seq.current) return
+        setMsg(mine.length ? '' : 'Busca indisponível agora (sem conexão?). Marque no mapa.')
+      } finally { if (my === seq.current) setBusy(false) }
+    }, 350)
   }
   function choose(i: number) {
-    const f = items[i]; if (!f) return
-    const c = f.geometry.coordinates, n = shortName(f)
-    setText(n); setOpen(false); onPick([c[1], c[0]], n)
+    const h = items[i]; if (!h) return
+    const n = h.kind === 'home' || h.kind === 'work' || h.kind === 'saved' ? h.main : h.sub ? h.main + ', ' + h.sub.split(' · ')[0] : h.main
+    setText(n); setOpen(false); onPick(h.ll, n)
   }
+  const from = open ? near() : null
   return (
     <div className="combo">
       {caption && <label className="cap" htmlFor={id}>{caption}</label>}
       <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder={placeholder} aria-label={label} value={text} autoFocus={autoFocus}
         role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={sel >= 0 ? `${listId}-${sel}` : undefined}
+        enterKeyHint="search"
         onChange={e => onInput(e.target.value)}
         onFocus={e => { focused.current = true; e.target.select(); onFocusField?.() }}
         onBlur={() => setTimeout(() => { focused.current = false; setOpen(false); setText(value) }, 150)}
@@ -61,10 +96,12 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
       {onClear && <button className="clear" type="button" aria-label={'Limpar ' + label} onClick={() => { setText(''); onClear() }}><X /></button>}
       {open && (
         <ul className="sugg" id={listId} role="listbox" onMouseDown={e => e.preventDefault()}>
-          {items.length ? items.map((f, i) => { const l = featLabel(f); return (
-            <li key={i} role="option" id={`${listId}-${i}`} aria-selected={i === sel} data-i={i} onClick={() => choose(i)}>
-              <MapPin /><div><b>{l.main}</b>{l.sub && <small>{l.sub}</small>}</div>
-            </li>) }) : <li className="empty">{msg}</li>}
+          {items.map((h, i) => { const I = ICON[h.kind], d = h.kind === 'search' || h.kind === 'cep' ? distLabel(from, h.ll) : ''; return (
+            <li key={i} role="option" id={`${listId}-${i}`} aria-selected={i === sel} data-i={i} data-kind={h.kind} onClick={() => choose(i)}>
+              <I /><div><b>{h.main}</b>{h.sub && <small>{h.sub}</small>}</div>{d && <span className="dist num">{d}</span>}
+            </li>) })}
+          {busy && <li className="empty busy" aria-live="polite"><Loader2 className="spin-i" />Procurando…</li>}
+          {!busy && !items.length && msg && <li className="empty">{msg}</li>}
         </ul>
       )}
     </div>
