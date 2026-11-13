@@ -390,6 +390,10 @@ assert.ok(await page.locator("#share-week").count() === 1, "botão de compartilh
 assert.ok(await page.evaluate(() => (JSON.parse(localStorage.getItem("pedalclima.v1")).history[0].track || []).length >= 3), "o histórico guarda o caminho do pedal");
 await page.click(".hist-list li button.hist-row"); await page.waitForTimeout(300);
 assert.ok(await page.locator(".track-preview").count() === 1, "mostra o desenho do caminho");
+const [gpx] = await Promise.all([page.waitForEvent("download"), page.click("#hist-gpx")]);
+assert.match(gpx.suggestedFilename(), /^pedagua-\d{4}-\d{2}-\d{2}-\d{4}-trabalho\.gpx$/);
+const gpxText = (await import("node:fs")).readFileSync(await gpx.path(), "utf8");
+assert.ok(/<type>cycling<\/type>/.test(gpxText) && (gpxText.match(/<trkpt /g) || []).length >= 3, "GPX com o caminho e horários");
 await page.click("#hist-use"); await page.fill("#route-name", "Caminho do pedal"); await page.click("#route-save-ok"); await page.waitForTimeout(800);
 assert.match(await page.textContent("#hist-msg"), /Caminho do pedal.*salva/);
 assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).savedRoutes.map(r => r.name).join("|")), "Caminho do pedal");

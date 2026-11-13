@@ -1,5 +1,5 @@
 import { hhmm, fmt1 } from './format'
-import { CATS, cat, hourlyAt, rateAt } from './weather'
+import { pastRain, CATS, cat, hourlyAt, rateAt } from './weather'
 import type { Level, PointWeather } from './types'
 import type { IconName } from './advice'
 
@@ -34,6 +34,10 @@ export function localSummary(w: PointWeather, now: number, radarRain: boolean | 
     return { ...base, level: 'warn', icon: 'rain', title: mins <= 60 ? `Chuva chegando em ~${mins} min` : `Chuva por volta de ${hhmm(now + next * step)}`,
       sub: `Seco agora. Deve vir ${CATS[cat(peak)].label}${peak >= 1 ? ` (até ${fmt1(peak)} mm/h)` : ''}.` }
   }
+  // parou de chover há pouco: o asfalto continua escorregadio
+  const past = pastRain(w, now)
+  if (past >= 0.5) return { ...base, level: 'warn', icon: 'road', title: 'Seco agora, pista molhada',
+    sub: `Choveu ${fmt1(past)} mm nas últimas 3 h. Freie antes das curvas; faixas pintadas e tampas de bueiro escorregam.` }
   return { ...base, level: 'ok', icon: code >= 3 ? 'cloud' : code >= 1 ? (day ? 'partly' : 'cloud') : (day ? 'sun' : 'cloud'),
     title: 'Seco por aqui', sub: 'Sem chuva prevista nas próximas 3 h.' }
 }

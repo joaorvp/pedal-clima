@@ -789,3 +789,6 @@ button.hist-row{cursor:pointer}
 .ibtn.spin{opacity:1}
 .ibtn:disabled{cursor:default}
 .upd[data-done]{color:var(--accent);opacity:1;font-weight:600}
+.hist-actions{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:480px){.hist-actions{grid-template-columns:1fr 1fr}}
+.hist-actions .btn{justify-content:center;min-height:44px}

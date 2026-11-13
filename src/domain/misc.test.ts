@@ -102,3 +102,34 @@ describe('resumo da semana', async () => {
     expect(t.diff!).toBeGreaterThan(0)
   })
 })
+
+describe('água e roupa', async () => {
+  const { waterMl, clothing } = await import('./advice')
+  it('água: ~500 ml/h, mais no calor, nada para pedal curtinho', () => {
+    expect(waterMl(40 * 60e3, 22)!.ml).toBe(250)
+    expect(waterMl(60 * 60e3, 22)!.title).toBe('Leve 500 ml de água')
+    expect(waterMl(90 * 60e3, 35)!.title).toBe('Leve 1,25 L de água')
+    expect(waterMl(10 * 60e3, 30)).toBeNull()
+  })
+  it('roupa pela sensação térmica e vento', () => {
+    expect(clothing(22, 0, false)).toBeNull()
+    expect(clothing(14, 0, false)!.title).toBe('Corta-vento ou manga longa')
+    expect(clothing(17, 12, true)!.title).toBe('Corta-vento por baixo da capa')
+    expect(clothing(8, 0, false)!.title).toMatch(/Casaco/)
+  })
+})
+
+describe('exportar GPX', async () => {
+  const { rideGpx, gpxFileName } = await import('./gpx')
+  it('gera pontos com horários do começo ao fim do pedal', () => {
+    const at = Date.UTC(2026, 10, 13, 12, 40)
+    const g = rideGpx({ track: [[-15.8, -48], [-15.79, -48], [-15.78, -48]], at, mins: 40, dest: 'Trabalho & cia' })
+    expect(g).toContain('<trkpt lat="-15.800000" lon="-48.000000"><time>2026-11-13T12:00:00.000Z</time>')
+    expect(g).toContain('<time>2026-11-13T12:20:00.000Z</time>')
+    expect(g).toContain('<time>2026-11-13T12:40:00.000Z</time>')
+    expect(g).toContain('Pedal até Trabalho &amp; cia'); expect(g).toContain('<type>cycling</type>')
+  })
+  it('nome do arquivo', () => {
+    expect(gpxFileName(new Date(2026, 10, 13, 8, 5).getTime(), 'Casa da Mãe')).toBe('pedagua-2026-11-13-0805-casa-da-mae.gpx')
+  })
+})

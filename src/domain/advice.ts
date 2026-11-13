@@ -72,7 +72,7 @@ export function rideVerdict(ev: Evaluation, c: TripCtx, d: number, off: number, 
   return v
 }
 
-export type CheckIcon = 'bolt' | 'battery' | 'bag' | 'light' | 'check' | 'road' | 'wind' | 'uv' | 'thermo' | 'drop'
+export type CheckIcon = 'bolt' | 'battery' | 'bag' | 'light' | 'check' | 'road' | 'wind' | 'uv' | 'thermo' | 'drop' | 'water' | 'shirt'
 export interface CheckItem { level: Level; icon: CheckIcon; title: string; detail?: string }
 
 export function checklist(ev: Evaluation, c: TripCtx, sun: SunTimes | null, battPct: number | null, aqi: number | null = null): CheckItem[] {
@@ -96,6 +96,12 @@ export function checklist(ev: Evaluation, c: TripCtx, sun: SunTimes | null, batt
   const dk = darkness(sun, ev)
   if (dk?.kind === 'set') add('warn', 'light', dk.full ? `Já escureceu (pôr do sol às ${hhmm(dk.t)})` : `Escurece às ${hhmm(dk.t)}, você chega às ${hhmm(ev.arr)}`, 'Farol dianteiro e luz traseira ligados. Roupa clara ou refletiva ajuda.')
   if (dk?.kind === 'rise') add('warn', 'light', dk.full ? `Ainda escuro: amanhece às ${hhmm(dk.t)}` : `Amanhece às ${hhmm(dk.t)}, você sai às ${hhmm(ev.depMs)}`, 'Farol dianteiro e luz traseira ligados.')
+  // água: ~500 ml por hora de pedal, mais no calor (sensação térmica acima de 25 °C)
+  const water = waterMl(ev.dur, temp)
+  if (water) add('ok', 'water', water.title, water.detail)
+  // roupa: o vento do próprio pedal esfria; abaixo de ~16 °C de sensação, um corta-vento faz diferença
+  const cloth = clothing(temp, ev.head, rainy)
+  if (cloth) add('ok', 'shirt', cloth.title, cloth.detail)
   if (battPct != null && battPct >= 70) add(battPct >= 95 ? 'bad' : 'warn', 'battery', `Trajeto deve usar ~${battPct}% da bateria`, battPct >= 95 ? 'Pode não dar. Carregue antes ou use assistência mais baixa.' : 'Saia com a bateria bem carregada.')
   return out
 }
@@ -109,4 +115,24 @@ export function timelineGroups(ev: Evaluation) {
     else groups.push({ c, from: s.from, to: s.to, t: s.tA, max: s.rate, prob: s.prob })
   }
   return groups
+}
+
+/** Quanta água levar: ~500 ml/h, +150 ml/h a cada 5 °C acima de 25 °C de sensação; arredonda para 250 ml. */
+export function waterMl(durMs: number, feels: number | null): { ml: number; title: string; detail: string } | null {
+  const h = durMs / 3600e3
+  if (h < 0.25) return null
+  const perH = 500 + Math.max(0, ((feels ?? 22) - 25) / 5) * 150
+  const ml = Math.max(250, Math.round(perH * h / 250) * 250)
+  const hot = (feels ?? 0) >= 28
+  return { ml, title: `Leve ${ml >= 1000 ? String(ml / 1000).replace('.', ',') + ' L' : ml + ' ml'} de água`,
+    detail: hot ? `Calor de ${Math.round(feels!)} °C de sensação: beba aos poucos desde o começo.` : `Para ${Math.round(h * 60)} min de pedal.` }
+}
+
+/** Roupa pela sensação térmica (e vento contra), além da capa de chuva. */
+export function clothing(feels: number | null, head: number, rainy: boolean): { title: string; detail: string } | null {
+  if (feels == null) return null
+  const f = feels - (head >= 10 ? 2 : 0) // vento contra forte esfria mais
+  if (f < 10) return { title: 'Casaco, luvas e algo no pescoço', detail: `Sensação de ${Math.round(feels)} °C${head >= 10 ? ' com vento contra' : ''}: no pedal parece ainda mais frio.` }
+  if (f < 16) return { title: rainy ? 'Corta-vento por baixo da capa' : 'Corta-vento ou manga longa', detail: `Sensação de ${Math.round(feels)} °C: o vento do pedal esfria nos primeiros minutos.` }
+  return null
 }

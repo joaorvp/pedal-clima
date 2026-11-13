@@ -1,4 +1,6 @@
-import { Bike, Bookmark, ChevronDown, Share2, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Bike, Bookmark, ChevronDown, Download, Share2, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { gpxFileName, rideGpx } from '../domain/gpx'
+import { downloadText } from '../services/backup'
 import { useState } from 'react'
 import { fmt1, hhmm } from '../domain/format'
 import { periodStarts, speedTrend, totals, weekly } from '../domain/history'
@@ -61,7 +63,10 @@ export function HistoryDialog() {
                       {naming
                         ? <NameForm initial={'Meu caminho para ' + h.dest} label="Nome da rota" onCancel={() => setNaming(false)}
                             onSave={name => { saveAsRoute(name, h.track!); setNaming(false); setExpanded(null); setMsg(`"${name.trim() || 'Minha rota'}" salva. Ela aparece primeiro quando você fizer esse trajeto (nos dois sentidos).`) }} />
-                        : <button className="btn primary" type="button" id="hist-use" onClick={() => setNaming(true)}><Bookmark className="i" />Usar como minha rota</button>}
+                        : <div className="hist-actions">
+                            <button className="btn primary" type="button" id="hist-use" onClick={() => setNaming(true)}><Bookmark className="i" />Usar como minha rota</button>
+                            <button className="btn" type="button" id="hist-gpx" onClick={() => downloadText(gpxFileName(h.at, h.dest), rideGpx({ track: h.track!, at: h.at, mins: h.mins, dest: h.dest }), 'application/gpx+xml')}><Download className="i" />Exportar GPX (Strava)</button>
+                          </div>}
                     </div>
                   )}
                 </li>

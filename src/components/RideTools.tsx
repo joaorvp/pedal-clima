@@ -1,6 +1,6 @@
 import { MessageCircle, PictureInPicture2, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { rideVerdict } from '../domain/advice'
+import { rideVerdict, wetInfo } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { cat } from '../domain/weather'
 import { armPip, disarmPip, openPip, pipSupported, setPipPainter } from '../hooks/pip'
@@ -93,6 +93,8 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
     if (!voice || !riding) return
     const once = (key: string, text: string, urgent = false) => { if (spoken.current.has(key)) return; spoken.current.add(key); say(text, urgent) }
     once('start', `Pedal iniciado. Chegada prevista às ${hhmm(eta)}.`)
+    // choveu há pouco no caminho: aviso de pista molhada, uma vez
+    if (wetInfo(view!.ctx)) once('wet', 'Pista molhada no caminho. Cuidado nas curvas e nas faixas pintadas.')
     if (storm) once('storm', 'Atenção: previsão de trovoada no caminho.')
     // curvas: aviso a ~250 m e outro na hora (não avisa fora da rota, porque ali o app está recalculando)
     const nt = ride!.off < 0.05 ? nextTurn(view!.turns, ride!.d) : undefined

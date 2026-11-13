@@ -20,8 +20,8 @@ export function readBackup(text: string): { ok: true; settings: Settings; export
   catch { return { ok: false, error: 'O backup está danificado e não pôde ser lido.' } }
 }
 
-export function downloadText(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+export function downloadText(name: string, text: string, type = 'application/json') {
+  const url = URL.createObjectURL(new Blob([text], { type }))
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
