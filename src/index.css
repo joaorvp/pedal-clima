@@ -780,3 +780,4 @@ button.hist-row{cursor:pointer}
 .dest-pin.mini{transform:none}
 .pl-precise{margin:0;font-size:13px;color:var(--muted)}
 .pl-precise.approx{color:var(--warn)}
+.pl-paste{justify-content:center;min-height:44px}

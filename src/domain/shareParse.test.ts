@@ -34,3 +34,22 @@ describe('lugar compartilhado do Google Maps', () => {
   })
   it('nada aproveitável', () => { expect(parseShared({ text: '' })).toBeNull() })
 })
+
+describe('Plus Code copiado do Google Maps', async () => {
+  const { encode } = await import('./plusCode')
+  const { parseShared, looksShared, shortLinkOnly } = await import('./shareParse')
+  const short = encode(-15.8267, -48.0912).slice(4)
+  it('código curto com a cidade: posição exata pela região de quem usa', () => {
+    const s = parseShared({ text: short + ' Cidade, UF' }, [-15.8, -48.0])!
+    expect(Math.abs(s.coords![0] - -15.8267)).toBeLessThan(0.0002); expect(Math.abs(s.coords![1] - -48.0912)).toBeLessThan(0.0002)
+    expect(looksShared(short + ' Cidade')).toBe(true)
+  })
+  it('nome + código', () => {
+    const s = parseShared({ text: 'Mercado Y\n' + short + ' Cidade - UF' }, [-15.8, -48.0])!
+    expect(s.name).toBe('Mercado Y'); expect(s.coords).toBeDefined()
+  })
+  it('só o link curto: avisa em vez de fingir que entendeu', () => {
+    expect(shortLinkOnly('https://maps.app.goo.gl/AbC123')).toBe(true)
+    expect(shortLinkOnly('Mercado\nhttps://maps.app.goo.gl/AbC123')).toBe(false)
+  })
+})

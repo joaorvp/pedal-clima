@@ -10,7 +10,7 @@ import { Tooltips } from './components/Tooltips'
 import { ShelterCard } from './components/ShelterCard'
 import { HistoryDialog } from './components/HistoryDialog'
 import { PlacesDialog } from './components/PlacesDialog'
-import { parseShared } from './domain/shareParse'
+import { parseShared, shortLinkOnly, SHORT_LINK_HELP } from './domain/shareParse'
 import { localSummary } from './domain/local'
 import { rainStopped } from './hooks/alerts'
 import { AppBar, Banners, Checklist, Footer, SlotsCard } from './components/Panels'
@@ -18,7 +18,7 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
 import { Landing } from './components/Landing'
 import { InstallBanner, UpdatePrompt, WhatsNew } from './components/Pwa'
-import { startLocation } from './hooks/location'
+import { lastView, startLocation } from './hooks/location'
 import { useSettings } from './store/settings'
 import { useTrip } from './store/trip'
 
@@ -46,8 +46,9 @@ export default function App() {
     const q = new URLSearchParams(location.search)
     if (!q.has('text') && !q.has('url') && !q.has('title')) return
     history.replaceState(history.state, '', location.pathname)
-    const shared = parseShared({ title: q.get('title'), text: q.get('text'), url: q.get('url') })
+    const shared = parseShared({ title: q.get('title'), text: q.get('text'), url: q.get('url') }, useTrip.getState().me?.pos ?? lastView()?.c)
     if (shared) useTrip.getState().set({ placesOpen: { shared }, landing: false })
+    else if (shortLinkOnly([q.get('text'), q.get('url')].join(' '))) useTrip.getState().set({ placesOpen: { notice: SHORT_LINK_HELP }, landing: false })
   }, [])
   // atalhos do ícone do app (?ir=trabalho / ?ir=casa): abre o trajeto direto, saindo de onde você está
   useEffect(() => {

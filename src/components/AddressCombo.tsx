@@ -5,7 +5,7 @@ import { distLabel, matchLocal, parseCep, parseCoords, type PlaceHit } from '../
 import type { LatLon } from '../domain/types'
 import { lastView } from '../hooks/location'
 import { resolveShared, searchPlaces } from '../services/places'
-import { looksShared, parseShared } from '../domain/shareParse'
+import { looksShared, parseShared, shortLinkOnly, SHORT_LINK_HELP } from '../domain/shareParse'
 import { useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
 
@@ -57,8 +57,11 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
     const t = q.trim(), co = parseCoords(t)
     if (co) { seq.current++; setBusy(false); setOpen(false); onPick(co, ''); setText('Ponto colado'); return }
     // texto compartilhado do Google Maps (nome, endereço, link) colado aqui: acha o lugar pelo endereço
+    if (shortLinkOnly(q)) {
+      seq.current++; setBusy(false); setItems([]); setOpen(true); setMsg(SHORT_LINK_HELP); return
+    }
     if (looksShared(q)) {
-      const sh = parseShared({ text: q })
+      const sh = parseShared({ text: q }, near() ?? undefined)
       if (sh) {
         const my = ++seq.current
         setItems([]); setMsg(''); setOpen(true); setBusy(true)
@@ -66,7 +69,7 @@ export function AddressCombo({ id, value, placeholder, label, onPick, onClear, c
           if (my !== seq.current) return
           setBusy(false)
           if (r) { setOpen(false); setText(r.name); onPick(r.ll, r.name) }
-          else setMsg('Não achei o endereço desse link. Busque pelo nome ou marque no mapa.')
+          else setMsg('Não achei esse lugar. Busque pelo nome ou marque no mapa.')
         })
         return
       }

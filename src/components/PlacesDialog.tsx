@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ChevronDown, ChevronUp, ClipboardPaste, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { KINDS, guessKind, kindOf, type KindId } from '../domain/placeKinds'
 import type { LatLon } from '../domain/types'
 import { useSettings } from '../store/settings'
@@ -10,7 +10,7 @@ import { KindIcon } from './KindIcon'
 import { MiniMapPin } from './MiniMapPin'
 import { lastView } from '../hooks/location'
 import { resolveShared } from '../services/places'
-import type { SharedPlace } from '../domain/shareParse'
+import { parseShared, shortLinkOnly, SHORT_LINK_HELP, type SharedPlace } from '../domain/shareParse'
 
 /** Escolha do tipo: fileira de botões com ícone. */
 function KindPicker({ value, onChange, idPrefix }: { value: string; onChange: (k: KindId) => void; idPrefix: string }) {
@@ -36,7 +36,7 @@ export function PlacesDialog() {
   )
 }
 
-function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; shared?: SharedPlace }; close: () => void }) {
+function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; shared?: SharedPlace; notice?: string }; close: () => void }) {
   const s = useSettings()
   // veio do mapa ("Salvar lugar"): já traz o ponto e o nome da rua
   const [name, setName] = useState((start.name ?? '').split(',')[0].slice(0, 30)), [kind, setKind] = useState<KindId | null>(null)
@@ -44,19 +44,32 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
   const [editing, setEditing] = useState<string | null>(null), [msg, setMsg] = useState('')
   // lugar compartilhado de outro app (Google Maps…): procura o ponto pelas coordenadas, endereço, CEP ou nome
   const [sharing, setSharing] = useState(!!start.shared && !start.ll), [precise, setPrecise] = useState<boolean | null>(start.ll ? true : null)
-  useEffect(() => {
-    const sh = start.shared; if (!sh || start.ll) return
-    const near = useTrip.getState().me?.pos ?? lastView()?.c ?? null
-    let alive = true
+  const nearNow = () => useTrip.getState().me?.pos ?? lastView()?.c ?? null
+  const alive = useRef(true)
+  useEffect(() => () => { alive.current = false }, [])
+  /** Procura o ponto do lugar compartilhado/colado e prepara para salvar. */
+  function applyShared(sh: SharedPlace) { setSharing(true); setMsg(''); resolveAndShow(sh) }
+  function resolveAndShow(sh: SharedPlace) {
+    const near = nearNow()
     resolveShared(sh, near).then(r => {
-      if (!alive) return
+      if (!alive.current) return
       setSharing(false)
       if (r) { setPt({ ll: r.ll, addr: r.addr }); setName(r.name.slice(0, 30)); setPrecise(r.precise) }
       else { setPt({ ll: near ?? [-15.82, -48.0], addr: sh.address ?? '' }); setName((sh.name ?? '').slice(0, 30)); setPrecise(false)
-        setMsg('Não achei o endereço desse link. Arraste o alfinete até o lugar no mapinha abaixo.') }
+        setMsg('Não achei esse lugar. Arraste o alfinete até ele no mapinha abaixo.') }
     })
-    return () => { alive = false }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }
+  // o estado inicial já começa "procurando" quando veio um compartilhamento
+  useEffect(() => { if (start.shared && !start.ll) resolveAndShow(start.shared) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  /** "Colar do Google Maps": lê o que você copiou (código do lugar, endereço ou texto compartilhado). */
+  async function pasteFromMaps() {
+    let t = ''
+    try { t = await navigator.clipboard.readText() } catch { setMsg('O celular não deixou ler o que foi copiado. Toque na busca acima e cole por lá.'); return }
+    if (!t.trim()) { setMsg('Nada copiado. No Google Maps, toque no código do lugar (como 2V8R+XG) ou no endereço para copiar.'); return }
+    if (shortLinkOnly(t)) { setMsg(SHORT_LINK_HELP); return }
+    const sh = parseShared({ text: t }, nearNow() ?? undefined) ?? { address: t.trim().slice(0, 200) }
+    applyShared(sh)
+  }
   const autoKind = kind ?? guessKind(name)
   function add() {
     if (!pt) return
@@ -73,11 +86,13 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
       <div className="dlg-body">
         <section className="pl-add" aria-labelledby="pl-add-title">
           <h3 id="pl-add-title">Adicionar lugar</h3>
-          {sharing && <p className="note" id="pl-sharing" style={{ margin: 0 }}>Procurando o lugar compartilhado…</p>}
+          {start.notice && !pt && !msg && <p className="note" style={{ margin: 0 }}>{start.notice}</p>}
+          {sharing && <p className="note" id="pl-sharing" style={{ margin: 0 }}>Procurando o lugar…</p>}
           {pt
             ? <div className="pl-picked"><span><b>{pt.addr.split(',')[0] || 'Ponto no mapa'}</b><small>{pt.addr.split(',').slice(1).join(',').trim()}</small></span><button className="linkbtn" type="button" onClick={() => { setPt(null); setPrecise(null) }}>Trocar</button></div>
             : <AddressCombo id="pl-search" label="Endereço do lugar" placeholder="Busque o endereço ou o nome do lugar" value=""
                 onPick={(ll, label) => { setPt({ ll, addr: label }); setPrecise(null); if (!name) setName((label || '').split(',')[0].slice(0, 30)) }} />}
+          {!pt && !sharing && <button className="btn pl-paste" type="button" id="pl-paste" onClick={pasteFromMaps}><ClipboardPaste className="i" />Colar do Google Maps</button>}
           {pt && <>
             <MiniMapPin ll={pt.ll} onMove={ll => { setPt(p => p ? { ...p, ll } : p); setPrecise(true) }} />
             <p className={'pl-precise' + (precise === false ? ' approx' : '')} id="pl-precise">{precise === false

@@ -123,6 +123,16 @@ await page.evaluate(() => { const i = document.getElementById("where"); i.focus(
 await page.waitForTimeout(1600);
 assert.match(await page.textContent(".triphead"), /Mercado do Teste/, "o lugar colado vira o destino com o nome do Google");
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
+// só o link curto do Google: explica o que copiar em vez de fingir que entendeu
+await page.evaluate(() => { const i = document.getElementById("where"); i.focus(); const dt = new DataTransfer(); dt.setData("text/plain", "https://maps.app.goo.gl/AbC123"); i.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })); });
+await page.waitForTimeout(300);
+assert.match(await page.textContent(".sugg"), /link curto.*código do lugar/s);
+// Plus Code do Google (curto, com a cidade): posição exata, sem internet
+await page.fill("#where", "5WF5+C8 Cidade, UF"); await page.waitForTimeout(800);
+assert.match(await page.textContent(".triphead"), /Trocar destino|Você/, "o código vira destino");
+const dest = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).recent[0]);
+assert.ok(dest && Math.abs(dest.lat - -15.8264) < 0.001 && Math.abs(dest.lon - -48.0917) < 0.001, "posição exata do Plus Code: " + JSON.stringify(dest));
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
 
 // tela inicial: você no mapa e o clima onde você está
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
@@ -220,7 +230,7 @@ await page.waitForTimeout(1200);
 assert.match(await page.textContent(".triphead"), /Rua 9|Ponto no mapa/);
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click());
 await page.waitForTimeout(500);
-assert.ok(await page.locator(".sc.recent").count() === 1, "o ponto usado vira atalho de destino recente");
+assert.match(await page.textContent(".sc.recent"), /Rua 9|Ponto no mapa/, "o ponto usado vira atalho de destino recente (o mais recente primeiro)");
 // fechar sem querer: "Desfazer" reabre o trajeto
 assert.ok(await page.locator("#undo").count() === 1, "fechar o trajeto oferece desfazer");
 await page.evaluate(() => document.getElementById("undo").click()); await page.waitForTimeout(800);

@@ -83,7 +83,7 @@ interface TripState {
   /** tela "Seus pedais" aberta */
   historyOpen: boolean
   /** tela "Meus lugares" aberta (com um ponto para salvar, quando vem do mapa) */
-  placesOpen: null | { ll?: LatLon; name?: string; shared?: SharedPlace }
+  placesOpen: null | { ll?: LatLon; name?: string; shared?: SharedPlace; notice?: string }
   /** página de apresentação (primeira visita pelo navegador ou link "Sobre") */
   landing: boolean
   /** qualidade do ar onde você está */

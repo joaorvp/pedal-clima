@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.26.0'
+export const CURRENT_APP_VERSION = '2.26.1'
 export const CHANGELOG = [
+  {
+    version: '2.26.1',
+    title: 'Código do lugar do Google Maps',
+    items: [
+      'Cole o código do lugar que o Google Maps mostra (como "2V8R+XG", ao lado do ícone de alvo) na busca ou em Meus lugares: o app acha a posição exata, sem internet.',
+      'Novo botão "Colar do Google Maps" em Meus lugares, para colar com um toque o código ou o endereço copiado.',
+      'Se chegar só o link curto do Google, o app explica o que copiar no lugar dele.',
+    ],
+  },
   {
     version: '2.26.0',
     title: 'Salve lugares direto do Google Maps',
