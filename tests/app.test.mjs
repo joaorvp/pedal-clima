@@ -146,6 +146,14 @@ const dest = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalcli
 assert.ok(dest && Math.abs(dest.lat - -15.8264) < 0.001 && Math.abs(dest.lon - -48.0917) < 0.001, "posição exata do Plus Code: " + JSON.stringify(dest));
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
 
+// atualizar: a rodinha gira enquanto atualiza e depois aparece "atualizado agora"
+await page.click("#refresh"); await page.waitForTimeout(150);
+assert.ok(await page.evaluate(() => document.getElementById("refresh").classList.contains("spin")), "a rodinha gira ao atualizar");
+assert.match(await page.textContent("#updated"), /atualizando/);
+await page.waitForTimeout(1500);
+assert.ok(!(await page.evaluate(() => document.getElementById("refresh").classList.contains("spin"))), "para de girar ao terminar");
+assert.match(await page.textContent("#updated"), /atualizado agora/);
+
 // tela inicial: você no mapa e o clima onde você está
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
 assert.match(await page.textContent("#v-title"), /Seco por aqui|Chuva|aqui agora/);

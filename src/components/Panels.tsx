@@ -1,5 +1,5 @@
 import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal, Star } from 'lucide-react'
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, clearTime, evaluate } from '../domain/weather'
@@ -10,16 +10,26 @@ import { onStorageFull, storageFull } from '../services/cache'
 import { Icon } from './icons'
 
 export function AppBar({ onSettings }: { onSettings: () => void }) {
-  const loading = useTrip(s => s.loading), offline = useTrip(s => s.offline), mode = useTrip(s => s.mode)
+  const busy = useTrip(s => s.loading || s.localLoading), offline = useTrip(s => s.offline), mode = useTrip(s => s.mode)
   const wxAt = useTrip(s => s.mode === 'trip' ? s.wxAt : s.local?.at ?? 0)
-  const label = loading ? (wxAt ? `previsão ${hhmm(wxAt)} · atualizando…` : 'carregando…') : offline ? `sem conexão · previsão ${hhmm(wxAt)}` : wxAt ? `previsão ${hhmm(wxAt)}` : ''
+  // a rodinha gira enquanto atualiza (pelo menos ~0,8 s, para dar para ver) e depois mostra "atualizado agora"
+  const [held, setHeld] = useState(false), [done, setDone] = useState(false), started = useRef(0)
+  useEffect(() => {
+    if (busy || !held) return
+    const t = setTimeout(() => { setHeld(false); setDone(true) }, Math.max(0, 800 - (Date.now() - started.current)))
+    return () => clearTimeout(t)
+  }, [busy, held])
+  useEffect(() => { if (!done) return; const t = setTimeout(() => setDone(false), 3000); return () => clearTimeout(t) }, [done])
+  const spinning = busy || held
+  const label = spinning ? (wxAt ? 'atualizando…' : 'carregando…') : offline ? `sem conexão · previsão ${hhmm(wxAt)}` : done && !offline ? 'atualizado agora' : wxAt ? `previsão ${hhmm(wxAt)}` : ''
   return (
     <header className="appbar">
       <div className="in">
         <img className="logo" src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={32} height={32} />
         <p className="brand">Pedágua</p>
-        <span className="upd" id="updated">{label}</span>
-        <button className={'ibtn' + (loading ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" onClick={() => useTrip.getState().refresh()} data-mode={mode}><RefreshCw className="i" /></button>
+        <span className="upd" id="updated" role="status" aria-live="polite" data-done={done ? '1' : undefined}>{label}</span>
+        <button className={'ibtn' + (spinning ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" aria-busy={spinning} disabled={spinning}
+          onClick={() => { started.current = Date.now(); setHeld(true); setDone(false); useTrip.getState().refresh() }} data-mode={mode}><RefreshCw className="i" /></button>
         <button className="ibtn" id="open-places" type="button" aria-label="Meus lugares: salvos por tipo" onClick={() => useTrip.getState().set({ placesOpen: {} })}><Star className="i" /></button>
         <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais: histórico e totais" onClick={() => useTrip.getState().set({ historyOpen: true })}><History className="i" /></button>
         <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes: lugares, velocidade e rotina" onClick={onSettings}><SlidersHorizontal className="i" /></button>

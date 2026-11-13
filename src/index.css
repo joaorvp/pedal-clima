@@ -786,3 +786,6 @@ button.hist-row{cursor:pointer}
 .pl-precise.approx{color:var(--warn)}
 .pl-alt{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pl-alt .btn{justify-content:center;min-height:44px;padding-inline:8px}
+.ibtn.spin{opacity:1}
+.ibtn:disabled{cursor:default}
+.upd[data-done]{color:var(--accent);opacity:1;font-weight:600}

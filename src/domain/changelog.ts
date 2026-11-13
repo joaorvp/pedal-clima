@@ -1,6 +1,11 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.26.2'
+export const CURRENT_APP_VERSION = '2.26.3'
 export const CHANGELOG = [
+  {
+    version: '2.26.3',
+    title: 'Botão de atualizar com rodinha',
+    items: ['O botão de atualizar volta a girar enquanto atualiza, também na tela inicial, e ao terminar mostra "atualizado agora".'],
+  },
   {
     version: '2.26.2',
     title: 'Marcar lugares no mapa, com satélite',

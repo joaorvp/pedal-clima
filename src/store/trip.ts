@@ -65,6 +65,8 @@ interface TripState {
   sun: SunTimes | null
   alerts: InmetAlert[] | null
   loading: boolean
+  /** atualizando o clima de onde você está (tela inicial) */
+  localLoading: boolean
   offline: boolean
   error: string
   routeNote: string
@@ -134,7 +136,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   mode: 'explore', origin: { kind: 'me' }, dest: null, vias: [], dep: null,
   me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
-  loading: false, offline: false, error: '', routeNote: '',
+  loading: false, localLoading: false, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
   ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, shelters: null, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
@@ -172,6 +174,10 @@ export const useTrip = create<TripState>()((set, get) => ({
   },
 
   refreshLocal: async () => {
+    set({ localLoading: true })
+    // no máximo 12 s girando: um serviço lento (radar, alertas) não pode deixar o "atualizando" para sempre
+    try { await Promise.race([refreshLocalNow(), new Promise(r => setTimeout(r, 12e3))]) } finally { set({ localLoading: false }) }
+    async function refreshLocalNow() {
     const st = get(), s0 = useSettings.getState()
     // sem localização: a casa (se cadastrada) ou a região do mapa, nunca o ponto de exemplo de fábrica
     const ll = st.me?.pos ?? (st.mode === 'trip' ? endpointLL(st.origin, st.me) : null) ?? (s0.homeSet ? s0.home : readJson<{ c: LatLon }>('pedalclima.view')?.c ?? s0.home)
@@ -181,6 +187,7 @@ export const useTrip = create<TripState>()((set, get) => ({
     try { const wx = await fetchLocalWeather(ll); const local = { wx, at: Date.now(), ll }; set({ local, offline: false }); writeJson(LOCAL_KEY, local) }
     catch { const cached = get().local ?? readJson<TripState['local']>(LOCAL_KEY); if (cached) set({ local: cached, offline: true }) }
     await Promise.all([radarP, alertsP, airP])
+    }
   },
 
   refresh: async () => {
