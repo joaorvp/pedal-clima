@@ -3,6 +3,7 @@ import type { InmetAlert } from '../domain/alerts'
 import { prepRoute } from '../domain/routes'
 import { matchSaved } from '../domain/savedRoutes'
 import type { SharedPlace } from '../domain/shareParse'
+import type { BikeSpot } from '../domain/bikeSpots'
 import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import type { Shelter } from '../domain/shelter'
 import { readJson, removeKey, writeJson } from '../services/cache'
@@ -68,6 +69,8 @@ interface TripState {
   loading: boolean
   /** atualizando o clima de onde você está (tela inicial) */
   localLoading: boolean
+  /** perto do destino: bicicletários, bebedouros, conserto */
+  spots: null | { state: 'loading' | 'ok' | 'empty' | 'error'; list: BikeSpot[] }
   /** o radar mostra chuva onde você está agora (null: não deu para ler) */
   radarHere: boolean | null
   offline: boolean
@@ -139,7 +142,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   mode: 'explore', origin: { kind: 'me' }, dest: null, vias: [], dep: null,
   me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
-  loading: false, localLoading: false, radarHere: null, offline: false, error: '', routeNote: '',
+  loading: false, localLoading: false, spots: null, radarHere: null, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
   ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, shelters: null, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
@@ -150,12 +153,12 @@ export const useTrip = create<TripState>()((set, get) => ({
   startTrip: (dest, origin) => {
     if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
-    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], viaName: '', shelters: null, sheet: 'peek', error: '', arrived: false })
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], viaName: '', shelters: null, spots: null, sheet: 'peek', error: '', arrived: false })
     get().refresh()
   },
   closeTrip: () => {
     const prev = { origin: get().origin, dest: get().dest, vias: get().vias, routes: get().routes, sel: get().sel, dep: get().dep }
-    set({ mode: 'explore', dest: null, routes: [], vias: [], dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
+    set({ mode: 'explore', dest: null, routes: [], vias: [], spots: null, dep: null, routeNote: '', error: '', arrived: false, summary: null, centerNonce: get().centerNonce + 1 })
     get().refreshLocal()
     if (prev.dest) useUndo.getState().show('Trajeto fechado', () => { set({ mode: 'trip', ...prev, fitNonce: get().fitNonce + 1 }); if (!prev.routes.length) get().refresh() })
   },
@@ -166,7 +169,7 @@ export const useTrip = create<TripState>()((set, get) => ({
     const origin = which === 'origin' ? e : st.origin, dest = which === 'dest' ? e : st.dest
     // recálculo no pedal (nova origem = você) mantém o ponto de passagem, como um abrigo escolhido
     const keepVia = which === 'origin' && !!st.ride
-    set({ origin, dest, routes: [], vias: keepVia ? st.vias : [], viaName: keepVia ? st.viaName : '', shelters: null, error: '' })
+    set({ origin, dest, routes: [], vias: keepVia ? st.vias : [], viaName: keepVia ? st.viaName : '', shelters: null, spots: which === 'dest' ? null : st.spots, error: '' })
     get().refresh()
   },
   swap: () => {

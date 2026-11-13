@@ -133,3 +133,20 @@ describe('exportar GPX', async () => {
     expect(gpxFileName(new Date(2026, 10, 13, 8, 5).getTime(), 'Casa da Mãe')).toBe('pedagua-2026-11-13-0805-casa-da-mae.gpx')
   })
 })
+
+describe('onde deixar a bike', async () => {
+  const { rankSpots, spotsQuery } = await import('./bikeSpots')
+  it('ordena por tipo e distância e descreve as vagas', () => {
+    const ref: [number, number] = [-15.8, -48.0]
+    const r = rankSpots({ elements: [
+      { id: 1, type: 'node', lat: -15.801, lon: -48.0, tags: { amenity: 'drinking_water' } },
+      { id: 2, type: 'node', lat: -15.8005, lon: -48.0, tags: { amenity: 'bicycle_parking', capacity: '10', covered: 'yes' } },
+      { id: 3, type: 'way', center: { lat: -15.803, lon: -48.0 }, tags: { amenity: 'bicycle_parking' } },
+      { id: 4, type: 'node', lat: -15.8, lon: -48.001, tags: { shop: 'bicycle', name: 'Bike X' } },
+      { id: 5, type: 'node', lat: -15.8, lon: -48.0, tags: { amenity: 'bench' } },
+    ] }, ref)
+    expect(r.map(s => s.kind)).toEqual(['parking', 'parking', 'water', 'shop'])
+    expect(r[0].detail).toBe('10 vagas · coberto'); expect(r[0].name).toBe('Bicicletário'); expect(r[3].name).toBe('Bike X')
+    expect(spotsQuery(ref, 400)).toContain('bicycle_parking')
+  })
+})
