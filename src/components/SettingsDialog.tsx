@@ -1,4 +1,5 @@
-import { Crosshair, Download, ImagePlus, Star, Trash2, Upload, X } from 'lucide-react'
+import { Crosshair, Download, ImagePlus, Trash2, Upload, X } from 'lucide-react'
+import { PlacePinIcon } from './bikeIcons'
 import { useRef, useState } from 'react'
 import { accuracyText } from '../domain/calibration'
 import { STOP_FACTOR, useSettings, type PointKey } from '../store/settings'
@@ -53,8 +54,8 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
         <div className="sec" id="sec-places" ref={el => { if (el && focus === 'places') el.scrollIntoView({ block: 'start' }) }}>
           <h3>Meus lugares</h3>
           <button className="btn imp-open" type="button" id="open-places-settings" onClick={() => { onClose(); useTrip.getState().set({ placesOpen: {} }) }}>
-            <Star className="i" />{s.places.length ? `Ver e organizar (${s.places.length} ${s.places.length === 1 ? 'lugar' : 'lugares'})` : 'Adicionar lugares'}</button>
-          <p className="note">Academia, mercado, família, amigos…: cada lugar com o seu tipo e ícone. Também fica no botão de estrela no topo do app.</p>
+            <PlacePinIcon />{s.places.length ? `Ver e organizar (${s.places.length} ${s.places.length === 1 ? 'lugar' : 'lugares'})` : 'Adicionar lugares'}</button>
+          <p className="note">Academia, mercado, família, amigos…: cada lugar com o seu tipo e ícone. Também fica no alfinete com estrela, no topo do app.</p>
         </div>
 
         <div className="sec" id="sec-routes">

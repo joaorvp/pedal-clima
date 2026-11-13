@@ -3,8 +3,11 @@ export const CURRENT_APP_VERSION = '2.28.1'
 export const CHANGELOG = [
   {
     version: '2.28.1',
-    title: 'Trajeto mais enxuto',
-    items: ['Saíram os cartões "Onde me abrigar" e "Onde deixar a bike": dependiam de dados de mapa que quase nunca tinham esses lugares cadastrados.'],
+    title: 'Ícones com cara de bike',
+    items: [
+      'Novos ícones no topo: a roda (atualizar, gira enquanto atualiza), o alfinete com estrela (Meus lugares), o velocímetro (Seus pedais) e a coroa da corrente (Ajustes).',
+      'Saíram os cartões "Onde me abrigar" e "Onde deixar a bike": dependiam de dados de mapa que quase nunca tinham esses lugares cadastrados.',
+    ],
   },
   {
     version: '2.28.0',

@@ -1,4 +1,5 @@
-import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal, Star, Wrench } from 'lucide-react'
+import { CloudLightning, CloudRain, MapPin, Wrench } from 'lucide-react'
+import { ChainringIcon, PlacePinIcon, SpeedoIcon, WheelIcon } from './bikeIcons'
 import { maintenance } from '../domain/maintenance'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { checklist } from '../domain/advice'
@@ -30,10 +31,10 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
         <p className="brand">Pedágua</p>
         <span className="upd" id="updated" role="status" aria-live="polite" data-done={done ? '1' : undefined}>{label}</span>
         <button className={'ibtn' + (spinning ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" aria-busy={spinning} disabled={spinning}
-          onClick={() => { started.current = Date.now(); setHeld(true); setDone(false); useTrip.getState().refresh() }} data-mode={mode}><RefreshCw className="i" /></button>
-        <button className="ibtn" id="open-places" type="button" aria-label="Meus lugares: salvos por tipo" onClick={() => useTrip.getState().set({ placesOpen: {} })}><Star className="i" /></button>
-        <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais: histórico e totais" onClick={() => useTrip.getState().set({ historyOpen: true })}><History className="i" /></button>
-        <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes: lugares, velocidade e rotina" onClick={onSettings}><SlidersHorizontal className="i" /></button>
+          onClick={() => { started.current = Date.now(); setHeld(true); setDone(false); useTrip.getState().refresh() }} data-mode={mode}><WheelIcon /></button>
+        <button className="ibtn" id="open-places" type="button" aria-label="Meus lugares: salvos por tipo" onClick={() => useTrip.getState().set({ placesOpen: {} })}><PlacePinIcon /></button>
+        <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais: histórico, conquistas e manutenção" onClick={() => useTrip.getState().set({ historyOpen: true })}><SpeedoIcon /></button>
+        <button className="ibtn" id="open-settings" type="button" aria-label="Ajustes: casa, trabalho, rotina e aparência" onClick={onSettings}><ChainringIcon /></button>
       </div>
     </header>
   )
