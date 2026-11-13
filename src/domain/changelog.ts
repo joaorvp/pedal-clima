@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.26.3'
+export const CURRENT_APP_VERSION = '2.27.0'
 export const CHANGELOG = [
+  {
+    version: '2.27.0',
+    title: 'Radar de chuva de volta no celular',
+    items: [
+      'As áreas de chuva do radar (a névoa azul no mapa) voltaram a aparecer no celular. A imagem do radar era esticada além do que o celular consegue desenhar.',
+      'O cartão "Onde você está" agora confere o radar: se estiver chovendo aí e a previsão disser seco, ele mostra "Chovendo aqui agora".',
+    ],
+  },
   {
     version: '2.26.3',
     title: 'Botão de atualizar com rodinha',

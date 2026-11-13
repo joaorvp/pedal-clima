@@ -3,16 +3,24 @@ import { CATS, cat, hourlyAt, rateAt } from './weather'
 import type { Level, PointWeather } from './types'
 import type { IconName } from './advice'
 
-export interface LocalSummary { level: Level; icon: IconName; title: string; sub: string; temp: number | null; wind: number | null; raining: boolean }
+export interface LocalSummary { level: Level; icon: IconName; title: string; sub: string; temp: number | null; wind: number | null; raining: boolean; /** decidido pelo radar */ radar?: boolean }
 
 /** Clima onde você está, olhando a chuva a cada 15 min nas próximas 3 h. */
-export function localSummary(w: PointWeather, now: number): LocalSummary {
+/**
+ * Resumo do clima onde você está. `radarRain` = o radar mostra chuva no seu ponto agora: o modelo de previsão
+ * (quadrados de alguns km) perde pancadas localizadas, e o radar manda nessa hora.
+ */
+export function localSummary(w: PointWeather, now: number, radarRain: boolean | null = null): LocalSummary {
   const step = 15 * 60e3, horizon = 12
   const rates = Array.from({ length: horizon + 1 }, (_, k) => rateAt(w, now + k * step))
   const temp = hourlyAt(w, now, 'temperature_2m'), wind = hourlyAt(w, now, 'wind_speed_10m')
   const code = hourlyAt(w, now, 'weather_code') ?? 0, day = hourlyAt(w, now, 'is_day') ?? 1
   const storm = code >= 95
-  const base = { temp, wind, raining: rates[0] >= 0.2 }
+  const base = { temp, wind, raining: rates[0] >= 0.2 || radarRain === true }
+  if (radarRain === true && rates[0] < 0.2) {
+    return { ...base, level: storm ? 'bad' : 'warn', icon: storm ? 'storm' : 'rain', title: storm ? 'Trovoada aqui agora' : 'Chovendo aqui agora',
+      sub: 'O radar mostra chuva onde você está, mesmo sem a previsão esperar. Costuma ser uma pancada passageira.', radar: true }
+  }
   if (rates[0] >= 0.2) {
     const stop = rates.findIndex(r => r < 0.2)
     const what = CATS[cat(rates[0])].label

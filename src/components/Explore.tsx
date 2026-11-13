@@ -17,7 +17,8 @@ import { Icon } from './icons'
 /** Clima onde você está agora: o resumo que aparece ao abrir o app. */
 export function LocalCard() {
   const local = useTrip(s => s.local), now = useTrip(s => s.now), loc = useTrip(s => s.locStatus), me = useTrip(s => s.me), watch = useTrip(s => s.watchClear)
-  const sum = local ? localSummary(local.wx, now) : null
+  const radarHere = useTrip(s => s.radarHere)
+  const sum = local ? localSummary(local.wx, now, radarHere) : null
   const air = useTrip(s => s.air)
   const humidity = local ? hourlyAt(local.wx, now, 'relative_humidity_2m') : null
   const comfort = local ? comfortAlerts({ feels: hourlyAt(local.wx, now, 'apparent_temperature'), humidity, aqi: air?.aqi ?? null }) : []

@@ -40,3 +40,24 @@ export async function radarHasRain(host: string, paths: string[], b: { n: number
   if (res.some(v => v === true)) return true
   return res.some(v => v === null) ? null : false
 }
+
+/**
+ * Chuva no radar exatamente onde você está (raio de ~2 km na imagem mais recente).
+ * true: o radar mostra chuva; false: seco; null: não deu para ler a imagem.
+ */
+export async function radarRainAt(host: string, path: string, ll: [number, number]): Promise<boolean | null> {
+  const z = 7, n = 2 ** z, r = ll[0] * Math.PI / 180
+  const fx = (ll[1] + 180) / 360 * n, fy = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n
+  const tx = Math.floor(fx), ty = Math.floor(fy), px = Math.floor((fx - tx) * 256), py = Math.floor((fy - ty) * 256)
+  try {
+    const res = await fetch(`${host}${path}/256/${z}/${tx}/${ty}/2/1_1.png`, { mode: 'cors' }); if (!res.ok) return null
+    const img = await createImageBitmap(await res.blob())
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height
+    const ctx = c.getContext('2d', { willReadFrequently: true }); if (!ctx) return null
+    ctx.drawImage(img, 0, 0)
+    const R = 2, x0 = Math.max(0, px - R), y0 = Math.max(0, py - R)
+    const d = ctx.getImageData(x0, y0, Math.min(img.width - x0, 2 * R + 1), Math.min(img.height - y0, 2 * R + 1)).data
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 60) return true
+    return false
+  } catch { return null }
+}

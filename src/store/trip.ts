@@ -7,6 +7,7 @@ import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
 import type { Shelter } from '../domain/shelter'
 import { readJson, removeKey, writeJson } from '../services/cache'
 import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
+import { radarRainAt } from '../services/radarProbe'
 import { fetchAir, fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
 import { fetchRoutes } from '../services/routing'
 import { useSettings, type PointKey } from './settings'
@@ -67,6 +68,8 @@ interface TripState {
   loading: boolean
   /** atualizando o clima de onde você está (tela inicial) */
   localLoading: boolean
+  /** o radar mostra chuva onde você está agora (null: não deu para ler) */
+  radarHere: boolean | null
   offline: boolean
   error: string
   routeNote: string
@@ -136,7 +139,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   mode: 'explore', origin: { kind: 'me' }, dest: null, vias: [], dep: null,
   me: null, locStatus: 'idle', local: null,
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
-  loading: false, localLoading: false, offline: false, error: '', routeNote: '',
+  loading: false, localLoading: false, radarHere: null, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
   ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, shelters: null, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
@@ -181,7 +184,13 @@ export const useTrip = create<TripState>()((set, get) => ({
     const st = get(), s0 = useSettings.getState()
     // sem localização: a casa (se cadastrada) ou a região do mapa, nunca o ponto de exemplo de fábrica
     const ll = st.me?.pos ?? (st.mode === 'trip' ? endpointLL(st.origin, st.me) : null) ?? (s0.homeSet ? s0.home : readJson<{ c: LatLon }>('pedalclima.view')?.c ?? s0.home)
-    const radarP = fetchRadar().then(r => { if (r) set(s => ({ radar: { ...s.radar, host: r.host, frames: r.frames, idx: Math.max(0, r.frames.length - 1) } })) })
+    const radarP = fetchRadar().then(async r => {
+      if (!r) return
+      set(s => ({ radar: { ...s.radar, host: r.host, frames: r.frames, idx: Math.max(0, r.frames.length - 1) } }))
+      // confere no radar se está chovendo exatamente aqui (a previsão perde pancadas localizadas)
+      const last = r.frames[r.frames.length - 1]
+      if (last) set({ radarHere: await radarRainAt(r.host, last.path, ll) })
+    })
     const alertsP = fetchAlerts().then(alerts => set({ alerts }))
     const airP = fetchAir(ll).then(air => { if (air) set({ air }) })
     try { const wx = await fetchLocalWeather(ll); const local = { wx, at: Date.now(), ll }; set({ local, offline: false }); writeJson(LOCAL_KEY, local) }

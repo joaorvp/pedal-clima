@@ -72,7 +72,7 @@ export default function App() {
   }, [watchClear])
   useEffect(() => {
     if (!watchClear || !local) return
-    if (!localSummary(local.wx, Date.now()).raining) { useTrip.getState().set({ watchClear: false }); rainStopped() }
+    if (!localSummary(local.wx, Date.now(), useTrip.getState().radarHere).raining) { useTrip.getState().set({ watchClear: false }); rainStopped() }
   }, [watchClear, local])
   // trocar o tipo de rota recalcula o trajeto aberto
   useEffect(() => { if (useTrip.getState().mode === 'trip') { useTrip.getState().set({ routes: [] }); useTrip.getState().refresh() } }, [profile])

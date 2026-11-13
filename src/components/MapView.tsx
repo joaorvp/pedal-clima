@@ -10,6 +10,7 @@ import { lastView, saveView, startLocation } from '../hooks/location'
 import { Speedometer } from './Speedometer'
 import { guessKind, kindOf } from '../domain/placeKinds'
 import { radarHasRain } from '../services/radarProbe'
+import { radarGrid } from '../lib/radarLayer'
 import { NextTurn } from './NextTurn'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings, type PointKey } from '../store/settings'
@@ -292,7 +293,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
 
   // radar: no dia a dia só o quadro mais recente (um pedido por imagem, como sempre foi; o RainViewer gratuito limita
   // pedidos por aparelho). Ao tocar ▶, os quadros da última hora são carregados e a animação só troca a opacidade.
-  const radarLayers = useRef(new Map<string, L.TileLayer>())
+  const radarLayers = useRef(new Map<string, L.GridLayer>())
   const [radarErr, setRadarErr] = useState(false)
   useEffect(() => {
     if (!map || !ly) return
@@ -302,7 +303,8 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     const want = new Set(radar.playing ? radar.frames.map(f => f.path) : [latest])
     layers.forEach((l, k) => { if (!want.has(k)) { map.removeLayer(l); layers.delete(k) } })
     for (const f of radar.frames) if (want.has(f.path) && !layers.has(f.path)) {
-      const l = L.tileLayer(`${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { pane: 'radar', opacity: 0, maxNativeZoom: 7, maxZoom: 19, attribution: 'Radar: RainViewer' })
+      // radarGrid recorta a imagem do zoom 7 em quadrados de 256 px (esticar a imagem inteira passava do limite do celular)
+      const l = radarGrid({ url: `${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, pane: 'radar', opacity: 0, maxZoom: 19, attribution: 'Radar: RainViewer' })
       // o servidor recusou as imagens (fora do ar ou limite de pedidos): avisa no canto do mapa em vez de mostrar um radar vazio
       if (f.path === latest) l.on('tileerror', () => setRadarErr(true)).on('tileload', () => setRadarErr(false))
       layers.set(f.path, l.addTo(map))

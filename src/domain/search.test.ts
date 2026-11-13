@@ -78,3 +78,15 @@ describe('comércios pelo nome', async () => {
     expect(overpassHit({ lat: 1, lon: 2, tags: {} })).toBeNull()
   })
 })
+
+describe('radar onde você está', async () => {
+  const { localSummary } = await import('./local')
+  const { sampleRoute } = await import('./testData')
+  const now = Math.floor(Date.now() / 900e3) * 900e3
+  it('previsão seca, mas o radar mostra chuva aqui: "Chovendo aqui agora"', () => {
+    const w = sampleRoute(now / 1000, false).wx![0]
+    expect(localSummary(w, now).title).toBe('Seco por aqui')
+    const s = localSummary(w, now, true)
+    expect(s.title).toBe('Chovendo aqui agora'); expect(s.raining).toBe(true); expect(s.radar).toBe(true)
+  })
+})
