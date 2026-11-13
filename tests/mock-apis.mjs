@@ -64,8 +64,3 @@ export function routeShot() {
 }
 export const nominatimJson = [{ lat: "-15.95", lon: "-48.20", name: "Lugar Nominatim", address: { road: "Rua 7", suburb: "Bairro W", city: "Cidade" } }];
 export const viacepJson = { cep: "72000-000", logradouro: "Rua 9", bairro: "Bairro Z", localidade: "Cidade", uf: "UF" };
-export const spotsJson = { elements: [
-  { type: "node", id: 21, lat: -15.8031, lon: -47.9554, tags: { amenity: "bicycle_parking", capacity: "12", covered: "yes" } },
-  { type: "node", id: 22, lat: -15.8036, lon: -47.9550, tags: { amenity: "drinking_water" } },
-  { type: "node", id: 23, lat: -15.8040, lon: -47.9560, tags: { shop: "bicycle", name: "Bike Loja Teste" } },
-] };

@@ -463,14 +463,6 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .fab#cycle-toggle[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 
 /* ---------- Onde me abrigar ---------- */
-.shelter h2 svg{width:16px;height:16px;color:var(--link)}
-.shelter > .btn{width:100%;justify-content:center;min-height:44px}
-.shelters{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.shelters li{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface-2);border-radius:12px;padding:8px 8px 8px 10px}
-.shelters .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--link) 14%,transparent);color:var(--link)}
-.shelters b{display:block;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.shelters small{display:block;color:var(--muted);font-size:12.5px}
-.shelter-pin{width:30px;height:30px;border-radius:50%;background:var(--link);color:#fff;border:3px solid #fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .linkbtn{border:0;background:none;color:var(--link);font-weight:600;padding:0;cursor:pointer;text-decoration:underline}
 
 /* ---------- Seus pedais ---------- */
@@ -828,8 +820,3 @@ button.hist-row{cursor:pointer}
 .maint-banner{width:100%;border:0;text-align:left;color:var(--ink);font:inherit;cursor:pointer;min-height:44px}
 .maint-banner .i{flex:none;color:var(--warn)}
 .maint-banner span:first-of-type{flex:1;min-width:0}
-.spot-pin{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--surface);border:2px solid #1d5ea8;color:#1d5ea8;font:800 14px/1 var(--font-display);box-shadow:0 2px 6px rgba(0,0,0,.25)}
-.spot-pin[data-kind="water"]{border-color:#2e84d4;border-radius:50%;font-size:13px}
-.spot-pin[data-kind="repair"],.spot-pin[data-kind="shop"]{border-color:#c2700b;font-size:13px}
-.spots h2 .i{color:var(--link)}
-.spot-list li{grid-template-columns:36px minmax(0,1fr)}

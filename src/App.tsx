@@ -7,8 +7,6 @@ import { TripHeader } from './components/TripHeader'
 import { LocalCard, LocationAsk, ResumeRide, RoutineCard, WhereTo } from './components/Explore'
 import { UndoToast } from './components/UndoToast'
 import { Tooltips } from './components/Tooltips'
-import { ShelterCard } from './components/ShelterCard'
-import { BikeSpotsCard } from './components/BikeSpotsCard'
 import { HistoryDialog } from './components/HistoryDialog'
 import { PlacesDialog } from './components/PlacesDialog'
 import { parseShared, shortLinkOnly, SHORT_LINK_HELP } from './domain/shareParse'
@@ -111,8 +109,6 @@ export default function App() {
         </> : <>
           <TripHeader />
           <Hero />
-          <ShelterCard />
-          <BikeSpotsCard />
           <TripCard />
           <SlotsCard />
           <Checklist />

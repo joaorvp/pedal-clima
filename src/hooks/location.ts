@@ -35,7 +35,7 @@ export function pendingRide(): RideSnap | null {
 /** Reabre o trajeto saindo de onde você está e retoma o pedal com o tempo, a distância e a chuva já acumulados. */
 export function resumeRide(s: RideSnap): Promise<string | null> {
   const t = useTrip.getState()
-  t.set({ mode: 'trip', origin: { kind: 'me' }, dest: s.dest, dep: null, routes: [], vias: s.vias ?? (s.via ? [s.via] : []), viaName: s.viaName, shelters: null, sheet: 'peek', error: '', arrived: false, summary: null })
+  t.set({ mode: 'trip', origin: { kind: 'me' }, dest: s.dest, dep: null, routes: [], vias: s.vias ?? (s.via ? [s.via] : []), viaName: s.viaName, sheet: 'peek', error: '', arrived: false, summary: null })
   t.refresh()
   return new Promise(resolve => {
     const t0 = Date.now()

@@ -1,4 +1,4 @@
-import { Bike, CloudRain, Download, Globe, History, Navigation, Radar, Scale, ShieldCheck, Smartphone, Umbrella, Volume2 } from 'lucide-react'
+import { Bike, CloudRain, Download, Globe, History, Navigation, Radar, Scale, ShieldCheck, Smartphone, Volume2 } from 'lucide-react'
 import { Fold, PrivacyText, ProvidersList, TermsText } from './Legal'
 import { useEffect, useRef, useState } from 'react'
 import { useSettings } from '../store/settings'
@@ -11,7 +11,6 @@ const FEATURES = [
   { icon: Bike, title: 'Rotas por ciclovia', text: 'Prioriza ciclovias e ruas calmas. Fez um caminho melhor? Use um pedal do histórico ou importe um print do Google Maps como sua rota, que passa a aparecer primeiro.' },
   { icon: Volume2, title: 'Curvas e chuva por voz', text: '"Em 250 metros, vire à direita." "Chuva em 1 quilômetro." Com o celular no guidão, sem tirar os olhos da rua.' },
   { icon: Radar, title: 'Radar e alertas', text: 'Radar de chuva da última hora e os alertas oficiais do INMET, direto no mapa.' },
-  { icon: Umbrella, title: 'Onde se abrigar', text: 'Vai pegar chuva? Mostra pontos de ônibus cobertos, postos e shoppings perto de onde ela começa.' },
   { icon: History, title: 'Seus pedais', text: 'Histórico, resumo da semana e uma chegada prevista que aprende com a sua média real.' },
 ]
 

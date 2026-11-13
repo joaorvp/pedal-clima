@@ -1,6 +1,11 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.28.0'
+export const CURRENT_APP_VERSION = '2.28.1'
 export const CHANGELOG = [
+  {
+    version: '2.28.1',
+    title: 'Trajeto mais enxuto',
+    items: ['Saíram os cartões "Onde me abrigar" e "Onde deixar a bike": dependiam de dados de mapa que quase nunca tinham esses lugares cadastrados.'],
+  },
   {
     version: '2.28.0',
     title: 'Seu companheiro de pedal',

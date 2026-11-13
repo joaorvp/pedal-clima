@@ -159,24 +159,6 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     return () => { map.removeLayer(layer); map.getContainer().classList.remove('cycle') }
   }, [map, cycleMap])
 
-  // abrigos encontrados para a chuva
-  const shelters = useTrip(s => s.shelters)
-  useEffect(() => {
-    if (!map || shelters?.state !== 'ok') return
-    const g = L.layerGroup().addTo(map)
-    shelters.list.forEach(s => L.marker(s.ll, { title: s.name, icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: `<div class="shelter-pin">${glyph('umbrella')}</div>` }) })
-      .bindTooltip(s.name + ' · ' + s.kind).addTo(g))
-    return () => { map.removeLayer(g) }
-  }, [map, shelters])
-  // perto do destino: bicicletários (P), conserto, água e lojas
-  const spots = useTrip(s => s.spots)
-  useEffect(() => {
-    if (!map || spots?.state !== 'ok') return
-    const g = L.layerGroup().addTo(map)
-    const label: Record<string, string> = { parking: 'P', repair: '🔧', water: '💧', shop: '🚲' }
-    spots.list.forEach(s => L.marker(s.ll, { title: s.name, icon: L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14], html: `<div class="spot-pin" data-kind="${s.kind}">${label[s.kind]}</div>` }) }).addTo(g))
-    return () => { map.removeLayer(g) }
-  }, [map, spots])
 
   // lugares salvos (só na tela inicial): um toque monta o trajeto
   useEffect(() => {

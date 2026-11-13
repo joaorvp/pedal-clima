@@ -39,7 +39,6 @@ await page.route("**/*", r => {
   if (u.includes("brouter.de")) return r.fulfill({ json: M.brouterJson(u) });
   if (u.includes("/v1/elevation")) return r.fulfill({ json: M.elevationJson(u) });
   if (u.includes("air-quality-api")) return r.fulfill({ json: M.airJson });
-  if (u.includes("overpass-api") && (r.request().postData() || "").includes("bicycle_repair_station")) return r.fulfill({ json: M.spotsJson });
   if (u.includes("overpass-api")) return r.fulfill({ json: M.overpassJson });
   if (u.includes("open-meteo")) return r.fulfill({ json: M.weatherJson(u) });
   if (u.includes("photon.komoot.io/api")) return r.fulfill({ json: M.photonJson });
@@ -300,18 +299,6 @@ assert.match(await page.textContent("#alert"), /INMET/);
 assert.ok(await page.evaluate(() => !document.getElementById("alert").classList.contains("compact")), "na primeira vez, o alerta aparece por inteiro");
 assert.match(await page.textContent("#batt-txt"), /% da bateria/);
 assert.ok((await page.locator(".rlabel").count()) >= 2, "cada rota deve ter etiqueta de tempo e chuva no mapa");
-
-// onde deixar a bike perto do destino: bicicletário, bebedouro e loja, no cartão e no mapa
-await page.evaluate(() => document.getElementById("spots-find").click()); await page.waitForTimeout(800);
-assert.match(await page.textContent(".spot-list"), /Bicicletário.*12 vagas · coberto.*Bebedouro.*Bike Loja Teste/s);
-assert.ok(await page.locator(".spot-pin").count() === 3, "os lugares aparecem no mapa");
-
-// chuva no caminho: procurar abrigo e passar por ele
-await page.evaluate(() => document.getElementById("shelter-find").click()); await page.waitForTimeout(800);
-assert.ok((await page.locator(".shelters li").count()) >= 1, "deve listar abrigos perto da chuva");
-assert.match(await page.textContent(".shelters"), /Parada EPTG/);
-await page.evaluate(() => document.querySelector(".shelters li .btn").click()); await page.waitForTimeout(1200);
-assert.match(await page.textContent(".triphead"), /Passando por Parada EPTG/);
 
 // trocar o destino pelo cabeçalho e voltar para o trabalho
 const pickDest = async name => {
