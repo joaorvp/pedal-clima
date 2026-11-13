@@ -117,6 +117,18 @@ await page.evaluate(() => [...document.querySelectorAll(".pl-list .kind")].find(
 assert.match(await groupNames("Família"), /Academia do bairro/);
 await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 assert.ok(await page.locator(".sc[data-kind]").count() >= 1, "o lugar vira atalho com o ícone do tipo");
+// marcar no mapa direto em Meus lugares, com vista de satélite: o nome da rua do ponto vem sozinho
+await page.click("#open-places"); await page.waitForTimeout(300);
+await page.click("#pl-mark"); await page.waitForTimeout(400);
+assert.match(await page.textContent("#pl-precise"), /Satélite/);
+await page.click("#mm-sat"); await page.waitForTimeout(200);
+assert.equal(await page.getAttribute("#mm-sat", "aria-pressed"), "true");
+const mm = await page.locator(".minimap").boundingBox();
+await page.mouse.click(mm.x + mm.width * 0.3, mm.y + mm.height * 0.6); await page.waitForTimeout(600);
+assert.match(await page.textContent(".pl-picked"), /Rua 9/, "o endereço do ponto marcado aparece");
+await page.fill("#pl-name", "Mercado do bairro"); await page.click("#pl-save"); await page.waitForTimeout(300);
+assert.match(await page.textContent("#pl-msg"), /Mercado do bairro.*Mercado/);
+await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 
 // colar na busca o que o Google Maps compartilha (nome, endereço, link): abre o trajeto até o lugar
 await page.evaluate(() => { const i = document.getElementById("where"); i.focus(); const dt = new DataTransfer(); dt.setData("text/plain", "Mercado do Teste\nRua 9, 12 - Bairro Z, Cidade - UF, 72000-000\nhttps://maps.app.goo.gl/abc"); i.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })); });

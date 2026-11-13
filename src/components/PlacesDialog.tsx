@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, ClipboardPaste, Plus, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, ClipboardPaste, MapPinned, Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { KINDS, guessKind, kindOf, type KindId } from '../domain/placeKinds'
 import type { LatLon } from '../domain/types'
@@ -9,7 +9,7 @@ import { Dialog } from './Dialog'
 import { KindIcon } from './KindIcon'
 import { MiniMapPin } from './MiniMapPin'
 import { lastView } from '../hooks/location'
-import { resolveShared } from '../services/places'
+import { resolveShared, reverseName } from '../services/places'
 import { parseShared, shortLinkOnly, SHORT_LINK_HELP, type SharedPlace } from '../domain/shareParse'
 
 /** Escolha do tipo: fileira de botões com ícone. */
@@ -42,6 +42,7 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
   const [name, setName] = useState((start.name ?? '').split(',')[0].slice(0, 30)), [kind, setKind] = useState<KindId | null>(null)
   const [pt, setPt] = useState<{ ll: LatLon; addr: string } | null>(start.ll ? { ll: start.ll, addr: start.name ?? '' } : null)
   const [editing, setEditing] = useState<string | null>(null), [msg, setMsg] = useState('')
+  const [marking, setMarking] = useState(false)
   // lugar compartilhado de outro app (Google Maps…): procura o ponto pelas coordenadas, endereço, CEP ou nome
   const [sharing, setSharing] = useState(!!start.shared && !start.ll), [precise, setPrecise] = useState<boolean | null>(start.ll ? true : null)
   const nearNow = () => useTrip.getState().me?.pos ?? lastView()?.c ?? null
@@ -89,13 +90,22 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
           {start.notice && !pt && !msg && <p className="note" style={{ margin: 0 }}>{start.notice}</p>}
           {sharing && <p className="note" id="pl-sharing" style={{ margin: 0 }}>Procurando o lugar…</p>}
           {pt
-            ? <div className="pl-picked"><span><b>{pt.addr.split(',')[0] || 'Ponto no mapa'}</b><small>{pt.addr.split(',').slice(1).join(',').trim()}</small></span><button className="linkbtn" type="button" onClick={() => { setPt(null); setPrecise(null) }}>Trocar</button></div>
+            ? <div className="pl-picked"><span><b>{pt.addr.split(',')[0] || 'Ponto no mapa'}</b><small>{pt.addr.split(',').slice(1).join(',').trim()}</small></span><button className="linkbtn" type="button" onClick={() => { setPt(null); setPrecise(null); setMarking(false) }}>Trocar</button></div>
             : <AddressCombo id="pl-search" label="Endereço do lugar" placeholder="Busque o endereço ou o nome do lugar" value=""
                 onPick={(ll, label) => { setPt({ ll, addr: label }); setPrecise(null); if (!name) setName((label || '').split(',')[0].slice(0, 30)) }} />}
-          {!pt && !sharing && <button className="btn pl-paste" type="button" id="pl-paste" onClick={pasteFromMaps}><ClipboardPaste className="i" />Colar do Google Maps</button>}
+          {!pt && !sharing && <div className="pl-alt">
+            <button className="btn" type="button" id="pl-mark" onClick={() => { setPt({ ll: nearNow() ?? [-15.82, -48.0], addr: '' }); setPrecise(false); setMarking(true) }}><MapPinned className="i" />Marcar no mapa</button>
+            <button className="btn" type="button" id="pl-paste" onClick={pasteFromMaps}><ClipboardPaste className="i" />Colar do Google Maps</button>
+          </div>}
           {pt && <>
-            <MiniMapPin ll={pt.ll} onMove={ll => { setPt(p => p ? { ...p, ll } : p); setPrecise(true) }} />
-            <p className={'pl-precise' + (precise === false ? ' approx' : '')} id="pl-precise">{precise === false
+            <MiniMapPin ll={pt.ll} onMove={ll => {
+              setPt(p => p ? { ...p, ll } : p); setPrecise(true)
+              // marcando à mão: busca o nome da rua do ponto escolhido (para o endereço e a sugestão de nome)
+              if (marking) reverseName(ll).then(n => { if (n) setPt(p => p && p.ll[0] === ll[0] && p.ll[1] === ll[1] ? { ...p, addr: n } : p) })
+            }} />
+            <p className={'pl-precise' + (precise === false ? ' approx' : '')} id="pl-precise">{marking && precise === false
+              ? 'Arraste o alfinete (ou toque no mapa) até o lugar. Não achou? Toque em Satélite e procure o telhado ou o estacionamento.'
+              : precise === false
               ? 'Posição aproximada (pelo endereço). Arraste o alfinete até a porta do lugar.'
               : 'Arraste o alfinete ou toque no mapa para acertar o lugar.'}</p>
           </>}
@@ -128,7 +138,7 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
               })}
             </ul>
           </section>
-        )) : <p className="note" style={{ margin: 0 }}>Nenhum lugar ainda. Busque acima, toque na estrela ☆ ao lado de um resultado de busca ou segure o dedo no mapa e toque em "Salvar lugar".</p>}
+        )) : <p className="note" style={{ margin: 0 }}>Nenhum lugar ainda. Busque acima ou toque em "Marcar no mapa" e arraste o alfinete até o lugar. Também dá para usar a estrela ☆ ao lado de um resultado de busca.</p>}
         {groups.length > 0 && <p className="note" style={{ margin: 0 }}>Casa e Trabalho ficam em Ajustes. A ordem aqui é a mesma dos atalhos da tela inicial.</p>}
       </div>
       <div className="dlg-foot"><button className="btn primary" type="button" onClick={close}>Pronto</button></div>

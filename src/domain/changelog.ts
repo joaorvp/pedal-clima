@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.26.1'
+export const CURRENT_APP_VERSION = '2.26.2'
 export const CHANGELOG = [
+  {
+    version: '2.26.2',
+    title: 'Marcar lugares no mapa, com satélite',
+    items: [
+      'Em Meus lugares, "Marcar no mapa" abre um mapinha onde você está: arraste o alfinete até o lugar, sem precisar buscar nem copiar nada.',
+      'O mapinha tem vista de satélite: quando o lugar não aparece no mapa comum, dá para achar pelo telhado ou pelo estacionamento.',
+      'O nome da rua do ponto marcado aparece sozinho.',
+    ],
+  },
   {
     version: '2.26.1',
     title: 'Código do lugar do Google Maps',
