@@ -386,6 +386,14 @@ assert.match(await page.textContent(".hist-totals"), /Esta semana.*1 pedal/s);
 assert.equal(await page.locator(".weeks-bars .wbar").count(), 8, "gráfico das últimas 8 semanas");
 assert.match(await page.textContent(".weeks-sel"), /Esta semana: \d+,\d km · 1 pedal/);
 assert.ok(await page.locator("#share-week").count() === 1, "botão de compartilhar a semana");
+// conquistas: CO₂, calorias, sequência e meta do mês; manutenção com "Feito"
+assert.match(await page.textContent(".ach"), /kg.*CO₂.*kcal.*dia/s);
+await page.click("#goal-edit"); await page.fill("#goal-km", "50"); await page.click(".goal-form .btn"); await page.waitForTimeout(200);
+assert.match(await page.textContent(".goal-head"), /de 50 km/);
+assert.ok(await page.locator(".goal-bar").count() === 1, "barra da meta");
+assert.match(await page.textContent(".maint"), /Lubrificar a corrente.*Calibrar os pneus.*Revisão/s);
+await page.click("#maint-tires"); await page.waitForTimeout(200);
+assert.match(await page.textContent(".maint li:nth-child(2)"), /daqui a 7 dias/);
 // o pedal guarda o caminho feito: tocar nele mostra o desenho e "Usar como minha rota"
 assert.ok(await page.evaluate(() => (JSON.parse(localStorage.getItem("pedalclima.v1")).history[0].track || []).length >= 3), "o histórico guarda o caminho do pedal");
 await page.click(".hist-list li button.hist-row"); await page.waitForTimeout(300);

@@ -1,4 +1,6 @@
-import { Bike, Bookmark, ChevronDown, Download, Share2, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { Award, Bike, Bookmark, ChevronDown, Download, Flame, Leaf, Share2, Target, TrendingDown, TrendingUp, Wrench, X } from 'lucide-react'
+import { badges, impact, streak } from '../domain/achievements'
+import { maintenance } from '../domain/maintenance'
 import { gpxFileName, rideGpx } from '../domain/gpx'
 import { downloadText } from '../services/backup'
 import { useState } from 'react'
@@ -43,6 +45,8 @@ export function HistoryDialog() {
             ))}
           </div>
           <Weeks />
+          <Achievements />
+          <Maintenance />
           {msg && <p className="note ok-text" id="hist-msg" style={{ margin: 0 }}>{msg}</p>}
           {history.some(h => h.track) && <p className="note" style={{ margin: 0 }}>Toque num pedal para ver o caminho que você fez e usá-lo como sua rota.</p>}
           <ul className="hist-list">
@@ -148,5 +152,63 @@ function TrackPreview({ line }: { line: LatLon[] }) {
       <circle cx={sx} cy={sy} r="6" fill="var(--surface)" stroke="var(--link)" strokeWidth="3" />
       <circle cx={ex} cy={ey} r="6.5" fill="#e2662a" stroke="var(--surface)" strokeWidth="2.5" />
     </svg>
+  )
+}
+
+const kg = (v: number) => v >= 10 ? Math.round(v) + ' kg' : String(Math.round(v * 10) / 10).replace('.', ',') + ' kg'
+
+/** Impacto (CO₂ e calorias), sequência de dias, meta do mês e selos. */
+function Achievements() {
+  const history = useSettings(s => s.history), goal = useSettings(s => s.goalKm), now = useTrip(s => s.now)
+  const { month } = periodStarts(new Date(now))
+  const m = impact(history, month), all = impact(history), st = streak(history, now), bs = badges(history, now)
+  const [editGoal, setEditGoal] = useState(false), [goalText, setGoalText] = useState(String(goal || 100))
+  const pct = goal ? Math.min(1, m.km / goal) : 0
+  return (
+    <section className="ach" aria-labelledby="ach-title">
+      <span className="lb" id="ach-title">Conquistas</span>
+      <div className="ach-grid">
+        <div className="ach-box"><Leaf className="i" /><b className="num">{kg(m.co2)}</b><small>de CO₂ a menos no mês (vs. carro){all.co2 > m.co2 ? ` · ${kg(all.co2)} no total` : ''}</small></div>
+        <div className="ach-box"><Flame className="i" /><b className="num">{Math.round(m.kcal).toLocaleString('pt-BR')} kcal</b><small>gastas no mês (estimativa)</small></div>
+        <div className="ach-box"><Award className="i" /><b className="num">{st} {st === 1 ? 'dia' : 'dias'}</b><small>seguidos pedalando (fim de semana não quebra)</small></div>
+      </div>
+      <div className="goal">
+        <div className="goal-head"><Target className="i" /><span>{goal ? <>Meta do mês: <b className="num">{fmt1(m.km)}</b> de {goal} km</> : 'Sem meta de km para o mês'}</span>
+          <button className="linkbtn" type="button" id="goal-edit" onClick={() => setEditGoal(!editGoal)}>{goal ? 'Mudar' : 'Definir meta'}</button></div>
+        {goal > 0 && <div className="goal-bar" role="progressbar" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={Math.round(m.km)} aria-label="Meta do mês"><i style={{ width: pct * 100 + '%' }} /></div>}
+        {goal > 0 && pct >= 1 && <small className="ok-text">Meta batida! 🎉</small>}
+        {editGoal && <form className="goal-form" onSubmit={e => { e.preventDefault(); const v = Math.max(0, Math.round(+goalText.replace(',', '.') || 0)); useSettings.getState().patch({ goalKm: v }); setEditGoal(false) }}>
+          <input id="goal-km" inputMode="numeric" aria-label="Meta de km no mês" value={goalText} onChange={e => setGoalText(e.target.value)} /><span>km por mês</span>
+          <button className="btn primary" type="submit">Salvar</button>
+        </form>}
+      </div>
+      {bs.length > 0 && <ul className="badges-list">{bs.map(b => <li key={b.id}><Award className="i" /><span><b>{b.title}</b><small>{b.detail}</small></span></li>)}</ul>}
+      <p className="note" style={{ margin: 0 }}>CO₂ comparado a um carro médio a gasolina (~130 g/km). Calorias estimadas para pedal moderado; com assistência elétrica, são menos.</p>
+    </section>
+  )
+}
+
+/** Manutenção da bike pelos km rodados (odômetro) e pelo tempo, com "Feito" para recomeçar a contagem. */
+function Maintenance() {
+  const odo = useSettings(s => s.odo ?? 0), maint = useSettings(s => s.maint ?? {}), now = useTrip(s => s.now)
+  const items = maintenance(odo, maint, now)
+  const done = (id: string) => {
+    const s = useSettings.getState(), m = { ...(s.maint ?? {}) }, prev = s.maint
+    if (id === 'chain') m.chain = s.odo ?? 0; else if (id === 'review') m.review = s.odo ?? 0; else m.tiresAt = Date.now()
+    s.patch({ maint: m })
+    useUndo.getState().show('Marcado como feito', () => useSettings.getState().patch({ maint: prev }))
+  }
+  return (
+    <section className="maint" aria-labelledby="maint-title">
+      <span className="lb" id="maint-title"><Wrench className="i" />Manutenção da bike · {Math.round(odo).toLocaleString('pt-BR')} km rodados</span>
+      <ul>
+        {items.map(it => (
+          <li key={it.id} data-due={it.due ? '1' : undefined}>
+            <span className="mt"><b>{it.title}</b><small>{it.detail}</small><i className="mbar"><em style={{ width: it.progress * 100 + '%' }} /></i></span>
+            <button className="btn" type="button" id={'maint-' + it.id} onClick={() => done(it.id)}>Feito</button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

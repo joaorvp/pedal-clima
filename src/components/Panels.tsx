@@ -1,4 +1,5 @@
-import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal, Star } from 'lucide-react'
+import { CloudLightning, CloudRain, History, MapPin, RefreshCw, SlidersHorizontal, Star, Wrench } from 'lucide-react'
+import { maintenance } from '../domain/maintenance'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { checklist } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
@@ -69,6 +70,7 @@ export function Banners() {
           : <div className="one"><b>INMET: {a.title}{a.sev ? ' · ' + a.sev : ''}</b>{!riding && when && <small>{when.replace('a partir de', 'às')}{alerts!.length > 1 ? ` · +${alerts!.length - 1}` : ''}</small>}</div>}
       </a>
     )}
+    {mode === 'explore' && <MaintBanner />}
     {loc === 'denied' && mode === 'explore' && (
       <div id="setup-banner" className="banner">
         <MapPin className="i" /><span>A localização está bloqueada. Libere nas permissões do navegador para o app saber onde você está.</span>
@@ -147,5 +149,17 @@ export function Footer() {
       </div>
       <span>A previsão vem de modelos com resolução de alguns km: boa para tendência, pode errar o bairro exato. Para os próximos 30–60 min, confie mais no radar.</span>
     </section>
+  )
+}
+
+/** Na tela inicial: lembrete de manutenção vencida (some ao tocar em Feito, em Seus pedais). */
+function MaintBanner() {
+  const odo = useSettings(s => s.odo ?? 0), maint = useSettings(s => s.maint ?? {}), now = useTrip(s => s.now)
+  const due = maintenance(odo, maint, now).find(i => i.due)
+  if (!due) return null
+  return (
+    <button type="button" id="maint-banner" className="banner maint-banner" onClick={() => useTrip.getState().set({ historyOpen: true })}>
+      <Wrench className="i" /><span><b>{due.title}</b> · {due.detail}</span><span className="linkbtn">Ver</span>
+    </button>
   )
 }

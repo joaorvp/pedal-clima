@@ -62,6 +62,12 @@ export const settingsSchema = z.object({
   recent: z.array(z.object({ name: z.string(), lat: z.number(), lon: z.number(), t: z.number() })).catch([]),
   /** aparência: segue o celular, ou sempre clara/escura (sol forte no guidão pede o claro) */
   theme: z.enum(['auto', 'light', 'dark']).catch('auto'),
+  /** meta de km do mês (0 = sem meta) */
+  goalKm: z.number().catch(0),
+  /** odômetro: km somados de todos os pedais concluídos (o histórico guarda só os 300 últimos) */
+  odo: z.number().optional().catch(undefined),
+  /** manutenção: odômetro na última lubrificação/revisão e data da última calibragem */
+  maint: z.object({ chain: z.number().optional(), review: z.number().optional(), tiresAt: z.number().optional() }).optional().catch(undefined),
   /** rotas salvas com nome (desenhadas no mapa ou gravadas num pedal) */
   savedRoutes: z.array(z.object({ id: z.string(), name: z.string(), line: z.array(latLon), km: z.number(), createdAt: z.number() })).catch([]),
   /** alertas do INMET já mostrados por inteiro (depois aparecem numa linha só) */
@@ -78,6 +84,9 @@ export function parseSettings(raw: unknown): Settings {
   // Quem já tinha ajustado os pontos antes desses campos existirem: casa e trabalho contam como definidos.
   if (s.homeSet === undefined) s.homeSet = s.customized
   if (s.workSet === undefined) s.workSet = s.customized
+  // odômetro: quem já tinha pedais começa com a soma do histórico; a manutenção começa a contar a partir de agora
+  if (s.odo === undefined) s.odo = s.history.reduce((t, h) => t + h.km, 0)
+  if (!s.maint) s.maint = { chain: s.odo, review: s.odo }
   return s
 }
 
@@ -143,7 +152,7 @@ export const useSettings = create<Settings & Actions>()(persist((set, get) => ({
     return { places }
   }),
   // o caminho fica só nos 30 pedais mais recentes (o armazenamento do navegador é pequeno); os totais, em até 300
-  addHistory: h => set(s => ({ history: [h, ...s.history].slice(0, 300).map((x, i) => i < 30 || !x.track ? x : { ...x, track: undefined }) })),
+  addHistory: h => set(s => ({ odo: (s.odo ?? 0) + h.km, history: [h, ...s.history].slice(0, 300).map((x, i) => i < 30 || !x.track ? x : { ...x, track: undefined }) })),
   addRecent: (name, ll) => set(s => {
     const [lat, lon] = round(ll)
     const near = (a: { lat: number; lon: number }) => Math.abs(a.lat - lat) + Math.abs(a.lon - lon) < 0.002

@@ -1,6 +1,17 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.27.0'
+export const CURRENT_APP_VERSION = '2.28.0'
 export const CHANGELOG = [
+  {
+    version: '2.28.0',
+    title: 'Seu companheiro de pedal',
+    items: [
+      'Antes de sair: o checklist diz quanta água levar e quando vale um corta-vento ou casaco.',
+      'Pista molhada: o cartão "Onde você está" e a voz no pedal avisam quando choveu há pouco.',
+      'Em Seus pedais: exporte qualquer pedal em GPX para o Strava, Garmin ou Komoot.',
+      'Conquistas: CO₂ que você deixou de emitir, calorias, dias seguidos pedalando, meta de km do mês e selos.',
+      'Manutenção da bike: lembretes de lubrificar a corrente, calibrar os pneus e fazer a revisão, pelos km que você roda.',
+    ],
+  },
   {
     version: '2.27.0',
     title: 'Radar de chuva de volta no celular',
