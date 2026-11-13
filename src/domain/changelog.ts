@@ -10,6 +10,8 @@ export const CHANGELOG = [
       'Em Seus pedais: exporte qualquer pedal em GPX para o Strava, Garmin ou Komoot.',
       'Conquistas: CO₂ que você deixou de emitir, calorias, dias seguidos pedalando, meta de km do mês e selos.',
       'Manutenção da bike: lembretes de lubrificar a corrente, calibrar os pneus e fazer a revisão, pelos km que você roda.',
+      'Onde deixar a bike: no trajeto, bicicletários, bebedouros, pontos de conserto e lojas de bike perto do destino, também no mapa.',
+      'Mapa sem sinal: o celular guarda mais do mapa que você já viu, e os trajetos de todo dia continuam aparecendo sem internet.',
     ],
   },
   {
