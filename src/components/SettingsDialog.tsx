@@ -79,7 +79,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           ) : null}
           <button className="btn imp-open" type="button" id="import-open" onClick={() => setImporting(true)}><ImagePlus className="i" />Importar de um print</button>
           {importMsg && <p className="note ok-text" id="import-msg" style={{ margin: '6px 0 0' }}>{importMsg}</p>}
-          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Em Seus pedais (ícone de relógio no topo), toque num pedal concluído e em "Usar como minha rota", ou importe de um print de outro app.'}</p>
+          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Em Seus pedais (velocímetro no topo), toque num pedal concluído e em "Usar como minha rota", ou importe de um print de outro app.'}</p>
         </div>
 
         <div className="sec">

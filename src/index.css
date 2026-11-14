@@ -168,7 +168,7 @@ svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .banner button{margin-left:auto}
 
 /* Ajustes (dialog) */
-dialog{border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+dialog{margin:auto;border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
 dialog::backdrop{background:rgba(6,14,16,.55)}
 .dlg-head{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
 .dlg-head h2{font:800 18px var(--font-display);margin:0}

@@ -1,6 +1,13 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.28.1'
+export const CURRENT_APP_VERSION = '2.28.2'
 export const CHANGELOG = [
+  {
+    version: '2.28.2',
+    title: 'Janelas no centro do desktop',
+    items: [
+      'No computador, Ajustes, Meus lugares e Seus pedais abrem no centro da tela, e não mais grudados no canto de cima.',
+    ],
+  },
   {
     version: '2.28.1',
     title: 'Ícones com cara de bike',
