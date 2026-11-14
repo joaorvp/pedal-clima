@@ -2,8 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 type Tip = { text: string; x: number; y: number; side: 'above' | 'below' | 'left' }
 
-/** Texto da dica: data-tip, ou o aria-label de botões só com ícone (ou texto curto), ou o title (que deixa de virar a dica nativa). */
+/** No computador (mouse), a dica mostra também a tecla de atalho. */
+const KEY_NAME: Record<string, string> = { Escape: 'Esc' }
 function tipFor(el: HTMLElement): string | null {
+  const t = baseTip(el), k = el.getAttribute('aria-keyshortcuts')
+  return t && k && matchMedia('(hover: hover) and (pointer: fine)').matches ? `${t} (${KEY_NAME[k] ?? k})` : t
+}
+/** Texto da dica: data-tip, ou o aria-label de botões só com ícone (ou texto curto), ou o title (que deixa de virar a dica nativa). */
+function baseTip(el: HTMLElement): string | null {
   if (el.title) { el.dataset.tip = el.title; el.removeAttribute('title') }
   if (el.dataset.tip) return el.dataset.tip
   const label = el.getAttribute('aria-label')

@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.28.2'
+export const CURRENT_APP_VERSION = '2.29.0'
 export const CHANGELOG = [
+  {
+    version: '2.29.0',
+    title: 'Atalhos no computador e mapa mais limpo',
+    items: [
+      'No computador: "/" vai direto para a busca, "R" atualiza a previsão e "Esc" fecha o trajeto. Passe o mouse nos botões para ver a tecla.',
+      'No celular, os créditos do mapa saíram de baixo da barra do topo e ficam logo acima do painel, sem encostar nos cartões.',
+    ],
+  },
   {
     version: '2.28.2',
     title: 'Janelas no centro do desktop',

@@ -255,7 +255,15 @@ assert.match(await page.textContent(".sc.recent"), /Rua 9|Ponto no mapa/, "o pon
 assert.ok(await page.locator("#undo").count() === 1, "fechar o trajeto oferece desfazer");
 await page.evaluate(() => document.getElementById("undo").click()); await page.waitForTimeout(800);
 assert.ok(await page.locator(".triphead").count() === 1, "desfazer reabre o trajeto");
-await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
+// atalhos de teclado: Esc fecha o trajeto, "/" vai para a busca (e digitar "r" na busca não atualiza)
+await page.evaluate(() => document.activeElement?.blur()); await page.keyboard.press("Escape"); await page.waitForTimeout(500);
+assert.ok(await page.locator(".triphead").count() === 0, "Esc fecha o trajeto");
+await page.keyboard.press("/"); await page.waitForTimeout(150);
+assert.equal(await page.evaluate(() => document.activeElement?.id), "where", '"/" leva para a busca');
+await page.keyboard.press("r"); await page.waitForTimeout(150);
+assert.equal(await page.inputValue("#where"), "r", "a tecla vira texto enquanto você digita");
+await page.fill("#where", ""); await page.evaluate(() => document.activeElement?.blur());
+await page.waitForTimeout(300);
 
 // montar o trajeto pelo atalho do trabalho
 await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click());

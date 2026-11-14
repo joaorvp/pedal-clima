@@ -30,7 +30,7 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
         <img className="logo" src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width={32} height={32} />
         <p className="brand">Pedágua</p>
         <span className="upd" id="updated" role="status" aria-live="polite" data-done={done ? '1' : undefined}>{label}</span>
-        <button className={'ibtn' + (spinning ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" aria-busy={spinning} disabled={spinning}
+        <button className={'ibtn' + (spinning ? ' spin' : '')} id="refresh" type="button" aria-label="Atualizar previsão e radar" aria-keyshortcuts="R" aria-busy={spinning} disabled={spinning}
           onClick={() => { started.current = Date.now(); setHeld(true); setDone(false); useTrip.getState().refresh() }} data-mode={mode}><WheelIcon /></button>
         <button className="ibtn" id="open-places" type="button" aria-label="Meus lugares: salvos por tipo" onClick={() => useTrip.getState().set({ placesOpen: {} })}><PlacePinIcon /></button>
         <button className="ibtn" id="open-history" type="button" aria-label="Seus pedais: histórico, conquistas e manutenção" onClick={() => useTrip.getState().set({ historyOpen: true })}><SpeedoIcon /></button>

@@ -18,6 +18,7 @@ import { Welcome } from './components/Welcome'
 import { Landing } from './components/Landing'
 import { InstallBanner, UpdatePrompt, WhatsNew } from './components/Pwa'
 import { lastView, startLocation } from './hooks/location'
+import { useShortcuts } from './hooks/shortcuts'
 import { useSettings } from './store/settings'
 import { useTrip } from './store/trip'
 
@@ -28,6 +29,7 @@ export default function App() {
   const view = useTrip(s => s.mode + s.routes.length + ':' + s.sel + ':' + s.loading + ':' + !!s.ride?.pos + ':' + s.arrived + ':' + !!s.local + ':' + (s.alerts?.length ?? 0) + s.locStatus)
   const profile = useSettings(s => s.profile)
   const landing = useTrip(s => s.landing)
+  useShortcuts()
 
   // ao abrir: se a localização já foi permitida, usa direto; senão, o card explica antes do pedido do navegador
   useEffect(() => {

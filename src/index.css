@@ -290,8 +290,8 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
   .mapcard{position:fixed;left:0;right:0;bottom:0;top:calc(56px + env(safe-area-inset-top,0px));border-radius:0;box-shadow:none;z-index:1}
   .mapwrap,#map{height:100%!important;max-height:none!important;min-height:0!important}
   #full,#map .leaflet-control-zoom{display:none!important}
-  #map .leaflet-bottom.leaflet-right{top:0;bottom:auto;left:0;right:auto}
-  .radarpill{top:30px;bottom:auto!important}
+  #map .leaflet-bottom.leaflet-right{bottom:var(--sheet,0px);transition:bottom .34s cubic-bezier(.2,.8,.2,1)} /* créditos logo acima da gaveta, legíveis */
+  .radarpill{top:10px;bottom:auto!important}
   .side{position:fixed;left:0;right:0;bottom:0;z-index:15;height:calc(100dvh - 68px - env(safe-area-inset-top,0px));
     background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2);overflow:hidden;overscroll-behavior:contain;
     padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));
@@ -336,6 +336,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .origin-dot{width:20px;height:20px;border-radius:50%;background:#fff;border:5px solid var(--head);box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .fab.locate{position:absolute;z-index:6;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(var(--sheet,0px) + 14px);transition:bottom .34s cubic-bezier(.2,.8,.2,1)}
 .fab.locate.lost{background:var(--link);color:#fff}
+@media (max-width:999px){.fab.locate{bottom:calc(var(--sheet,0px) + 32px)}}
 @media (min-width:1000px){.fab.locate{bottom:96px}}
 
 /* ---------- Tela inicial ---------- */
@@ -400,7 +401,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 
 @media (max-width:999px){
   /* botões do mapa perto do polegar, logo acima da gaveta */
-  .mapfab{top:auto;bottom:calc(var(--sheet,0px) + 66px);transition:bottom .34s cubic-bezier(.2,.8,.2,1)}
+  .mapfab{top:auto;bottom:calc(var(--sheet,0px) + 84px);transition:bottom .34s cubic-bezier(.2,.8,.2,1)}
   .btn,.chip,.sc{min-height:44px}
   .ibtn,.fab{width:44px;height:44px}
 }
@@ -433,6 +434,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .speedo-wind[data-head="favor"]{color:var(--ok,#2f9e5b)}
 .mapcard.full .speedo{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
 @media (min-width:1000px){.speedo{bottom:64px}}
+@media (max-width:999px){.speedo{bottom:calc(var(--sheet,0px) + 32px)}}
 .offroute{display:grid;gap:10px;margin-top:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--warn) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 50%,transparent)}
 .offroute b{display:block;font-weight:600}
 .offroute small{display:block;color:var(--muted);font-size:13px}
@@ -555,7 +557,7 @@ dialog::backdrop{background:rgba(6,14,16,.55)}
 .nextturn[data-now]{background:var(--accent);color:var(--accent-ink)}
 .nextturn[data-now] .nt-ic{background:rgba(0,0,0,.1)}
 .mapcard.full .nextturn{top:calc(10px + env(safe-area-inset-top,0px))}
-@media (max-width:999px){.nextturn{top:24px;right:calc(12px + env(safe-area-inset-right,0px))}}
+@media (max-width:999px){.nextturn{top:10px;right:calc(12px + env(safe-area-inset-right,0px))}}
 .routes-hint{margin:2px 2px 0;font-size:12.5px;color:var(--muted)}
 /* histórico: últimas 8 semanas */
 .weeks{display:grid;gap:8px;background:var(--surface-2);border-radius:14px;padding:12px 14px}
