@@ -1,6 +1,16 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.30.0'
+export const CURRENT_APP_VERSION = '2.31.0'
 export const CHANGELOG = [
+  {
+    version: '2.31.0',
+    title: 'Corrija onde você está',
+    items: [
+      'O computador às vezes erra a sua posição (ele estima pelo Wi-Fi). Clique com o botão direito no mapa, no lugar certo, e escolha "Estou aqui" (no celular, toque e segure). O clima e os trajetos passam a sair dali.',
+      'A posição marcada à mão vale por até 12 horas ou até você se deslocar de verdade. Para voltar antes, toque em "usar GPS" no cartão Onde você está.',
+      'O aviso com "Desfazer" não fica mais espremido no canto da tela do celular.',
+      'O QR code "Abrir no celular" saiu.',
+    ],
+  },
   {
     version: '2.30.0',
     title: 'Ajustes organizados e trajeto do computador para o celular',

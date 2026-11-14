@@ -1,7 +1,7 @@
 import { bearing, hav, project } from '../domain/geo'
 import { evaluate, isRainy, rateAt } from '../domain/weather'
 import type { LatLon } from '../domain/types'
-import { readJson, writeJson } from '../services/cache'
+import { readJson, removeKey, writeJson } from '../services/cache'
 import { appendTrack, simplify } from '../domain/savedRoutes'
 import { say } from './voice'
 import { baseSpeed, useSettings } from '../store/settings'
@@ -61,6 +61,31 @@ let wakeLock: WakeLockSentinel | null = null
 export const lastView = () => readJson<{ c: LatLon; z: number }>(VIEW_KEY)
 export const saveView = (c: LatLon, z: number) => writeJson(VIEW_KEY, { c, z })
 
+/**
+ * "Estou aqui": posição marcada à mão quando o aparelho erra (comum no computador, que estima a posição pelo
+ * Wi-Fi/IP e às vezes erra por quilômetros, dizendo que acertou). Vale até 12 h ou até o GPS mostrar que você
+ * se mexeu de verdade (mais de 300 m desde a leitura errada); assim o celular volta sozinho para o GPS.
+ */
+const HERE_KEY = 'pedalclima.here.v1', HERE_TTL = 12 * 3600e3, HERE_MOVED_KM = 0.3
+interface Here { ll: LatLon; at: number; gps: LatLon | null }
+let here: Here | null = (() => { const h = readJson<Here>(HERE_KEY); return h && Date.now() - h.at < HERE_TTL ? h : null })()
+export const manualHere = () => here?.ll ?? null
+export function setManualHere(ll: LatLon) {
+  const t = useTrip.getState()
+  here = { ll, at: Date.now(), gps: t.me && !t.me.manual ? t.me.pos : here?.gps ?? null }
+  writeJson(HERE_KEY, here)
+  t.set({ me: { pos: ll, acc: 0, heading: null, t: Date.now(), manual: true }, locStatus: 'ok' })
+  if (t.mode === 'explore') t.refreshLocal(); else if (t.origin.kind === 'me' && !t.ride) { t.set({ routes: [] }); t.refresh() }
+}
+/** Volta a usar a posição do aparelho (o ponto azul reaparece na próxima leitura). */
+export function clearManualHere() {
+  const t = useTrip.getState(), gps = here?.gps
+  here = null; removeKey(HERE_KEY)
+  const apply = (pos: LatLon, acc: number) => { useTrip.getState().set({ me: { pos, acc, heading: null, t: Date.now() } }); if (useTrip.getState().mode === 'explore') useTrip.getState().refreshLocal() }
+  if (gps) apply(gps, 0)
+  navigator.geolocation?.getCurrentPosition(p => apply([p.coords.latitude, p.coords.longitude], p.coords.accuracy || 0), () => { if (!gps) t.set({ me: null }) }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 })
+}
+
 /** Acompanha a sua posição: ponto azul no mapa e, durante o pedal, a bike andando pela rota. */
 export function startLocation() {
   if (watchId != null) return
@@ -69,6 +94,15 @@ export function startLocation() {
   watchId = navigator.geolocation.watchPosition(p => {
     const t = useTrip.getState(), first = !t.me
     const pos: LatLon = [p.coords.latitude, p.coords.longitude]
+    if (here && !t.ride) {
+      // posição marcada à mão: segue valendo enquanto o aparelho não sair do lugar
+      if (!here.gps) { here = { ...here, gps: pos }; writeJson(HERE_KEY, here) }
+      if (hav(here.gps!, pos) < HERE_MOVED_KM && Date.now() - here.at < HERE_TTL) {
+        if (first) { t.set({ me: { pos: here.ll, acc: 0, heading: null, t: Date.now(), manual: true }, locStatus: 'ok', centerNonce: t.centerNonce + 1 }); if (t.mode === 'explore') t.refreshLocal() }
+        return
+      }
+      here = null; removeKey(HERE_KEY)
+    }
     let heading = p.coords.heading != null && !Number.isNaN(p.coords.heading) ? p.coords.heading : t.me?.heading ?? null
     if (t.me && hav(t.me.pos, pos) > 0.008) heading = bearing(t.me.pos, pos)
     const me: Me = { pos, acc: p.coords.accuracy || 0, heading, t: p.timestamp || Date.now() }

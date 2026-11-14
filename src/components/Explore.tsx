@@ -1,5 +1,5 @@
 import { ArrowRight, Bell, BellRing, Briefcase, Clock, History, House, LocateFixed, MapPinned, Navigation, Plus, Search } from 'lucide-react'
-import { discardRide, pendingRide, resumeRide, startLocation } from '../hooks/location'
+import { clearManualHere, discardRide, pendingRide, resumeRide, startLocation } from '../hooks/location'
 import { nextCommute } from '../domain/commute'
 import { localSummary } from '../domain/local'
 import { airLabel, comfortAlerts } from '../domain/air'
@@ -26,7 +26,7 @@ export function LocalCard() {
   const where = me ? 'Onde você está' : loc === 'asking' ? 'Procurando você…' : homeSet ? 'Perto da sua casa' : 'Na região do mapa'
   return (
     <section className={'card hero local' + (sum ? '' : ' loading')} id="hero" data-level={sum?.level ?? 'ok'} aria-live="polite">
-      <div className="local-where"><span>{where}</span>{local && <span className="num">{hhmm(local.at)}</span>}</div>
+      <div className="local-where"><span>{where}{me?.manual && <> · marcado à mão <button type="button" className="linkbtn here-gps" id="here-gps" onClick={clearManualHere}>usar GPS</button></>}</span>{local && <span className="num">{hhmm(local.at)}</span>}</div>
       <div className="hero-main">
         <div className="wx" id="wx-icon" data-icon={sum?.icon}>{sum && <Icon name={sum.icon} />}</div>
         <div>

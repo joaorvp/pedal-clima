@@ -17,7 +17,7 @@ export type Endpoint =
   | { kind: 'me' }
   | { kind: 'place'; ll: LatLon; name: string; key?: string }
 
-export interface Me { pos: LatLon; acc: number; heading: number | null; t: number }
+export interface Me { pos: LatLon; acc: number; heading: number | null; t: number; /** marcada à mão ("Estou aqui") */ manual?: boolean }
 export type LocStatus = 'idle' | 'asking' | 'ok' | 'denied' | 'unavailable'
 
 export interface Ride {

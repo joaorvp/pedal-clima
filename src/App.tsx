@@ -17,10 +17,8 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { Welcome } from './components/Welcome'
 import { Landing } from './components/Landing'
 import { InstallBanner, UpdatePrompt, WhatsNew } from './components/Pwa'
-import { lastView, startLocation } from './hooks/location'
+import { lastView, manualHere, startLocation } from './hooks/location'
 import { useShortcuts } from './hooks/shortcuts'
-import { parseTripLink } from './domain/tripLink'
-import { setTripVia } from './store/actions'
 import { useSettings } from './store/settings'
 import { useTrip } from './store/trip'
 
@@ -35,6 +33,8 @@ export default function App() {
 
   // ao abrir: se a localização já foi permitida, usa direto; senão, o card explica antes do pedido do navegador
   useEffect(() => {
+    // posição marcada à mão ("Estou aqui") vale desde a abertura, mesmo antes do GPS responder
+    const h = manualHere(); if (h) useTrip.getState().set({ me: { pos: h, acc: 0, heading: null, t: Date.now(), manual: true }, locStatus: 'ok' })
     useTrip.getState().refreshLocal()
     const go = () => startLocation()
     if (useSettings.getState().locAllowed) { go(); return }
@@ -52,20 +52,6 @@ export default function App() {
     const shared = parseShared({ title: q.get('title'), text: q.get('text'), url: q.get('url') }, useTrip.getState().me?.pos ?? lastView()?.c)
     if (shared) useTrip.getState().set({ placesOpen: { shared }, landing: false })
     else if (shortLinkOnly([q.get('text'), q.get('url')].join(' '))) useTrip.getState().set({ placesOpen: { notice: SHORT_LINK_HELP }, landing: false })
-  }, [])
-  // trajeto vindo do QR "Abrir no celular" (?trajeto=1&para=…): abre o trajeto, saindo daqui se não veio a saída
-  useEffect(() => {
-    const link = parseTripLink(new URLSearchParams(location.search)); if (!link) return
-    history.replaceState(history.state, '', location.pathname)
-    useTrip.getState().set({ landing: false })
-    const go = () => {
-      const t = useTrip.getState()
-      t.startTrip({ kind: 'place', ...link.dest }, link.origin ? { kind: 'place', ...link.origin } : undefined)
-      if (link.via) setTripVia(link.via)
-    }
-    if (link.origin || useTrip.getState().me) { go(); return }
-    const t0 = Date.now(), id = setInterval(() => { if (useTrip.getState().me || Date.now() - t0 > 5000) { clearInterval(id); go() } }, 300)
-    return () => clearInterval(id)
   }, [])
   // atalhos do ícone do app (?ir=trabalho / ?ir=casa): abre o trajeto direto, saindo de onde você está
   useEffect(() => {

@@ -6,7 +6,8 @@ import { placeName } from '../domain/advice'
 import { ordered, CATS, cat, evaluate } from '../domain/weather'
 import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
-import { lastView, saveView, startLocation } from '../hooks/location'
+import { clearManualHere, lastView, saveView, setManualHere, startLocation } from '../hooks/location'
+import { useUndo } from '../store/undo'
 import { Speedometer } from './Speedometer'
 import { guessKind, kindOf } from '../domain/placeKinds'
 import { radarHasRain } from '../services/radarProbe'
@@ -116,7 +117,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       const ll: LatLon = [+e.latlng.lat.toFixed(5), +e.latlng.lng.toFixed(5)]
       const box = document.createElement('div'); box.className = 'drop'
       box.innerHTML = `<b class="drop-name">Ponto no mapa</b><small class="num">${ll[0].toFixed(4)}, ${ll[1].toFixed(4)}</small>
-        <div class="drop-actions"><button type="button" data-a="dest" class="btn primary">Ir para cá</button><button type="button" data-a="origin" class="btn">Sair daqui</button><button type="button" data-a="save" class="btn">Salvar lugar</button></div>`
+        <div class="drop-actions"><button type="button" data-a="dest" class="btn primary">Ir para cá</button><button type="button" data-a="origin" class="btn">Sair daqui</button><button type="button" data-a="save" class="btn">Salvar lugar</button><button type="button" data-a="here" class="btn">Estou aqui</button></div>`
       let name = 'Ponto no mapa'
       const pop = L.popup({ className: 'drop-pop', closeButton: true, autoPanPaddingTopLeft: [16, 120], autoPanPaddingBottomRight: [64, useTrip.getState().sheetVisible + 20], offset: [0, -4] }).setLatLng(e.latlng).setContent(box).openOn(map)
       const pin = L.marker(e.latlng, { icon: destIcon, interactive: false, keyboard: false, opacity: .85 }).addTo(map)
@@ -126,6 +127,8 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         const a = (ev.target as HTMLElement).closest('button')?.dataset.a; if (!a) return
         map.closePopup(pop)
         if (a === 'save') { useTrip.getState().set({ placesOpen: { ll, name } }); return }
+        // o aparelho errou a sua posição (comum no computador): marca à mão, com desfazer
+        if (a === 'here') { setManualHere(ll); useUndo.getState().show('Sua posição foi marcada aqui', clearManualHere); return }
         useTrip.getState().setEnd(a as 'dest' | 'origin', { kind: 'place', ll, name })
       })
     })

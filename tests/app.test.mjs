@@ -461,28 +461,21 @@ await page.evaluate(() => document.getElementById("cycle-toggle").click()); awai
 assert.ok(await page.evaluate(() => document.getElementById("map").classList.contains("cycle")), "o mapa de ciclovias deve ligar");
 assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).cycleMap === true), "a escolha das ciclovias fica salva");
 
-// computador: "Abrir no celular" mostra o QR do trajeto; abrir o link (no celular) monta o mesmo trajeto
-await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(300);
-await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click()); await page.waitForTimeout(1200);
-await page.click("#trip-qr"); await page.waitForTimeout(300);
-assert.ok(await page.locator("#tripqr svg.qr path").count() === 1, "o QR code aparece");
-// sem permissão de área de transferência, o link aparece na tela para copiar à mão
-await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error("x")); });
-await page.click("#tripqr-copy"); await page.waitForTimeout(200);
-const link = await page.textContent("#tripqr-msg");
-await page.keyboard.press("Escape"); await page.waitForTimeout(200);
-await page.setViewportSize({ width: 400, height: 860 }); await page.waitForTimeout(300);
-assert.ok(!(await page.locator("#trip-qr").isVisible()), "no celular o botão do QR não aparece");
+// "Estou aqui": quando o aparelho erra a posição, marca à mão pelo mapa (com desfazer e "usar GPS")
 {
-  assert.match(link, /\?trajeto=1&para=-?\d+\.\d{5},-?\d+\.\d{5}&pn=Trabalho/);
-  await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(300);
-  await page.goto(link); await page.waitForTimeout(6500);
-  assert.match(await page.textContent(".triphead"), /Trabalho/, "o link do QR abre o trajeto");
-  assert.ok(!page.url().includes("trajeto="), "o endereço da página fica limpo");
+  const mb = await page.locator("#map").boundingBox();
+  await page.mouse.click(mb.x + mb.width * 0.3, mb.y + 140, { button: "right" }); await page.waitForTimeout(500);
+  await page.click('.drop-pop [data-a="here"]'); await page.waitForTimeout(600);
+  assert.match(await page.textContent(".local-where"), /marcado à mão/);
+  const h = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.here.v1")));
+  const dot = await page.evaluate(() => { let p = null; globalThis.__pedaguaMap.eachLayer(l => { if (l.getRadius) p = l.getLatLng(); }); return p && [p.lat, p.lng]; });
+  assert.ok(h && dot && Math.hypot(h.ll[0] - dot[0], h.ll[1] - dot[1]) < 1e-4, "a posição marcada fica salva e o ponto azul vai para lá");
+  await page.reload(); await page.waitForTimeout(1500);
+  assert.match(await page.textContent(".local-where"), /marcado à mão/, "a posição marcada continua depois de reabrir");
+  await page.click("#here-gps"); await page.waitForTimeout(600);
+  assert.ok(!(await page.textContent(".local-where")).includes("marcado"), '"usar GPS" volta para a localização do aparelho');
+  assert.equal(await page.evaluate(() => localStorage.getItem("pedalclima.here.v1")), null);
 }
-await page.goto(APP + "?trajeto=1&para=-15.88,-48.10&pn=Rua%209&de=-15.87,-48.09&dn=Bairro%20X"); await page.waitForTimeout(1500);
-assert.match(await page.textContent(".triphead"), /Bairro X.*Rua 9/s, "link com saída e destino");
-await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(300);
 
 // sem conexão: o clima de onde você está continua aparecendo
 offline = true;

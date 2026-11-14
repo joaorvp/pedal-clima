@@ -85,7 +85,7 @@ export function PrivacyText() {
       <li><b>Pedal em andamento</b> (destino, início, distância e o caminho percorrido até ali): para continuar o pedal se o app fechar. É apagado ao encerrar ou chegar.</li>
       <li><b>Rotas salvas</b>: o desenho e o nome das rotas que você escolher salvar (a partir do histórico ou de um print), para sugeri-las nos próximos trajetos.</li>
       <li><b>Lugares compartilhados de outro app</b> (Compartilhar → Pedágua no Google Maps, por exemplo): o app lê só o nome, o endereço e as coordenadas do texto recebido, procura o ponto pelos serviços de busca e não guarda o texto. O link curto do Google não é aberto.</li>
-      <li><b>“Abrir no celular” (QR code do trajeto)</b>: o código é gerado no próprio aparelho e contém o link com as coordenadas e os nomes da saída, do destino e do ponto de passagem. Nada é enviado a servidor; se você copiar o link e mandar para alguém, essa pessoa verá esses pontos.</li>
+      <li><b>Posição marcada à mão</b> (“Estou aqui”, para quando o aparelho erra a sua localização): fica só neste aparelho por até 12 horas, ou até você se deslocar ou tocar em “usar GPS”.</li>
       <li><b>Prints importados</b>: a imagem é lida só no aparelho para encontrar a linha da rota e não é guardada nem enviada a ninguém. Fica salvo apenas o traçado resultante.</li>
       <li><b>Cópias temporárias</b> de previsões, rotas e imagens do mapa: para abrir mais rápido e funcionar com sinal fraco. As imagens do mapa expiram em até 30 dias.</li>
     </ul>
