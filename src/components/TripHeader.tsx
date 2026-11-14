@@ -1,4 +1,5 @@
-import { ArrowLeftRight, ArrowRight, Briefcase, House, LocateFixed, MapPinned, X } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Briefcase, House, LocateFixed, MapPinned, QrCode, X } from 'lucide-react'
+import { TripQrDialog } from './TripQr'
 import { KindIcon } from './KindIcon'
 import { guessKind, kindOf } from '../domain/placeKinds'
 import { useState } from 'react'
@@ -12,7 +13,7 @@ type Which = 'origin' | 'dest'
 /** Cabeçalho do trajeto: de onde, para onde (toque para trocar), ponto de passagem, inverter e fechar. */
 export function TripHeader() {
   const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), ride = useTrip(s => s.ride), vias = useTrip(s => s.vias), viaName = useTrip(s => s.viaName)
-  const [editing, setEditing] = useState<Which | null>(null)
+  const [editing, setEditing] = useState<Which | null>(null), [qr, setQr] = useState(false)
   const t = useTrip.getState
   if (ride) return null
   return (
@@ -27,12 +28,14 @@ export function TripHeader() {
         </button>
       </div>
       <div className="actions">
+        {dest?.kind === 'place' && <button className="ibtn desk-only" type="button" id="trip-qr" aria-label="Abrir no celular (QR code)" onClick={() => setQr(true)}><QrCode className="i" /></button>}
         <button className="ibtn" type="button" aria-label="Inverter origem e destino" onClick={() => { setEditing(null); t().swap() }}><ArrowLeftRight className="i" /></button>
         <button className="ibtn" type="button" aria-label="Fechar trajeto" aria-keyshortcuts="Escape" onClick={() => t().closeTrip()}><X className="i" /></button>
       </div>
       {vias.length > 0 && <div className="end via"><i className="dot-v" aria-hidden="true">P</i><span className="nm">{viaName ? 'Passando por ' + viaName : 'Passando pelo ponto escolhido'}</span>
         <button type="button" className="ibtn sm" aria-label="Remover ponto de passagem" onClick={() => removeTripVia()}><X className="i" /></button></div>}
       {editing && <EndPicker which={editing} onDone={() => setEditing(null)} />}
+      <TripQrDialog open={qr} onClose={() => setQr(false)} />
     </section>
   )
 }

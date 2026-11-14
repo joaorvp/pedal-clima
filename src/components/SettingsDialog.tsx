@@ -1,6 +1,6 @@
-import { Crosshair, Download, ImagePlus, Trash2, Upload, X } from 'lucide-react'
+import { ChevronDown, Crosshair, Download, ImagePlus, Trash2, Upload, X } from 'lucide-react'
 import { PlacePinIcon } from './bikeIcons'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { accuracyText } from '../domain/calibration'
 import { STOP_FACTOR, useSettings, type PointKey } from '../store/settings'
 import { useTrip } from '../store/trip'
@@ -17,12 +17,28 @@ const PLACE_DEF: { k: PointKey; label: string; caption: string; ph: string; colo
   { k: 'home', label: 'Casa', caption: 'Casa', ph: 'Endereço de casa', color: '#1b2b4b', letter: 'C' },
   { k: 'work', label: 'Trabalho', caption: 'Trabalho', ph: 'Endereço do trabalho', color: '#e2662a', letter: 'T' },
 ]
+
+/** Bloco que abre e fecha: o título mostra um resumo do que tem dentro, para achar o que mudar sem rolar tudo. */
+function Sec({ id, title, hint, open, children }: { id: string; title: string; hint?: string; open?: boolean; children: ReactNode }) {
+  return (
+    <details className="sec acc" id={id} open={open}>
+      <summary><span className="acc-t"><h3>{title}</h3>{hint && <small className="acc-hint">{hint}</small>}</span><ChevronDown className="i acc-chev" /></summary>
+      <div className="acc-body">{children}</div>
+    </details>
+  )
+}
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClose: () => void; focus?: string }) {
   const s = useSettings()
   const [gpsMsg, setGpsMsg] = useState('')
   const [importing, setImporting] = useState(false), [importMsg, setImportMsg] = useState('')
   const learned = learnedSpeed(s.history)
   const pick = (k: PointKey) => { onClose(); useTrip.getState().set({ pickMode: k, sheet: 'peek' }) }
+  // abre já aberto só o que falta preencher (ou o bloco pedido); o resto fica fechado como um menu
+  const first = useMemo(() => focus || (!s.homeSet || !s.workSet ? 'home-work' : ''), [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const hwHint = s.homeSet && s.workSet ? `${s.names.home || 'Casa'} · ${s.names.work || 'Trabalho'}` : !s.homeSet && !s.workSet ? 'Defina casa e trabalho' : !s.homeSet ? 'Falta a casa' : 'Falta o trabalho'
+  const routine = [s.tIda && `ida ${s.tIda}`, s.tVolta && `volta ${s.tVolta}`, s.speedAuto && learned ? `${String(learned.kmh).replace('.', ',')} km/h (aprendida)` : `${s.speed} km/h`].filter(Boolean).join(' · ')
+  const themeName = { auto: 'Automática', light: 'Clara', dark: 'Escura' }[s.theme]
 
   return (
     <Dialog open={open} onClose={onClose} labelledBy="settings-title">
@@ -31,8 +47,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
         <button className="ibtn" type="button" id="close-settings" aria-label="Fechar" style={{ marginLeft: 'auto' }} onClick={onClose}><X className="i" /></button>
       </div>
       <div className="dlg-body">
-        <div className="sec">
-          <h3>Seus lugares</h3>
+        <Sec id="sec-home-work" title="Casa e trabalho" hint={hwHint} open={first === 'home-work'}>
           <div className="places" id="places">
             {PLACE_DEF.map(p => (
               <div className="place" key={p.k}>
@@ -49,17 +64,15 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
             {gpsMsg && <span className="note" style={{ margin: 0 }}>{gpsMsg}</span>}
           </div>
           <p className="note">Digite um endereço, um lugar ou cole um link do Google Maps. Se não achar, toque no ícone de alvo e marque no mapa. Tudo fica salvo só neste aparelho.</p>
-        </div>
+        </Sec>
 
-        <div className="sec" id="sec-places" ref={el => { if (el && focus === 'places') el.scrollIntoView({ block: 'start' }) }}>
-          <h3>Meus lugares</h3>
+        <Sec id="sec-places" title="Meus lugares" hint={s.places.length ? plural(s.places.length, 'lugar', 'lugares') : 'Nenhum ainda'} open={first === 'places'}>
           <button className="btn imp-open" type="button" id="open-places-settings" onClick={() => { onClose(); useTrip.getState().set({ placesOpen: {} }) }}>
             <PlacePinIcon />{s.places.length ? `Ver e organizar (${s.places.length} ${s.places.length === 1 ? 'lugar' : 'lugares'})` : 'Adicionar lugares'}</button>
           <p className="note">Academia, mercado, família, amigos…: cada lugar com o seu tipo e ícone. Também fica no alfinete com estrela, no topo do app.</p>
-        </div>
+        </Sec>
 
-        <div className="sec" id="sec-routes">
-          <h3>Rotas salvas</h3>
+        <Sec id="sec-routes" title="Rotas salvas" hint={s.savedRoutes.length ? plural(s.savedRoutes.length, 'rota', 'rotas') : 'Nenhuma ainda'} open={first === 'routes'}>
           {s.savedRoutes.length ? (
             <div className="places">
               {s.savedRoutes.map(r => (
@@ -80,10 +93,9 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
           <button className="btn imp-open" type="button" id="import-open" onClick={() => setImporting(true)}><ImagePlus className="i" />Importar de um print</button>
           {importMsg && <p className="note ok-text" id="import-msg" style={{ margin: '6px 0 0' }}>{importMsg}</p>}
           <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Em Seus pedais (velocímetro no topo), toque num pedal concluído e em "Usar como minha rota", ou importe de um print de outro app.'}</p>
-        </div>
+        </Sec>
 
-        <div className="sec">
-          <h3>Rotina</h3>
+        <Sec id="sec-routine" title="Rotina e rota" hint={routine} open={first === 'routine'}>
           <div className="grid2">
             <label className="fld" htmlFor="t-ida">Saída de casa<input type="time" id="t-ida" value={s.tIda} onChange={e => s.patch({ tIda: e.target.value })} /></label>
             <label className="fld" htmlFor="t-volta">Saída do trabalho<input type="time" id="t-volta" value={s.tVolta} onChange={e => s.patch({ tVolta: e.target.value })} /></label>
@@ -97,13 +109,6 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
             <input type="checkbox" id="speed-auto" checked={s.speedAuto} onChange={e => s.patch({ speedAuto: e.target.checked })} />
             <span><b>Aprender com meus pedais</b><small>{learned ? `Sua média real, de porta a porta: ${String(learned.kmh).replace('.', ',')} km/h (${learned.n} pedais). É ela que o app usa para prever a chegada.` : `Até você concluir 2 pedais, o app desconta as paradas da velocidade de cruzeiro: prevê com ${String(Math.round(s.speed * STOP_FACTOR * 10) / 10).replace('.', ',')} km/h de porta a porta. Depois, usa a sua média real.`}</small></span>
           </label>
-          <div className="fld" style={{ marginTop: 12 }}>Aparência
-            <div className="dirs" role="group" aria-label="Aparência" style={{ margin: '2px 0 0' }}>
-              {([['auto', 'Automática'], ['light', 'Clara'], ['dark', 'Escura']] as const).map(([k, l]) =>
-                <button key={k} type="button" id={'theme-' + k} aria-pressed={s.theme === k} onClick={() => s.patch({ theme: k })}>{l}</button>)}
-            </div>
-            <small className="note" style={{ margin: '4px 0 0' }}>Automática segue o celular. Sob sol forte, a clara é mais fácil de ler no guidão.</small>
-          </div>
           <div className="fld" style={{ marginTop: 12 }}>Tipo de rota
             <div className="dirs" role="group" aria-label="Tipo de rota" style={{ margin: '2px 0 0' }}>
               <button type="button" id="prof-bike" aria-pressed={s.profile !== 'main'} onClick={() => s.setProfile('bike')}>Bike: ciclovias</button>
@@ -111,15 +116,24 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
             </div>
           </div>
           <p className="note">Com os horários preenchidos, o app abre no sentido certo e já mostra a previsão para a sua próxima saída.</p>
-        </div>
+        </Sec>
 
-        <DataSection />
+        <Sec id="sec-look" title="Aparência" hint={themeName} open={first === 'look'}>
+          <div className="fld">
+            <div className="dirs" role="group" aria-label="Aparência" style={{ margin: '2px 0 0' }}>
+              {([['auto', 'Automática'], ['light', 'Clara'], ['dark', 'Escura']] as const).map(([k, l]) =>
+                <button key={k} type="button" id={'theme-' + k} aria-pressed={s.theme === k} onClick={() => s.patch({ theme: k })}>{l}</button>)}
+            </div>
+            <small className="note" style={{ margin: '4px 0 0' }}>Automática segue o celular. Sob sol forte, a clara é mais fácil de ler no guidão.</small>
+          </div>
+        </Sec>
 
-        <div className="sec">
-          <h3>Precisão da previsão</h3>
+        <Sec id="sec-data" title="Seus dados" hint="Backup em arquivo" open={first === 'data'}><DataSection /></Sec>
+
+        <Sec id="sec-acc" title="Precisão da previsão" hint={s.log.length ? plural(s.log.length, 'avaliação', 'avaliações') : 'Sem avaliações ainda'} open={first === 'acc'}>
           <p className="note" id="acc-txt" style={{ margin: '0 0 8px' }}>{accuracyText(s.log, s.probTh)}</p>
           {s.log.length > 0 && <button className="btn" type="button" id="acc-reset" onClick={() => s.resetFeedback()}>Zerar avaliações</button>}
-        </div>
+        </Sec>
 
       </div>
       <div className="dlg-foot"><button className="btn primary" type="button" id="settings-done" onClick={onClose}>Pronto</button></div>
@@ -135,8 +149,7 @@ function DataSection() {
   const fileRef = useRef<HTMLInputElement>(null)
   const when = (t: number) => t ? new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'data desconhecida'
   return (
-    <div className="sec" id="sec-data">
-      <h3>Seus dados</h3>
+    <>
       <p className="note" style={{ margin: '0 0 8px' }}>Tudo fica só neste aparelho. Guarde um backup (casa, trabalho, lugares, rotas salvas, rotina e histórico) para levar para outro celular ou não perder nada se limpar o navegador.</p>
       <div className="row data-row">
         <button className="btn" type="button" id="backup-export" onClick={() => {
@@ -167,7 +180,7 @@ function DataSection() {
         </div>
       )}
       {msg && <p className="note" style={{ margin: '8px 0 0' }} id="backup-msg">{msg}</p>}
-    </div>
+    </>
   )
 }
 

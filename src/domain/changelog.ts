@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.29.0'
+export const CURRENT_APP_VERSION = '2.30.0'
 export const CHANGELOG = [
+  {
+    version: '2.30.0',
+    title: 'Ajustes organizados e trajeto do computador para o celular',
+    items: [
+      'Ajustes em blocos que abrem e fecham (Casa e trabalho, Meus lugares, Rotas salvas, Rotina, Aparência, Seus dados): cada título mostra um resumo, sem precisar rolar tudo.',
+      'No computador, monte o trajeto e toque no QR code ao lado do X: aponte a câmera do celular e o Pedágua abre com o mesmo trajeto. O trajeto vai dentro do link, sem passar por servidor.',
+    ],
+  },
   {
     version: '2.29.0',
     title: 'Atalhos no computador e mapa mais limpo',

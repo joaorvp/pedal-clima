@@ -224,6 +224,10 @@ await page.click("#settings-done"); await page.waitForTimeout(300);
 // rotina: com a saída daqui a 20 min, a tela inicial sugere o trajeto
 const soon = await page.evaluate(() => { const d = new Date(Date.now() + 20 * 60e3); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); });
 await page.click("#open-settings"); await page.waitForTimeout(300);
+// Ajustes em blocos: tudo fechado (casa e trabalho já definidos), com o resumo no título
+assert.equal(await page.evaluate(() => [...document.querySelectorAll("#settings details[open]")].length), 0, "com casa e trabalho definidos, os blocos começam fechados");
+assert.match(await page.textContent("#sec-places summary"), /Meus lugares.*lugar/s);
+await page.click("#sec-routine summary"); await page.waitForTimeout(200);
 await page.fill("#t-ida", soon);
 await page.click("#settings-done"); await page.waitForTimeout(400);
 assert.match(await page.textContent(".routine"), /Indo para o Trabalho\?.*em (19|20|21) min/);
@@ -456,6 +460,29 @@ await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn"
 await page.evaluate(() => document.getElementById("cycle-toggle").click()); await page.waitForTimeout(400);
 assert.ok(await page.evaluate(() => document.getElementById("map").classList.contains("cycle")), "o mapa de ciclovias deve ligar");
 assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).cycleMap === true), "a escolha das ciclovias fica salva");
+
+// computador: "Abrir no celular" mostra o QR do trajeto; abrir o link (no celular) monta o mesmo trajeto
+await page.setViewportSize({ width: 1280, height: 800 }); await page.waitForTimeout(300);
+await page.evaluate(() => [...document.querySelectorAll(".sc")].find(b => b.textContent.includes("Trabalho")).click()); await page.waitForTimeout(1200);
+await page.click("#trip-qr"); await page.waitForTimeout(300);
+assert.ok(await page.locator("#tripqr svg.qr path").count() === 1, "o QR code aparece");
+// sem permissão de área de transferência, o link aparece na tela para copiar à mão
+await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error("x")); });
+await page.click("#tripqr-copy"); await page.waitForTimeout(200);
+const link = await page.textContent("#tripqr-msg");
+await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+await page.setViewportSize({ width: 400, height: 860 }); await page.waitForTimeout(300);
+assert.ok(!(await page.locator("#trip-qr").isVisible()), "no celular o botão do QR não aparece");
+{
+  assert.match(link, /\?trajeto=1&para=-?\d+\.\d{5},-?\d+\.\d{5}&pn=Trabalho/);
+  await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(300);
+  await page.goto(link); await page.waitForTimeout(6500);
+  assert.match(await page.textContent(".triphead"), /Trabalho/, "o link do QR abre o trajeto");
+  assert.ok(!page.url().includes("trajeto="), "o endereço da página fica limpo");
+}
+await page.goto(APP + "?trajeto=1&para=-15.88,-48.10&pn=Rua%209&de=-15.87,-48.09&dn=Bairro%20X"); await page.waitForTimeout(1500);
+assert.match(await page.textContent(".triphead"), /Bairro X.*Rua 9/s, "link com saída e destino");
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(300);
 
 // sem conexão: o clima de onde você está continua aparecendo
 offline = true;
