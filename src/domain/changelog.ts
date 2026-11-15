@@ -1,6 +1,13 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.31.0'
+export const CURRENT_APP_VERSION = '2.31.1'
 export const CHANGELOG = [
+  {
+    version: '2.31.1',
+    title: 'Salvar lugar sem susto',
+    items: [
+      'Em Meus lugares, com um ponto escolhido, o botão amarelo de baixo agora é "Salvar". Antes ele dizia "Pronto" e fechava sem salvar, e o botão de salvar ficava escondido mais acima.',
+    ],
+  },
   {
     version: '2.31.0',
     title: 'Corrija onde você está',

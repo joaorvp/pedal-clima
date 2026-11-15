@@ -247,7 +247,9 @@ assert.ok(await page.locator(".drop").count() === 1, "deve abrir o alfinete com 
 await page.evaluate(() => document.querySelector('.drop [data-a="save"]').click()); await page.waitForTimeout(400);
 assert.ok(await page.evaluate(() => document.getElementById("places")?.open), "Salvar lugar no mapa abre Meus lugares");
 assert.ok((await page.inputValue("#pl-name")).length > 0, "com o nome da rua já preenchido");
-await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
+// o botão grande de baixo salva (antes dizia "Pronto" e fechava sem salvar)
+assert.match(await page.textContent("#places .dlg-foot .btn"), /^Salvar "/, "com um ponto escolhido, o botão de baixo é Salvar");
+await page.evaluate(() => document.querySelector('#places [aria-label="Fechar"]').click()); await page.waitForTimeout(300);
 await page.mouse.click(mapBox.x + mapBox.width * 0.7, mapBox.y + 120, { button: "right" }); await page.waitForTimeout(500);
 await page.evaluate(() => document.querySelector('.drop [data-a="dest"]').click());
 await page.waitForTimeout(1200);

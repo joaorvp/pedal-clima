@@ -111,7 +111,6 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
           </>}
           <input className="pl-name" id="pl-name" type="text" placeholder="Nome (ex.: Academia, Casa da mãe)" aria-label="Nome do lugar" maxLength={30} value={name} onChange={e => setName(e.target.value)} />
           <KindPicker value={autoKind} onChange={setKind} idPrefix="pl-kind" />
-          <button className="btn primary pl-save" type="button" id="pl-save" disabled={!pt} onClick={add}><Plus className="i" />Salvar lugar</button>
           {msg && <p className="note ok-text" id="pl-msg" style={{ margin: 0 }}>{msg}</p>}
         </section>
 
@@ -141,6 +140,9 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
         )) : <p className="note" style={{ margin: 0 }}>Nenhum lugar ainda. Busque acima ou toque em "Marcar no mapa" e arraste o alfinete até o lugar. Também dá para usar a estrela ☆ ao lado de um resultado de busca.</p>}
         {groups.length > 0 && <p className="note" style={{ margin: 0 }}>Casa e Trabalho ficam em Ajustes. A ordem aqui é a mesma dos atalhos da tela inicial.</p>}
       </div>
-      <div className="dlg-foot"><button className="btn primary" type="button" onClick={close}>Pronto</button></div>
+      {/* com um ponto escolhido, o botão grande (ao alcance do polegar) salva: antes ele dizia "Pronto" e fechava sem salvar */}
+      <div className="dlg-foot">{pt
+        ? <button className="btn primary pl-save" type="button" id="pl-save" onClick={add}><Plus className="i" />Salvar {name.trim() ? `"${name.trim()}"` : 'lugar'}</button>
+        : <button className="btn primary" type="button" id="pl-done" onClick={close}>Pronto</button>}</div>
   </>
 }
