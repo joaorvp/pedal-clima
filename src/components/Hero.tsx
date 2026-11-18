@@ -1,4 +1,4 @@
-import { Navigation, Share2 } from 'lucide-react'
+import { BookmarkPlus, Navigation, Share2 } from 'lucide-react'
 import { rideVerdict, verdict, type Verdict } from '../domain/advice'
 import { accuracyText } from '../domain/calibration'
 import { fmt1, hhmm } from '../domain/format'
@@ -10,6 +10,8 @@ import { endpointName, useTrip, type RideSummary } from '../store/trip'
 import { Icon } from './icons'
 import { Dialog } from './Dialog'
 import { RideTools } from './RideTools'
+import { NameForm } from './SaveRoute'
+import { saveAsRoute } from '../store/actions'
 import { useEffect, useRef, useState } from 'react'
 
 export function Hero() {
@@ -65,7 +67,7 @@ export function Hero() {
 
   return (<>
     <section className={'card hero' + (loading ? ' loading' : '') + (riding ? ' riding' : '')} id="hero" data-level={v?.level ?? 'ok'} aria-live="polite">
-      <div className="livebadge"><i /><span id="live-txt">AO VIVO · {ride?.weakSignal ? 'sinal de GPS fraco' : 'indo para ' + (endpointName(dest) || 'o destino')}</span></div>
+      <div className="livebadge"><i /><span id="live-txt">AO VIVO · {ride && ride.dist >= 0.1 ? `${fmt1(ride.dist)} km feitos · ` : ''}{ride?.weakSignal ? 'sinal de GPS fraco' : 'indo para ' + (endpointName(dest) || 'o destino')}</span></div>
       <div className="hero-main">
         <div className="wx" id="wx-icon" data-icon={v?.icon}>{v && <Icon name={v.icon} />}</div>
         <div>
@@ -117,7 +119,7 @@ export function Hero() {
         <div>
           <h2 id="end-title">Encerrar o pedal?</h2>
           <p className="note" style={{ margin: '6px 0 0' }}>
-            {left > 0.05 ? `Faltam ${fmt1(left)} km até ${endpointName(dest) || 'o destino'}. ` : ''}Pedais encerrados antes de chegar não entram no histórico.
+            {left > 0.05 ? `Faltam ${fmt1(left)} km até ${endpointName(dest) || 'o destino'}. ` : ''}Se você encerrar a mais de 500 m do destino, o pedal não entra no histórico.
           </p>
         </div>
         <div className="confirm-actions">
@@ -131,7 +133,7 @@ export function Hero() {
 
 /** Resumo do pedal ao chegar, com botão de compartilhar. */
 function Summary({ s }: { s: RideSummary }) {
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(''), [naming, setNaming] = useState(false), [saved, setSaved] = useState('')
   const text = `Pedalei ${fmt1(s.km)} km até ${s.dest} em ${s.mins} min` + (s.avg > 0 && s.avg < 70 ? ` (média ${Math.round(s.avg)} km/h)` : '') +
     (s.rain >= 0.1 ? `, com ${fmt1(s.rain)} mm de chuva prevista no caminho.` : ', sem chuva no caminho.') + ' Pedágua · pedal com previsão'
   async function share() {
@@ -147,6 +149,12 @@ function Summary({ s }: { s: RideSummary }) {
         <div><b>{s.rain >= 0.1 ? fmt1(s.rain) + ' mm' : 'seco'}</b><span>chuva no caminho</span></div>
       </div>
       {s.wh != null && <p className="note" style={{ margin: '8px 0 0' }}>Bateria usada: ~{Math.round(s.wh)} Wh (estimativa).</p>}
+      {/* o caminho feito de verdade (com desvios e recálculos) vira rota sua: aparece primeiro da próxima vez */}
+      {s.track && s.track.length >= 3 && !saved && (naming
+        ? <NameForm initial={'Meu caminho para ' + s.dest} label="Nome da rota" onCancel={() => setNaming(false)}
+            onSave={name => { saveAsRoute(name, s.track!); setNaming(false); setSaved(name.trim() || 'Minha rota') }} />
+        : <button className="btn primary" type="button" id="sum-save" onClick={() => setNaming(true)} style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}><BookmarkPlus className="i" />Salvar este caminho como minha rota</button>)}
+      {saved && <p className="note ok-text" id="sum-saved" style={{ margin: '8px 0 0' }}>"{saved}" salva. Ela aparece primeiro quando você fizer esse trajeto (nos dois sentidos).</p>}
       <button className="btn" type="button" id="share" onClick={share} style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}><Share2 className="i" />Compartilhar resumo</button>
       <button className="linkbtn" type="button" style={{ marginTop: 10 }} onClick={() => useTrip.getState().set({ historyOpen: true })}>Ver histórico de pedais</button>
       {msg && <p className="note" style={{ margin: '6px 0 0' }}>{msg}</p>}

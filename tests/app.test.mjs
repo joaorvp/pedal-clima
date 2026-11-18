@@ -376,6 +376,8 @@ await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0063, longitude: 
 await page.waitForTimeout(1500);
 assert.ok(await page.locator(".offroute").count() === 0, "depois do recálculo automático, você volta a estar na rota");
 assert.ok(await page.locator(".bike-disc").count() === 1, "o pedal continua depois de recalcular");
+assert.ok(await page.locator("path.ride-trail").count() === 1, "o caminho já pedalado continua no mapa depois de recalcular");
+assert.match(await page.textContent("#live-txt"), /\d+,\d km feitos/, "os km feitos continuam contando depois de recalcular");
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);
 // anda uns metros em ritmo de bike (o caminho gravado ignora saltos impossíveis do GPS)
 for (let k = 1; k <= 3; k++) { await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0063 + k * 0.0002, longitude: -48.093 + 0.137 * 0.3 - 0.0041 }); await page.waitForTimeout(1400); }
@@ -385,7 +387,7 @@ assert.equal(await page.textContent("#v-title"), "Você chegou");
 assert.ok(await page.evaluate(() => !!document.getElementById("fb")), "deve perguntar se a previsão acertou");
 assert.match(await page.textContent(".summary"), /\d+,\d km.*\d+ min/s);
 assert.ok(await page.locator("#share").count() === 1, "deve ter o botão de compartilhar o resumo");
-assert.ok(await page.locator("#track-save").count() === 0, "salvar o caminho é pelo histórico, não na chegada");
+assert.match(await page.textContent("#sum-save"), /Salvar este caminho como minha rota/, "na chegada, dá para guardar o caminho feito (com os desvios) como rota sua");
 // o pedal concluído entra no histórico
 await page.click("#open-history"); await page.waitForTimeout(400);
 assert.ok((await page.locator(".hist-list li").count()) >= 1, "o pedal deve aparecer em Seus pedais");

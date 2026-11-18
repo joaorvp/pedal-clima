@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.31.1'
+export const CURRENT_APP_VERSION = '2.32.0'
 export const CHANGELOG = [
+  {
+    version: '2.32.0',
+    title: 'Recalcular sem perder o que já pedalou',
+    items: [
+      'Quando a rota é refeita no meio do pedal, o caminho que você já fez continua no mapa (linha azul) e o "AO VIVO" mostra os km feitos. Tempo, distância e o caminho gravado nunca recomeçam.',
+      'Na chegada, "Salvar este caminho como minha rota" guarda o trajeto que você fez de verdade, com desvios. Da próxima vez ele aparece primeiro.',
+      'Encerrou o pedal a menos de 500 m do destino? Ele conta como chegada e entra no histórico.',
+    ],
+  },
   {
     version: '2.31.1',
     title: 'Salvar lugar sem susto',

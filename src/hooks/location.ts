@@ -182,6 +182,8 @@ function rideStep(me: Me, speedMs: number | null) {
 }
 
 export function stopRide(arrived = false) {
+  // encerrou à mão perto do destino (ex.: o alfinete ficou do outro lado do quarteirão): conta como chegada
+  { const t = useTrip.getState(), r = t.ride, dest = endpointLL(t.dest, t.me); if (!arrived && r?.pos && dest && hav(r.pos, dest) < 0.5) arrived = true }
   discardRide()
   if (arrived) buzz([40, 60, 40])
   wakeLock?.release().catch(() => {}); wakeLock = null

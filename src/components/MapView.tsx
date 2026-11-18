@@ -194,6 +194,18 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     })
   }, [map, ly, mode, origin, dest, vias, ride?.pos]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // o caminho que você já pedalou (fica no mapa mesmo depois de a rota ser refeita a partir de onde você está)
+  const trail = ride ? ride.track : null, trailEnd = ride?.pos
+  useEffect(() => {
+    if (!map || !trail) return
+    const pts: LatLon[] = [...trail, ...(trailEnd ? [trailEnd] : [])]
+    if (pts.length < 2) return
+    const o = { interactive: false, lineCap: 'round' as const, lineJoin: 'round' as const, smoothFactor: 1 }
+    const casing = L.polyline(pts, { ...o, color: '#0b1a1c', weight: 9, opacity: .25 }).addTo(map)
+    const line = L.polyline(pts, { ...o, color: '#2b7fff', weight: 5, opacity: .95, className: 'ride-trail' }).addTo(map)
+    return () => { map.removeLayer(casing); map.removeLayer(line) }
+  }, [map, trail, trailEnd])
+
   // rotas coloridas pela chuva
   useEffect(() => {
     if (!map || !ly) return
