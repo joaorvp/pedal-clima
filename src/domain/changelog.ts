@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.34.0'
+export const CURRENT_APP_VERSION = '2.35.0'
 export const CHANGELOG = [
+  {
+    version: '2.35.0',
+    title: 'Gaveta compacta em todo o app',
+    items: [
+      'Na tela inicial e montando o trajeto, a gaveta baixa também fica compacta: título, números e o botão principal. O mapa ganha espaço.',
+      'Puxe a gaveta para ver o texto completo da previsão, os avisos de conforto, os horários de saída e o resto.',
+    ],
+  },
   {
     version: '2.34.0',
     title: 'Chance de chuva na linha da rota',

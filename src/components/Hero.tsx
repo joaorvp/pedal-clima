@@ -29,7 +29,7 @@ export function Hero() {
   const [thanks, setThanks] = useState('')
   const [confirmEnd, setConfirmEnd] = useState(false)
   const set = useTrip(s => s.set)
-  // no pedal, com a gaveta baixa: faixa compacta (título, números e botões) para o mapa ficar com a tela
+  // gaveta baixa (no pedal ou montando o trajeto): faixa compacta (título, números e botões) para o mapa ficar com a tela
   const sheet = useTrip(s => s.sheet)
 
   let v: Verdict | null = null
@@ -69,7 +69,7 @@ export function Hero() {
   )
 
   return (<>
-    <section className={'card hero' + (loading ? ' loading' : '') + (riding ? ' riding' : '') + (riding && sheet === 'peek' ? ' compact' : '')} id="hero" data-level={v?.level ?? 'ok'} aria-live="polite">
+    <section className={'card hero' + (loading ? ' loading' : '') + (riding ? ' riding' : '') + (sheet === 'peek' && !arrived ? ' compact' : '')} id="hero" data-level={v?.level ?? 'ok'} aria-live="polite">
       <div className="livebadge"><i /><span id="live-txt">AO VIVO · {ride && ride.dist >= 0.1 ? `${fmt1(ride.dist)} km feitos · ` : ''}{ride?.weakSignal ? 'sinal de GPS fraco' : 'indo para ' + (endpointName(dest) || 'o destino')}</span></div>
       <div className="hero-main">
         <div className="wx" id="wx-icon" data-icon={v?.icon}>{v && <Icon name={v.icon} />}</div>
@@ -89,7 +89,7 @@ export function Hero() {
       <div className="meta">
         <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : 'de viagem'}</span></div>
         <div><b id="s-arr">{!ev ? '–' : hhmm(riding ? (ride!.last?.t ?? ev.depMs) + left / sp * 3600e3 : ev.arr)}</b><span>chegada</span></div>
-        {!riding && <div><b id="s-rain">{!ev ? '–' : ev.exposure >= 0.05 ? fmt1(ev.exposure) + ' mm' : ev.maxProb >= probTh ? ev.maxProb + '%' : '0 mm'}</b><span id="m-l3">{ev && ev.exposure < 0.05 && ev.maxProb >= probTh ? 'chance de chuva' : 'chuva no trajeto'}</span></div>}
+        {!riding && <div><b id="s-rain">{!ev ? '–' : ev.exposure >= 0.05 ? fmt1(ev.exposure) + ' mm' : ev.maxProb >= probTh ? ev.maxProb + '%' : '0 mm'}</b><span id="m-l3">{ev && ev.exposure < 0.05 && ev.maxProb >= probTh ? (sheet === 'peek' ? 'chance' : 'chance de chuva') : sheet === 'peek' ? 'chuva' : 'chuva no trajeto'}</span></div>}
         {riding && rn && <div><b id="s-ahead">{rn.aheadMm < 0.05 ? 'seco' : fmt1(rn.aheadMm) + ' mm'}</b><span>à frente</span></div>}
         {riding && rn && <div><b id="s-prob">{rn.aheadProb}%</b><span>chance</span></div>}
         {!riding && <div><b id="s-wind">{!ev ? '–' : Math.abs(ev.head).toFixed(0) + ' km/h'}</b><span id="s-wind-l">{!ev ? 'vento' : Math.abs(ev.head) < 3 ? 'vento fraco' : ev.head > 0 ? 'vento contra' : 'vento a favor'}</span></div>}

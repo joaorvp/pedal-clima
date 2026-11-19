@@ -23,9 +23,11 @@ export function LocalCard() {
   const humidity = local ? hourlyAt(local.wx, now, 'relative_humidity_2m') : null
   const comfort = local ? comfortAlerts({ feels: hourlyAt(local.wx, now, 'apparent_temperature'), humidity, aqi: air?.aqi ?? null }) : []
   const homeSet = useSettings(s => s.homeSet)
+  // gaveta baixa: só o essencial (título e números); puxar a gaveta mostra o texto e os avisos de conforto
+  const compact = useTrip(s => s.sheet === 'peek')
   const where = me ? 'Onde você está' : loc === 'asking' ? 'Procurando você…' : homeSet ? 'Perto da sua casa' : 'Na região do mapa'
   return (
-    <section className={'card hero local' + (sum ? '' : ' loading')} id="hero" data-level={sum?.level ?? 'ok'} aria-live="polite">
+    <section className={'card hero local' + (sum ? '' : ' loading') + (compact ? ' compact' : '')} id="hero" data-level={sum?.level ?? 'ok'} aria-live="polite">
       <div className="local-where"><span>{where}{me?.manual && <> · marcado à mão <button type="button" className="linkbtn here-gps" id="here-gps" onClick={clearManualHere}>usar GPS</button></>}</span>{local && <span className="num">{hhmm(local.at)}</span>}</div>
       <div className="hero-main">
         <div className="wx" id="wx-icon" data-icon={sum?.icon}>{sum && <Icon name={sum.icon} />}</div>
