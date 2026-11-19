@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.35.0'
+export const CURRENT_APP_VERSION = '2.35.1'
 export const CHANGELOG = [
+  {
+    version: '2.35.1',
+    title: 'Gaveta mais baixa de verdade',
+    items: [
+      'A gaveta baixa agora ocupa no máximo 40% da tela (em geral, menos de um terço).',
+      'Tela inicial: a gaveta mostra só a busca e os atalhos, e o clima de onde você está vira uma etiqueta sobre o mapa. Toque nela para abrir os detalhes.',
+      'Trajeto: o aviso do INMET desceu para baixo do cartão do trajeto.',
+    ],
+  },
   {
     version: '2.35.0',
     title: 'Gaveta compacta em todo o app',

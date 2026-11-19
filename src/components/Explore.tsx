@@ -61,7 +61,7 @@ export function WhereTo({ onAddPlace }: { onAddPlace: () => void }) {
   const hasLast = !!last?.dest && now - last.wxAt < 20 * 3600e3
   const go = (ll: [number, number], name: string, key?: string) => t().startTrip({ kind: 'place', ll, name, key })
   return (
-    <section className="card whereto">
+    <section className="card whereto" data-peek>
       <div className="search">
         <Search className="i" aria-hidden="true" />
         <AddressCombo id="where" saveStar label="Para onde vamos?" placeholder="Para onde vamos?" value="" onPick={(ll, name) => go(ll, name || 'Ponto colado')}

@@ -11,8 +11,9 @@ export function Sheet({ children, contentKey }: { children: ReactNode; contentKe
   const y = useRef(0)
 
   function stops() {
-    const el = ref.current!, H = el.offsetHeight, hero = el.querySelector<HTMLElement>('#hero')
-    const peekVis = Math.min(H * 0.58, hero ? hero.offsetTop + hero.offsetHeight + 14 : H * 0.4)
+    // gaveta baixa: vai até o fim do cartão marcado com data-peek (ou o principal), sem passar de 40% da tela
+    const el = ref.current!, H = el.offsetHeight, end = el.querySelector<HTMLElement>('[data-peek]') ?? el.querySelector<HTMLElement>('#hero')
+    const peekVis = Math.min(H * 0.4, end ? end.offsetTop + end.offsetHeight + 14 : H * 0.3)
     const peek = Math.max(0, Math.round(H - peekVis))
     return { full: 0, half: Math.max(0, Math.min(Math.round(H * 0.3), peek - 90)), peek }
   }
@@ -35,10 +36,11 @@ export function Sheet({ children, contentKey }: { children: ReactNode; contentKe
   useLayoutEffect(() => { place(state) }, [state, contentKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // o cartão principal muda de altura sem trocar de tela (ex.: a faixa compacta do pedal): a gaveta baixa acompanha
   useEffect(() => {
-    const hero = ref.current?.querySelector<HTMLElement>('#hero'); if (!hero || typeof ResizeObserver === 'undefined') return
-    let h = hero.offsetHeight
-    const ro = new ResizeObserver(() => { if (hero.offsetHeight !== h) { h = hero.offsetHeight; if (useTrip.getState().sheet === 'peek') place('peek') } })
-    ro.observe(hero)
+    const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return
+    // qualquer cartão acima do fim da gaveta baixa pode mudar de altura (aviso que encolhe, cartão compacto)
+    let sig = ''
+    const ro = new ResizeObserver(() => { const n = [...el.children].map(c => (c as HTMLElement).offsetHeight).join(); if (n !== sig) { sig = n; if (useTrip.getState().sheet === 'peek') place('peek') } })
+    for (const c of el.children) ro.observe(c)
     return () => ro.disconnect()
   }, [contentKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // no desktop o painel rola sozinho: ao abrir ou fechar um trajeto, volta para o topo

@@ -29,7 +29,6 @@ export default function App() {
   const view = useTrip(s => s.mode + s.routes.length + ':' + s.sel + ':' + s.loading + ':' + !!s.ride?.pos + ':' + s.arrived + ':' + !!s.local + ':' + (s.alerts?.length ?? 0) + s.locStatus)
   const profile = useSettings(s => s.profile)
   const landing = useTrip(s => s.landing)
-  const riding = useTrip(s => !!s.ride)
   useShortcuts()
 
   // ao abrir: se a localização já foi permitida, usa direto; senão, o card explica antes do pedido do navegador
@@ -104,8 +103,8 @@ export default function App() {
     <main className="shell">
       <MapView full={full} onToggleFull={() => setFull(f => !f)} />
       <Sheet contentKey={view}>
-        {/* no pedal, os avisos vão para baixo do cartão do pedal: a gaveta baixa mostra só o essencial */}
-        {!riding && <Banners />}
+        {/* no trajeto e no pedal, os avisos vão para baixo do cartão principal: a gaveta baixa mostra só o essencial */}
+        {mode === 'explore' && <Banners />}
         {mode === 'explore' ? <>
           <ResumeRide />
           <LocationAsk />
@@ -115,7 +114,7 @@ export default function App() {
         </> : <>
           <TripHeader />
           <Hero />
-          {riding && <Banners />}
+          <Banners />
           <TripCard />
           <SlotsCard />
           <Checklist />

@@ -866,3 +866,13 @@ button.hist-row{cursor:pointer}
   .hero.compact .ride-tools .tool span{display:none}
   .hero.compact .offroute{margin-top:8px;padding:8px 10px}
 }
+
+/* clima de onde você está sobre o mapa (tela inicial, celular): a gaveta baixa fica só com a busca */
+.wxchip{display:none}
+@media (max-width:999px){
+  .wxchip{position:absolute;z-index:5;left:calc(10px + env(safe-area-inset-left,0px));top:50px;display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 14px 6px 10px;
+    border:0;border-radius:999px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font:600 14.5px var(--font-body);cursor:pointer;max-width:calc(100% - 90px)}
+  .wxchip svg{width:22px;height:22px;flex:none;color:var(--lvl,var(--ok))}
+  .wxchip[data-level="ok"]{--lvl:var(--ok)} .wxchip[data-level="warn"]{--lvl:var(--warn)} .wxchip[data-level="bad"]{--lvl:var(--bad)}
+  .wxchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}

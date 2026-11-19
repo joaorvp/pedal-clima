@@ -13,6 +13,8 @@ import { guessKind, kindOf } from '../domain/placeKinds'
 import { radarHasRain } from '../services/radarProbe'
 import { radarGrid } from '../lib/radarLayer'
 import { NextTurn } from './NextTurn'
+import { Icon } from './icons'
+import { localSummary } from '../domain/local'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings, type PointKey } from '../store/settings'
 import { endpointLL, useTrip } from '../store/trip'
@@ -414,8 +416,22 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         <Speedometer />
         <NextTurn />
         {!riding && <div className="radarpill num" id="radar-time">{radarLabel}</div>}
+        {mode === 'explore' && !pickMode && <WeatherChip />}
         {pickMode && <div className="picking" id="picking">{PICK_LABEL[pickMode]}</div>}
       </div>
     </section>
+  )
+}
+
+/** Na tela inicial (celular): o clima de onde você está numa etiqueta sobre o mapa, já que a gaveta baixa mostra só a busca. Tocar abre a gaveta. */
+function WeatherChip() {
+  const local = useTrip(s => s.local), now = useTrip(s => s.now), radarHere = useTrip(s => s.radarHere)
+  if (!local) return null
+  const sum = localSummary(local.wx, now, radarHere)
+  return (
+    <button className="wxchip" type="button" id="wx-chip" data-level={sum.level} aria-label={`${sum.title}. Toque para ver o clima de onde você está`}
+      onClick={() => useTrip.getState().set({ sheet: 'half' })}>
+      <Icon name={sum.icon} /><span>{sum.title}{sum.temp != null && <b className="num"> · {Math.round(sum.temp)}°</b>}</span>
+    </button>
   )
 }

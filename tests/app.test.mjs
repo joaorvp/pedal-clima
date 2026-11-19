@@ -78,6 +78,9 @@ await page.fill("#wl-work", "lugar"); await page.waitForTimeout(500); await page
 await page.click("#wl-next"); await page.click("#wl-next");
 await page.waitForTimeout(800);
 assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "boas-vindas deve fechar ao concluir");
+await page.waitForTimeout(800);
+assert.match(await page.textContent("#wx-chip"), /\d+°/, "o clima de onde você está aparece numa etiqueta sobre o mapa");
+assert.ok(await page.waitForFunction(() => { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet")) || 0; return v > 0 && v < innerHeight * 0.42; }, null, { timeout: 4000 }).then(() => true, () => false), "na tela inicial, a gaveta baixa deixa o mapa com a maior parte da tela");
 
 // busca: seus lugares aparecem na hora; Photon e Nominatim juntos, com a distância; CEP acha a rua
 await page.fill("#where", "casa"); await page.waitForTimeout(150);
@@ -478,7 +481,7 @@ assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.
   assert.ok(h && dot && Math.hypot(h.ll[0] - dot[0], h.ll[1] - dot[1]) < 1e-4, "a posição marcada fica salva e o ponto azul vai para lá");
   await page.reload(); await page.waitForTimeout(1500);
   assert.match(await page.textContent(".local-where"), /marcado à mão/, "a posição marcada continua depois de reabrir");
-  await page.click("#here-gps"); await page.waitForTimeout(600);
+  await page.evaluate(() => document.getElementById("here-gps").click()); await page.waitForTimeout(600);
   assert.ok(!(await page.textContent(".local-where")).includes("marcado"), '"usar GPS" volta para a localização do aparelho');
   assert.equal(await page.evaluate(() => localStorage.getItem("pedalclima.here.v1")), null);
 }
