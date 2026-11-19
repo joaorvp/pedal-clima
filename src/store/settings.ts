@@ -72,6 +72,8 @@ export const settingsSchema = z.object({
   savedRoutes: z.array(z.object({ id: z.string(), name: z.string(), line: z.array(latLon), km: z.number(), createdAt: z.number() })).catch([]),
   /** alertas do INMET já mostrados por inteiro (depois aparecem numa linha só) */
   seenAlerts: z.array(z.string()).catch([]),
+  /** dicas de uso já vistas (cada uma aparece uma vez; "Mostrar as dicas de novo" em Ajustes zera) */
+  hintsSeen: z.array(z.string()).catch([]),
 })
 export type Settings = z.infer<typeof settingsSchema>
 export type Place = z.infer<typeof place>

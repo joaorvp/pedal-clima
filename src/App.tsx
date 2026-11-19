@@ -6,6 +6,7 @@ import { TripCard } from './components/TripCard'
 import { TripHeader } from './components/TripHeader'
 import { LocalCard, LocationAsk, ResumeRide, RoutineCard, WhereTo } from './components/Explore'
 import { UndoToast } from './components/UndoToast'
+import { Hints } from './components/Hints'
 import { Tooltips } from './components/Tooltips'
 import { HistoryDialog } from './components/HistoryDialog'
 import { PlacesDialog } from './components/PlacesDialog'
@@ -122,6 +123,7 @@ export default function App() {
         <Footer />
       </Sheet>
     </main>
+    <Hints blocked={settings.open} />
     <SettingsDialog open={settings.open} focus={settings.focus} onClose={() => setSettings({ open: false })} />
     {!landing && <Welcome />}
     <Landing />

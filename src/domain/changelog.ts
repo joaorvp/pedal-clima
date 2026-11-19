@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.35.1'
+export const CURRENT_APP_VERSION = '2.36.0'
 export const CHANGELOG = [
+  {
+    version: '2.36.0',
+    title: 'Dicas rápidas e lugares sem repetição',
+    items: [
+      'Dicas curtas mostram os gestos que não dá para adivinhar: puxar a gaveta, segurar no mapa (salvar lugar, "Estou aqui") e arrastar a rota. Cada uma aparece uma vez; para rever, use Ajustes → Aparência → "Mostrar as dicas de novo".',
+      'Ao salvar um lugar no mesmo ponto (ou com o mesmo nome) da Casa, do Trabalho ou de outro lugar salvo, o app avisa antes. Dá para salvar mesmo assim.',
+    ],
+  },
   {
     version: '2.35.1',
     title: 'Gaveta mais baixa de verdade',

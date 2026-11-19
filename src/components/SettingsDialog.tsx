@@ -126,6 +126,8 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
             </div>
             <small className="note" style={{ margin: '4px 0 0' }}>Automática segue o celular. Sob sol forte, a clara é mais fácil de ler no guidão.</small>
           </div>
+          <button className="btn" type="button" id="hints-reset" style={{ marginTop: 12 }} disabled={!s.hintsSeen.length}
+            onClick={() => { s.patch({ hintsSeen: [] }); onClose() }}>{s.hintsSeen.length ? 'Mostrar as dicas de novo' : 'As dicas vão aparecer de novo'}</button>
         </Sec>
 
         <Sec id="sec-data" title="Seus dados" hint="Backup em arquivo" open={first === 'data'}><DataSection /></Sec>

@@ -876,3 +876,12 @@ button.hist-row{cursor:pointer}
   .wxchip[data-level="ok"]{--lvl:var(--ok)} .wxchip[data-level="warn"]{--lvl:var(--warn)} .wxchip[data-level="bad"]{--lvl:var(--bad)}
   .wxchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+.warn-text{color:var(--warn);font-weight:600}
+
+/* dica de uso: sobre o mapa, logo acima da gaveta (celular) ou no canto do mapa (computador) */
+.hint{position:fixed;z-index:60;left:12px;right:12px;bottom:calc(var(--sheet,0px) + 12px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;align-items:start;
+  background:var(--ink);color:var(--surface);border-radius:16px;padding:12px 12px 12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:rise .25s cubic-bezier(.2,.8,.2,1) both;max-width:520px;margin-inline:auto}
+.hint .i{color:var(--accent);margin-top:2px}
+.hint p{margin:0;font-size:14.5px;line-height:1.4}
+.hint .btn{grid-column:2;justify-self:end;min-height:44px;background:var(--accent);color:var(--accent-ink);border:0;font-weight:700}
+@media (min-width:1000px){.hint{left:32px;right:auto;bottom:40px;width:400px;margin:0}}

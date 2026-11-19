@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, ClipboardPaste, MapPinned, Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { duplicateOf } from '../domain/placeDup'
 import { KINDS, guessKind, kindOf, type KindId } from '../domain/placeKinds'
 import type { LatLon } from '../domain/types'
 import { useSettings } from '../store/settings'
@@ -43,6 +44,10 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
   const [pt, setPt] = useState<{ ll: LatLon; addr: string } | null>(start.ll ? { ll: start.ll, addr: start.name ?? '' } : null)
   const [editing, setEditing] = useState<string | null>(null), [msg, setMsg] = useState('')
   const [marking, setMarking] = useState(false)
+  // lugar repetido: o primeiro toque em Salvar avisa; o segundo salva mesmo assim (trocar ponto ou nome zera o aviso)
+  const [dupFor, setDupFor] = useState<{ key: string; msg: string } | null>(null)
+  const dupKey = (pt ? pt.ll.join() : '') + '|' + name
+  const dup = dupFor?.key === dupKey ? dupFor.msg : null
   // lugar compartilhado de outro app (Google Maps…): procura o ponto pelas coordenadas, endereço, CEP ou nome
   const [sharing, setSharing] = useState(!!start.shared && !start.ll), [precise, setPrecise] = useState<boolean | null>(start.ll ? true : null)
   const nearNow = () => useTrip.getState().me?.pos ?? lastView()?.c ?? null
@@ -75,6 +80,8 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
   function add() {
     if (!pt) return
     const n = (name.trim() || pt.addr.split(',')[0] || 'Lugar').slice(0, 30)
+    if (!dup) { const d = duplicateOf(n, pt.ll, s); if (d) { setDupFor({ key: dupKey, msg: d }); return } }
+    setDupFor(null)
     s.addPlace(n, pt.addr, pt.ll, autoKind)
     setMsg(`"${n}" salvo em ${kindOf(autoKind).label}.`); setName(''); setKind(null); setPt(null)
   }
@@ -111,6 +118,7 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
           </>}
           <input className="pl-name" id="pl-name" type="text" placeholder="Nome (ex.: Academia, Casa da mãe)" aria-label="Nome do lugar" maxLength={30} value={name} onChange={e => setName(e.target.value)} />
           <KindPicker value={autoKind} onChange={setKind} idPrefix="pl-kind" />
+          {dup && <p className="note warn-text" id="pl-dup" role="alert" style={{ margin: 0 }}>{dup} Toque em "Salvar mesmo assim" para criar outro.</p>}
           {msg && <p className="note ok-text" id="pl-msg" style={{ margin: 0 }}>{msg}</p>}
         </section>
 
@@ -142,7 +150,7 @@ function PlacesBody({ start, close }: { start: { ll?: LatLon; name?: string; sha
       </div>
       {/* com um ponto escolhido, o botão grande (ao alcance do polegar) salva: antes ele dizia "Pronto" e fechava sem salvar */}
       <div className="dlg-foot">{pt
-        ? <button className="btn primary pl-save" type="button" id="pl-save" onClick={add}><Plus className="i" />Salvar {name.trim() ? `"${name.trim()}"` : 'lugar'}</button>
+        ? <button className="btn primary pl-save" type="button" id="pl-save" onClick={add}><Plus className="i" />{dup ? 'Salvar mesmo assim' : `Salvar ${name.trim() ? `"${name.trim()}"` : 'lugar'}`}</button>
         : <button className="btn primary" type="button" id="pl-done" onClick={close}>Pronto</button>}</div>
   </>
 }

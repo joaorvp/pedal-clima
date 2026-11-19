@@ -51,6 +51,10 @@ export async function removeTripVia(i?: number) {
 export async function quickSave(name: string, addr: string, ll: LatLon) {
   const { useUndo } = await import('./undo')
   const { kindOf } = await import('../domain/placeKinds')
+  const { duplicateOf } = await import('../domain/placeDup')
+  const dup = duplicateOf(name.slice(0, 30), ll, useSettings.getState())
+  // repetido: não cria outro atalho; avisa e oferece abrir Meus lugares para salvar mesmo assim
+  if (dup) { const { useTrip } = await import('./trip'); useUndo.getState().show(dup, () => useTrip.getState().set({ placesOpen: { ll, name } }), 'Ver'); return }
   const s = useSettings.getState(), id = s.addPlace(name.slice(0, 30), addr, ll)
   const k = kindOf(useSettings.getState().places.find(p => p.id === id)?.kind)
   useUndo.getState().show(`Salvo em Meus lugares · ${k.label}`, () => useSettings.getState().removePlace(id))

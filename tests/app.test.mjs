@@ -80,6 +80,13 @@ await page.waitForTimeout(800);
 assert.ok(!(await page.evaluate(() => document.getElementById("welcome")?.open)), "boas-vindas deve fechar ao concluir");
 await page.waitForTimeout(800);
 assert.match(await page.textContent("#wx-chip"), /\d+°/, "o clima de onde você está aparece numa etiqueta sobre o mapa");
+// dicas de uso: uma de cada vez, uma vez só (puxar a gaveta, depois segurar no mapa)
+await page.waitForSelector("#hint", { timeout: 4000 });
+assert.match(await page.textContent("#hint"), /Puxe a gaveta/);
+await page.click("#hint-ok"); await page.waitForTimeout(1900);
+assert.match(await page.textContent("#hint"), /Segure o dedo no mapa/, "a próxima dica aparece depois de fechar a anterior");
+await page.click("#hint-ok"); await page.waitForTimeout(300);
+assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).hintsSeen), ["sheet", "map-hold"], "as dicas vistas ficam salvas");
 assert.ok(await page.waitForFunction(() => { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet")) || 0; return v > 0 && v < innerHeight * 0.42; }, null, { timeout: 4000 }).then(() => true, () => false), "na tela inicial, a gaveta baixa deixa o mapa com a maior parte da tela");
 
 // busca: seus lugares aparecem na hora; Photon e Nominatim juntos, com a distância; CEP acha a rua
@@ -112,6 +119,12 @@ await page.fill("#pl-search", "lugar"); await page.waitForTimeout(900); await pa
 await page.fill("#pl-name", "Academia do bairro");
 assert.equal(await page.getAttribute("#pl-kind-academia", "aria-checked"), "true", "o tipo é adivinhado pelo nome");
 await page.click("#pl-save"); await page.waitForTimeout(300);
+// o ponto da busca é o mesmo da Casa: avisa antes de criar um atalho repetido; o segundo toque salva mesmo assim
+if (await page.locator("#pl-dup").count()) {
+  assert.match(await page.textContent("#pl-dup"), /sua Casa/);
+  assert.match(await page.textContent("#pl-save"), /Salvar mesmo assim/);
+  await page.click("#pl-save"); await page.waitForTimeout(300);
+}
 assert.match(await page.textContent("#pl-msg"), /Academia do bairro.*Academia/);
 const groupNames = g => page.evaluate(sel => [...document.querySelectorAll(`.pl-group[aria-label='${sel}'] .pname input`)].map(i => i.value).join("|"), g);
 assert.match(await groupNames("Academia"), /Academia do bairro/);
@@ -462,6 +475,7 @@ assert.ok(await page.locator(".minimap .leaflet-marker-icon").count() === 1, "ma
 assert.match(await page.textContent("#pl-precise"), /aproximada/);
 assert.ok(!page.url().includes("text="), "o endereço da página fica limpo");
 await page.click("#pl-save"); await page.waitForTimeout(300);
+if (await page.locator("#pl-dup").count()) { await page.click("#pl-save"); await page.waitForTimeout(300); } // simulações caem no mesmo ponto
 assert.match(await page.textContent("#pl-msg"), /Academia Compartilhada/);
 await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
 
