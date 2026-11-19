@@ -376,6 +376,8 @@ await ctx.setGeolocation({ latitude: -15.876 + 0.073 * 0.3 + 0.0063, longitude: 
 await page.waitForTimeout(1500);
 assert.ok(await page.locator(".offroute").count() === 0, "depois do recálculo automático, você volta a estar na rota");
 assert.ok(await page.locator(".bike-disc").count() === 1, "o pedal continua depois de recalcular");
+assert.ok(await page.evaluate(() => document.getElementById("hero").classList.contains("compact")), "no pedal, a gaveta baixa mostra a faixa compacta");
+assert.ok(await page.evaluate(() => (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet")) || 0) < innerHeight * 0.4), "o mapa fica com a maior parte da tela no pedal");
 assert.ok(await page.locator("path.ride-trail").count() === 1, "o caminho já pedalado continua no mapa depois de recalcular");
 assert.match(await page.textContent("#live-txt"), /\d+,\d km feitos/, "os km feitos continuam contando depois de recalcular");
 const work = await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).work);

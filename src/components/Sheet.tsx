@@ -33,6 +33,14 @@ export function Sheet({ children, contentKey }: { children: ReactNode; contentKe
   }
 
   useLayoutEffect(() => { place(state) }, [state, contentKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // o cartão principal muda de altura sem trocar de tela (ex.: a faixa compacta do pedal): a gaveta baixa acompanha
+  useEffect(() => {
+    const hero = ref.current?.querySelector<HTMLElement>('#hero'); if (!hero || typeof ResizeObserver === 'undefined') return
+    let h = hero.offsetHeight
+    const ro = new ResizeObserver(() => { if (hero.offsetHeight !== h) { h = hero.offsetHeight; if (useTrip.getState().sheet === 'peek') place('peek') } })
+    ro.observe(hero)
+    return () => ro.disconnect()
+  }, [contentKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // no desktop o painel rola sozinho: ao abrir ou fechar um trajeto, volta para o topo
   const mode = useTrip(s => s.mode)
   useEffect(() => { if (!mq?.matches && ref.current) ref.current.scrollTop = 0 }, [mode])

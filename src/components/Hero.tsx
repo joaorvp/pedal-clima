@@ -28,6 +28,8 @@ export function Hero() {
   const [thanks, setThanks] = useState('')
   const [confirmEnd, setConfirmEnd] = useState(false)
   const set = useTrip(s => s.set)
+  // no pedal, com a gaveta baixa: faixa compacta (título, números e botões) para o mapa ficar com a tela
+  const sheet = useTrip(s => s.sheet)
 
   let v: Verdict | null = null
   if (view) v = view.riding ? rideVerdict(view.ev, view.ctx, ride!.d, ride!.off, rideSpeed(ride, speed)) : verdict(view.ev, view.ctx)
@@ -66,7 +68,7 @@ export function Hero() {
   )
 
   return (<>
-    <section className={'card hero' + (loading ? ' loading' : '') + (riding ? ' riding' : '')} id="hero" data-level={v?.level ?? 'ok'} aria-live="polite">
+    <section className={'card hero' + (loading ? ' loading' : '') + (riding ? ' riding' : '') + (riding && sheet === 'peek' ? ' compact' : '')} id="hero" data-level={v?.level ?? 'ok'} aria-live="polite">
       <div className="livebadge"><i /><span id="live-txt">AO VIVO · {ride && ride.dist >= 0.1 ? `${fmt1(ride.dist)} km feitos · ` : ''}{ride?.weakSignal ? 'sinal de GPS fraco' : 'indo para ' + (endpointName(dest) || 'o destino')}</span></div>
       <div className="hero-main">
         <div className="wx" id="wx-icon" data-icon={v?.icon}>{v && <Icon name={v.icon} />}</div>

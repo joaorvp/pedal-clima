@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.32.0'
+export const CURRENT_APP_VERSION = '2.33.0'
 export const CHANGELOG = [
+  {
+    version: '2.33.0',
+    title: 'Mais mapa no pedal',
+    items: [
+      'Durante o pedal, a gaveta fica baixa e compacta: o título, os números (faltam, chegada, chuva à frente e chance) e os botões. O mapa fica com quase toda a tela.',
+      'Puxe a gaveta para cima para ver o texto da previsão, os avisos do INMET e a linha do tempo.',
+    ],
+  },
   {
     version: '2.32.0',
     title: 'Recalcular sem perder o que já pedalou',
