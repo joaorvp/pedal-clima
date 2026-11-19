@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.33.0'
+export const CURRENT_APP_VERSION = '2.34.0'
 export const CHANGELOG = [
+  {
+    version: '2.34.0',
+    title: 'Chance de chuva na linha da rota',
+    items: [
+      'Trechos com pouca chuva prevista, mas chance alta, aparecem com pontinhos azuis sobre o amarelo ("pode chover"), no mapa e na barra do trajeto. Antes a linha ficava toda "seca" enquanto o app pedia a capa por causa da chance.',
+      'Nesses casos, as etiquetas no mapa, a lista de rotas e o cartão mostram a chance (ex.: "até 59%") em vez de "seco" ou "0 mm".',
+    ],
+  },
   {
     version: '2.33.0',
     title: 'Mais mapa no pedal',

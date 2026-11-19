@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { placeName, timelineGroups } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
-import { CATS, cat, evaluate, hourlyAt } from '../domain/weather'
+import { CATS, cat, evaluate, hourlyAt, mayRain } from '../domain/weather'
 import { useLabels, useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings } from '../store/settings'
 import { useTrip } from '../store/trip'
@@ -14,6 +14,7 @@ export function TripCard() {
   const view = useTripView()
   const labels = useLabels()
   const ride = useTrip(s => s.ride)
+  const probTh = useSettings(s => s.probTh)
 
   return (
     <section className="card">
@@ -22,12 +23,13 @@ export function TripCard() {
       <SavedNote />
       {view && <>
         <div className="routebar" id="routebar" aria-hidden="true">
-          {view.ev.segs.map((sg, i) => <i key={i} style={{ width: (sg.to - sg.from) / view.route.total * 100 + '%', background: color(cat(sg.rate)) }} />)}
+          {view.ev.segs.map((sg, i) => <i key={i} className={mayRain(sg, probTh) ? 'maybe' : undefined} style={{ width: (sg.to - sg.from) / view.route.total * 100 + '%', background: color(cat(sg.rate)) }} />)}
         </div>
         <div className="routebar-lbl"><span id="rb-a">{labels.from}</span><span id="rb-b">{labels.to}</span></div>
       </>}
       <div className="legend inline" aria-label="Legenda">
         {['seco', 'garoa', 'moderada', 'forte', 'muito forte'].map((l, i) => <span key={l}><i style={{ background: color(i) }} />{l}</span>)}
+        <span><i className="maybe" style={{ background: color(0) }} />pode chover</span>
       </div>
       {view && <Timeline />}
       {view?.prof && <Elevation />}
@@ -40,7 +42,7 @@ export function TripCard() {
 function Routes() {
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel)
   const dep = useTrip(s => s.dep), now = useTrip(s => s.now), ride = useTrip(s => s.ride)
-  const speed = useSettings(baseSpeed), lastT = ride?.last?.t
+  const speed = useSettings(baseSpeed), lastT = ride?.last?.t, probTh = useSettings(s => s.probTh)
   const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, 'ida', lastT ?? dep ?? now, speed, { wind: lastT == null }) : null), [routes, dep, now, lastT, speed])
   if (routes.length < 2 || evs.some(e => !e)) return null
   const ex = evs.map(e => e!.exposure), du = evs.map(e => e!.dur)
@@ -55,7 +57,7 @@ function Routes() {
         <button key={i} className="rt" type="button" role="radio" aria-checked={i === sel} data-i={i} onClick={() => useTrip.getState().selectRoute(i)}>
           <span className="rd" />
           <span className="nm">{r.name}{(i === dry || i === fast || i === most || r.saved) && <span className="badges">{r.saved && <span className="badge mine">sua rota</span>}{i === dry && <span className="badge">mais seca</span>}{i === fast && <span className="badge fast">mais rápida</span>}{i === most && <span className="badge cyc">mais ciclovia</span>}</span>}</span>
-          <span className="rain">{e.exposure < 0.05 ? '0 mm' : fmt1(e.exposure) + ' mm'}<small>chuva</small></span>
+          <span className="rain">{e.exposure >= 0.05 ? fmt1(e.exposure) + ' mm' : e.maxProb >= probTh ? e.maxProb + '%' : '0 mm'}<small>{e.exposure < 0.05 && e.maxProb >= probTh ? 'chance' : 'chuva'}</small></span>
           <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
         </button>
       ) })}

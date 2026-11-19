@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { checklist, rideVerdict, timelineGroups, verdict, type TripCtx } from './advice'
-import { clearTime, darkness, evaluate, isRainy } from './weather'
+import { clearTime, darkness, evaluate, isRainy, mayRain } from './weather'
 import { sampleRoute } from './testData'
 
 const now = Math.floor(Date.now() / 900e3) * 900e3
@@ -49,5 +49,13 @@ describe('chegada com o vento', async () => {
     const plain = evaluate(r, 'ida', now, 18, { wind: false }), withWind = evaluate(r, 'ida', now, 18)
     expect(plain.dur).toBeCloseTo(r.total / 18 * 3600e3, -3)
     if (Math.abs(withWind.head) >= 1) expect(Math.sign(withWind.dur - plain.dur)).toBe(Math.sign(withWind.head))
+  })
+})
+
+describe('pode chover (chance alta, pouca chuva)', () => {
+  it('marca o trecho seco na quantidade mas com chance na régua do "Leve a capa"', () => {
+    expect(mayRain({ rate: 0, prob: 59 }, 50)).toBe(true)
+    expect(mayRain({ rate: 0, prob: 30 }, 50)).toBe(false)
+    expect(mayRain({ rate: 0.5, prob: 80 }, 50)).toBe(false) // já tem cor de garoa
   })
 })

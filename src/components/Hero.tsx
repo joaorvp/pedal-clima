@@ -20,6 +20,7 @@ export function Hero() {
   const dep = useTrip(s => s.dep), ride = useTrip(s => s.ride), dest = useTrip(s => s.dest)
   const arrived = useTrip(s => s.arrived), pred = useTrip(s => s.feedbackPred), error = useTrip(s => s.error), summary = useTrip(s => s.summary)
   const speed = useSettings(baseSpeed)
+  const probTh = useSettings(st => st.probTh)
   const warned = useRef(false)
   const tIda = useSettings(st => st.tIda), tVolta = useSettings(st => st.tVolta), now = useTrip(st => st.now)
   // "Amanhã": usa o horário da rotina (volta, se o destino é casa; ida, nos demais) ou 07:00
@@ -88,7 +89,7 @@ export function Hero() {
       <div className="meta">
         <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : 'de viagem'}</span></div>
         <div><b id="s-arr">{!ev ? '–' : hhmm(riding ? (ride!.last?.t ?? ev.depMs) + left / sp * 3600e3 : ev.arr)}</b><span>chegada</span></div>
-        {!riding && <div><b id="s-rain">{!ev ? '–' : ev.exposure < 0.05 ? '0 mm' : fmt1(ev.exposure) + ' mm'}</b><span id="m-l3">chuva no trajeto</span></div>}
+        {!riding && <div><b id="s-rain">{!ev ? '–' : ev.exposure >= 0.05 ? fmt1(ev.exposure) + ' mm' : ev.maxProb >= probTh ? ev.maxProb + '%' : '0 mm'}</b><span id="m-l3">{ev && ev.exposure < 0.05 && ev.maxProb >= probTh ? 'chance de chuva' : 'chuva no trajeto'}</span></div>}
         {riding && rn && <div><b id="s-ahead">{rn.aheadMm < 0.05 ? 'seco' : fmt1(rn.aheadMm) + ' mm'}</b><span>à frente</span></div>}
         {riding && rn && <div><b id="s-prob">{rn.aheadProb}%</b><span>chance</span></div>}
         {!riding && <div><b id="s-wind">{!ev ? '–' : Math.abs(ev.head).toFixed(0) + ' km/h'}</b><span id="s-wind-l">{!ev ? 'vento' : Math.abs(ev.head) < 3 ? 'vento fraco' : ev.head > 0 ? 'vento contra' : 'vento a favor'}</span></div>}

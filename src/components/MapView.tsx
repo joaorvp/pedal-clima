@@ -3,7 +3,7 @@ import { Bike, Compass, Layers, LocateFixed, Maximize, Play, Route as RouteIcon,
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { hhmm, fmt1 } from '../domain/format'
 import { placeName } from '../domain/advice'
-import { ordered, CATS, cat, evaluate } from '../domain/weather'
+import { ordered, CATS, cat, evaluate, mayRain } from '../domain/weather'
 import { hav, pointAt } from '../domain/geo'
 import type { LatLon, Route } from '../domain/types'
 import { clearManualHere, lastView, saveView, setManualHere, startLocation } from '../hooks/location'
@@ -79,6 +79,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
   const mode = useTrip(s => s.mode), origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), vias = useTrip(s => s.vias)
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), radar = useTrip(s => s.radar)
   const me = useTrip(s => s.me), ride = useTrip(s => s.ride), pickMode = useTrip(s => s.pickMode)
+  const probTh = useSettings(s => s.probTh)
   const fitNonce = useTrip(s => s.fitNonce), centerNonce = useTrip(s => s.centerNonce)
   const sheetVisible = useTrip(s => s.sheetVisible), now = useTrip(s => s.now)
   const home = useSettings(s => s.home), work = useSettings(s => s.work), places = useSettings(s => s.places)
@@ -229,10 +230,13 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       const i0 = Math.min(sg.a.ri, sg.b.ri), i1 = Math.max(sg.a.ri, sg.b.ri) + 1
       const pts: LatLon[] = [[sg.a.lat, sg.a.lon], ...line.slice(i0 + 1, i1), [sg.b.lat, sg.b.lon]]
       const passed = !!ride?.pos && sg.to <= ride.d
+      const maybe = !passed && mayRain(sg, probTh)
       L.polyline(pts, { ...base, interactive: true, color: passed ? '#9aa6bd' : css(CATS[cat(sg.rate)].color), weight: 6, opacity: passed ? .7 : 1 })
-        .bindTooltip(`<div class="tip">${placeName(sg.from, ctx)} · você passa às <b>${hhmm(sg.t)}</b><br>${CATS[cat(sg.rate)].label} · ${fmt1(sg.rate)} mm/h · ${sg.prob}%</div>`, { sticky: true })
+        .bindTooltip(`<div class="tip">${placeName(sg.from, ctx)} · você passa às <b>${hhmm(sg.t)}</b><br>${maybe ? `pode chover · ${sg.prob}% de chance` : `${CATS[cat(sg.rate)].label} · ${fmt1(sg.rate)} mm/h · ${sg.prob}%`}</div>`, { sticky: true })
         .on('click', e => { L.DomEvent.stopPropagation(e); showHandle(e.latlng) })
         .addTo(ly.route)
+      // pode chover (chance alta, pouca chuva): pontinhos azuis sobre o amarelo, como na legenda
+      if (maybe) L.polyline(pts, { ...base, color: css('--r2'), weight: 4, opacity: 1, dashArray: '1 9' }).addTo(ly.route)
     }
     // rota escolhida: faixa larga invisível para tocar e arrastar o caminho
     if (!ride?.pos) L.polyline(line, { ...base, interactive: true, className: 'route-hit', color: '#000', weight: 24, opacity: 0.001 })
@@ -254,7 +258,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
       h.on('dragend', () => { const p = h.getLatLng(); map.removeLayer(h); slots.current.handle = null; setTripVia([p.lat, p.lng]) })
       slots.current.handle = h
     }
-  }, [map, ly, mode, routes, sel, view, ride?.pos, ride?.d])
+  }, [map, ly, mode, routes, sel, view, ride?.pos, ride?.d, probTh])
 
   // etiquetas das rotas: tempo e chuva de cada uma, direto no mapa (tocar troca a rota);
   // reposicionadas a cada zoom para nunca ficarem uma em cima da outra
@@ -276,7 +280,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
         const px = map.latLngToContainerPoint(at); let dy = 0
         while (placed.some(q => Math.abs(q.x - px.x) < 76 && Math.abs(q.y - (px.y + dy)) < 40)) dy += 42
         placed.push(L.point(px.x, px.y + dy))
-        const rain = e.exposure < 0.05 ? 'seco' : fmt1(e.exposure) + ' mm'
+        const rain = e.exposure >= 0.05 ? fmt1(e.exposure) + ' mm' : e.maxProb >= probTh ? `até ${e.maxProb}%` : 'seco'
         const html = `<div class="rlabel${i === sel ? ' on' : ''}${spread && i === driest ? ' dry' : ''}" style="margin-top:${dy}px"><b>${Math.round(e.dur / 60000)} min</b><span>${rain}</span></div>`
         L.marker(at, { icon: L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 0], html }), zIndexOffset: i === sel ? 800 : 700, keyboard: false })
           .on('click', () => useTrip.getState().selectRoute(i)).addTo(labels)
@@ -285,7 +289,7 @@ export function MapView({ full, onToggleFull }: { full: boolean; onToggleFull: (
     draw()
     map.on('zoomend', draw)
     return () => { map.off('zoomend', draw); map.removeLayer(labels) }
-  }, [map, mode, routes, sel, ride?.pos])
+  }, [map, mode, routes, sel, ride?.pos, probTh])
 
   // enquadra a rota quando ela muda; centraliza em você ao abrir e ao voltar para a tela inicial
   const fitRef = useRef(fit), centerRef = useRef(centerOn)

@@ -9,6 +9,11 @@ export const CATS = [
   { label: 'chuva muito forte', color: '--r4' },
 ] as const
 export const cat = (r: number) => r < 0.1 ? 0 : r < 1 ? 1 : r < 4 ? 2 : r < 10 ? 3 : 4
+/**
+ * Trecho "pode chover": quase nada de chuva prevista (seco na cor), mas chance alta (a mesma régua do "Leve a capa").
+ * Sem isso, a linha ficava toda amarela enquanto o veredito pedia capa pela chance.
+ */
+export const mayRain = (sg: { rate: number; prob: number }, probTh = 50) => cat(sg.rate) === 0 && sg.prob >= probTh
 
 const idxAt = (times: number[], t: number) => { const k = times.findIndex(x => x >= t); return k < 0 ? times.length - 1 : k }
 function nearest(times: number[], t: number) {

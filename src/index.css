@@ -862,3 +862,6 @@ button.hist-row{cursor:pointer}
   .hero.riding.compact .ride-tools .tool span{display:none}
   .hero.riding.compact .offroute{margin-top:8px;padding:8px 10px}
 }
+
+/* "pode chover": seco na quantidade, mas com chance alta. Pontinhos azuis sobre o amarelo (barra e legenda) */
+.routebar i.maybe,.legend i.maybe{background-image:radial-gradient(circle,var(--r2) 0 1.6px,transparent 2px)!important;background-size:7px 100%!important;background-repeat:repeat-x!important;background-position:center!important}
