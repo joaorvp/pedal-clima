@@ -1,4 +1,4 @@
-export interface RideRecord { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number }
+export interface RideRecord { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number; avoided?: 'route' | 'time' }
 
 /** Totais de um período: km, pedais, tempo e quantos foram secos. */
 export function totals(list: RideRecord[], from: number) {

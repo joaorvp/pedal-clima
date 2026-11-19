@@ -415,6 +415,7 @@ assert.match(await page.textContent(".weeks-sel"), /Esta semana: \d+,\d km · 1 
 assert.ok(await page.locator("#share-week").count() === 1, "botão de compartilhar a semana");
 // conquistas: CO₂, calorias, sequência e meta do mês; manutenção com "Feito"
 assert.match(await page.textContent(".ach"), /kg.*CO₂.*kcal.*dia/s);
+assert.match(await page.textContent("#ach-avoided"), /\d+ chuvas? evitadas?/, "contador de chuvas evitadas em Seus pedais");
 await page.click("#goal-edit"); await page.fill("#goal-km", "50"); await page.click(".goal-form .btn"); await page.waitForTimeout(200);
 assert.match(await page.textContent(".goal-head"), /de 50 km/);
 assert.ok(await page.locator(".goal-bar").count() === 1, "barra da meta");

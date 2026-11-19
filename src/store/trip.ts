@@ -9,7 +9,9 @@ import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
 import { radarRainAt } from '../services/radarProbe'
 import { fetchAir, fetchElevation, fetchLocalWeather, fetchWeather } from '../services/openMeteo'
 import { fetchRoutes } from '../services/routing'
-import { useSettings, type PointKey } from './settings'
+import { baseSpeed, useSettings, type PointKey } from './settings'
+import { evaluate, isRainy } from '../domain/weather'
+import type { Avoided } from '../domain/avoided'
 import { useUndo } from './undo'
 
 /** Um ponto do trajeto: a sua posição ao vivo ou um lugar fixo (salvo, buscado ou marcado no mapa). */
@@ -42,10 +44,12 @@ export interface Ride {
   recalcAt: number | null
   /** caminho percorrido (um ponto a cada ~20 m), só no aparelho, para salvar como rota ao chegar */
   track: LatLon[]
+  /** no início do pedal: a escolha (rota ou horário) estava seca e a outra pegaria chuva */
+  avoid?: Avoided | null
 }
 
 /** Resumo mostrado ao chegar. */
-export interface RideSummary { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number; track?: LatLon[] }
+export interface RideSummary { km: number; mins: number; avg: number; rain: number; wh: number | null; dest: string; at: number; track?: LatLon[]; avoided?: Avoided }
 export type SheetState = 'peek' | 'half' | 'full'
 export type Mode = 'explore' | 'trip'
 
@@ -88,6 +92,8 @@ interface TripState {
   placesOpen: null | { ll?: LatLon; name?: string; shared?: SharedPlace; notice?: string }
   /** página de apresentação (primeira visita pelo navegador ou link "Sobre") */
   landing: boolean
+  /** ao abrir o trajeto (saindo agora), a rota escolhida pegaria chuva? (para a "chuva evitada" esperando) */
+  rainyAtOpen: boolean | null
   /** qualidade do ar onde você está */
   air: { aqi: number; pm25: number } | null
   pickMode: PointKey | 'dest' | 'origin' | null
@@ -138,7 +144,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, localLoading: false, radarHere: null, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null, rainyAtOpen: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 
@@ -147,7 +153,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   startTrip: (dest, origin) => {
     if (dest.kind === 'place' && !dest.key) useSettings.getState().addRecent(dest.name, dest.ll)
     const st = get(), o = origin ?? (st.me ? { kind: 'me' } as Endpoint : { kind: 'place', ll: useSettings.getState().home, name: 'Casa', key: 'home' } as Endpoint)
-    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], viaName: '', sheet: 'peek', error: '', arrived: false })
+    set({ mode: 'trip', origin: o, dest, dep: null, routes: [], vias: [], viaName: '', sheet: 'peek', error: '', arrived: false, rainyAtOpen: null })
     get().refresh()
   },
   closeTrip: () => {
@@ -218,6 +224,8 @@ export const useTrip = create<TripState>()((set, get) => ({
       const keep = routes.findIndex(r => r.name === useSettings.getState().routePick)
       set({ routes, sel: keep >= 0 ? keep : 0, sun, wxAt: Date.now(), loading: false, offline: false, error: '',
         routeNote: fallback && !mine.length ? 'Não consegui calcular a rota agora; usando linha reta entre os pontos.' : '', fitNonce: get().fitNonce + 1 })
+      // a primeira previsão do trajeto, saindo agora: se pegaria chuva e você sair depois, já seco, conta como chuva evitada
+      if (get().rainyAtOpen == null && get().dep == null && !get().ride) { const r = routes[get().sel]; if (r?.wx) set({ rainyAtOpen: isRainy(evaluate(r, 'ida', Date.now(), baseSpeed(s)), s.probTh) }) }
       if (!writeJson(SNAP_KEY, { sig: round3(o) + '|' + round3(d) + '|' + s.profile, wxAt: Date.now(), sun, sel: get().sel, routes, origin: st.origin, dest: st.dest, vias })) removeKey(SNAP_KEY)
     } catch (e) {
       if (get().routes[0]?.wx) set({ loading: false, offline: true, error: '' })

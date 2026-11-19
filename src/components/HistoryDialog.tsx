@@ -1,4 +1,4 @@
-import { Award, Bike, Bookmark, ChevronDown, Download, Flame, Leaf, Share2, Target, TrendingDown, TrendingUp, Wrench, X } from 'lucide-react'
+import { Award, Bike, Bookmark, ChevronDown, Download, Flame, Leaf, Share2, Target, TrendingDown, TrendingUp, Umbrella, Wrench, X } from 'lucide-react'
 import { badges, impact, streak } from '../domain/achievements'
 import { maintenance } from '../domain/maintenance'
 import { gpxFileName, rideGpx } from '../domain/gpx'
@@ -171,6 +171,7 @@ function Achievements() {
         <div className="ach-box"><Leaf className="i" /><b className="num">{kg(m.co2)}</b><small>de CO₂ a menos no mês (vs. carro){all.co2 > m.co2 ? ` · ${kg(all.co2)} no total` : ''}</small></div>
         <div className="ach-box"><Flame className="i" /><b className="num">{Math.round(m.kcal).toLocaleString('pt-BR')} kcal</b><small>gastas no mês (estimativa)</small></div>
         <div className="ach-box"><Award className="i" /><b className="num">{st} {st === 1 ? 'dia' : 'dias'}</b><small>seguidos pedalando (fim de semana não quebra)</small></div>
+        <div className="ach-box" id="ach-avoided"><Umbrella className="i" /><b className="num">{m.avoided} {m.avoided === 1 ? 'chuva evitada' : 'chuvas evitadas'}</b><small>no mês, escolhendo a rota ou a hora{all.avoided > m.avoided ? ` · ${all.avoided} no total` : ''}</small></div>
       </div>
       <div className="goal">
         <div className="goal-head"><Target className="i" /><span>{goal ? <>Meta do mês: <b className="num">{fmt1(m.km)}</b> de {goal} km</> : 'Sem meta de km para o mês'}</span>

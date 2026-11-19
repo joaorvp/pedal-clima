@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.36.0'
+export const CURRENT_APP_VERSION = '2.37.0'
 export const CHANGELOG = [
+  {
+    version: '2.37.0',
+    title: 'Chuvas evitadas',
+    items: [
+      'Quando você escolhe uma rota seca enquanto outra pegaria chuva, ou espera passar e sai depois, o pedal conta como "chuva evitada". O resumo da chegada mostra isso.',
+      'Em Seus pedais → Conquistas: quantas chuvas você evitou no mês e no total. Com 5, vem o selo "Driblador de chuva".',
+      'Respondeu "Choveu" no fim do pedal? Ele deixa de contar como chuva evitada.',
+    ],
+  },
   {
     version: '2.36.0',
     title: 'Dicas rápidas e lugares sem repetição',

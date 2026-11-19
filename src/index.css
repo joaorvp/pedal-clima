@@ -790,7 +790,7 @@ button.hist-row{cursor:pointer}
 .ach,.maint{display:grid;gap:10px;background:var(--surface-2);border-radius:14px;padding:12px 14px}
 .ach .lb,.maint .lb{display:flex;align-items:center;gap:6px;font:600 12.5px var(--font-data);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .maint .lb .i{width:15px;height:15px}
-.ach-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ach-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .ach-box{display:grid;gap:2px;align-content:start;background:var(--surface);border-radius:12px;padding:10px}
 .ach-box .i{width:18px;height:18px;color:var(--ok)}
 .ach-box:nth-child(2) .i{color:var(--warn)} .ach-box:nth-child(3) .i{color:var(--link)}
@@ -885,3 +885,7 @@ button.hist-row{cursor:pointer}
 .hint p{margin:0;font-size:14.5px;line-height:1.4}
 .hint .btn{grid-column:2;justify-self:end;min-height:44px;background:var(--accent);color:var(--accent-ink);border:0;font-weight:700}
 @media (min-width:1000px){.hint{left:32px;right:auto;bottom:40px;width:400px;margin:0}}
+
+/* chuva evitada no resumo da chegada */
+.avoided{display:flex;gap:10px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--ok) 13%,var(--surface));font-size:14px}
+.avoided .i{color:var(--ok);flex:none;margin-top:1px}

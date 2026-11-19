@@ -1,4 +1,5 @@
-import { BookmarkPlus, Navigation, Share2 } from 'lucide-react'
+import { BookmarkPlus, Navigation, Share2, Umbrella } from 'lucide-react'
+import { avoidedText } from '../domain/avoided'
 import { rideVerdict, verdict, type Verdict } from '../domain/advice'
 import { accuracyText } from '../domain/calibration'
 import { fmt1, hhmm } from '../domain/format'
@@ -50,6 +51,8 @@ export function Hero() {
     if (!pred) return
     const s = useSettings.getState()
     s.addFeedback({ ...pred, rained })
+    // choveu de verdade: este pedal não conta como chuva evitada
+    if (rained && summary?.avoided && s.history[0]?.at === summary.at) { s.patch({ history: [{ ...s.history[0], avoided: undefined }, ...s.history.slice(1)] }); set({ summary: { ...summary, avoided: undefined } }) }
     const after = useSettings.getState()
     setThanks('Obrigado! ' + accuracyText(after.log, after.probTh))
     set({ feedbackPred: null })
@@ -151,6 +154,7 @@ function Summary({ s }: { s: RideSummary }) {
         <div><b>{s.avg > 0 && s.avg < 70 ? Math.round(s.avg) + ' km/h' : '–'}</b><span>média</span></div>
         <div><b>{s.rain >= 0.1 ? fmt1(s.rain) + ' mm' : 'seco'}</b><span>chuva no caminho</span></div>
       </div>
+      {s.avoided && <p className="avoided" id="sum-avoided"><Umbrella className="i" aria-hidden="true" /><span><b>Chuva evitada!</b> Você chegou seco, e {avoidedText(s.avoided)}.</span></p>}
       {s.wh != null && <p className="note" style={{ margin: '8px 0 0' }}>Bateria usada: ~{Math.round(s.wh)} Wh (estimativa).</p>}
       {/* o caminho feito de verdade (com desvios e recálculos) vira rota sua: aparece primeiro da próxima vez */}
       {s.track && s.track.length >= 3 && !saved && (naming

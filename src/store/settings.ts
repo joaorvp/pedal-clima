@@ -51,7 +51,9 @@ export const settingsSchema = z.object({
   /** pedais concluídos (resumo de cada um), do mais recente para o mais antigo */
   history: z.array(z.object({ km: z.number(), mins: z.number(), avg: z.number(), rain: z.number(), wh: z.number().nullable(), dest: z.string(), at: z.number(),
     /** caminho percorrido (simplificado); guardado só nos 30 pedais mais recentes */
-    track: z.array(latLon).optional().catch(undefined) })).catch([]),
+    track: z.array(latLon).optional().catch(undefined),
+    /** chuva evitada neste pedal: pela rota escolhida ou pelo horário de saída */
+    avoided: z.enum(['route', 'time']).optional().catch(undefined) })).catch([]),
   /** no pedal, o mapa gira conforme a direção (bússola) */
   headingUp: z.boolean().catch(true),
   /** mapa de ciclovias (CyclOSM) no lugar do mapa comum */

@@ -1,5 +1,6 @@
 import { bearing, hav, project } from '../domain/geo'
 import { evaluate, isRainy, rateAt } from '../domain/weather'
+import { avoidedRain } from '../domain/avoided'
 import type { LatLon } from '../domain/types'
 import { readJson, removeKey, writeJson } from '../services/cache'
 import { appendTrack, simplify } from '../domain/savedRoutes'
@@ -14,14 +15,14 @@ const RESUME_WINDOW = 3 * 3600e3
 /** Pedal em andamento salvo no aparelho: se o celular fechar o app no meio do caminho, dá para continuar de onde parou. */
 export interface RideSnap {
   dest: Extract<Endpoint, { kind: 'place' }>; vias?: LatLon[]; via?: LatLon | null; viaName: string; track?: LatLon[]
-  startedAt: number; dist: number; rain: number; moving: number; pace: number; pred: Ride['pred']; savedAt: number
+  startedAt: number; dist: number; rain: number; moving: number; pace: number; pred: Ride['pred']; savedAt: number; avoid?: Ride['avoid']
 }
 let lastSave = 0
 function saveRide(force = false) {
   const t = useTrip.getState(), r = t.ride
   if (!r || t.dest?.kind !== 'place' || (!force && Date.now() - lastSave < 10e3)) return
   lastSave = Date.now()
-  const snap: RideSnap = { dest: t.dest, vias: t.vias, viaName: t.viaName, track: r.track, startedAt: r.startedAt, dist: r.dist, rain: r.rain, moving: r.moving, pace: r.pace, pred: r.pred, savedAt: lastSave }
+  const snap: RideSnap = { dest: t.dest, vias: t.vias, viaName: t.viaName, track: r.track, startedAt: r.startedAt, dist: r.dist, rain: r.rain, moving: r.moving, pace: r.pace, pred: r.pred, savedAt: lastSave, avoid: r.avoid }
   writeJson(RIDE_KEY, snap)
 }
 export function discardRide() { try { localStorage.removeItem(RIDE_KEY) } catch { /* sem armazenamento */ } }
@@ -45,7 +46,7 @@ export function resumeRide(s: RideSnap): Promise<string | null> {
         clearInterval(id)
         const err = startRide(); if (err) { resolve(err); return }
         const r = useTrip.getState().ride!
-        useTrip.getState().set({ ride: { ...r, startedAt: s.startedAt, dist: s.dist, rain: s.rain, moving: s.moving, pace: s.pace, pred: s.pred ?? r.pred, track: [...(s.track ?? []), ...r.track] } })
+        useTrip.getState().set({ ride: { ...r, startedAt: s.startedAt, dist: s.dist, rain: s.rain, moving: s.moving, pace: s.pace, pred: s.pred ?? r.pred, track: [...(s.track ?? []), ...r.track], avoid: s.avoid ?? r.avoid } })
         saveRide(true); resolve(null)
       } else if (Date.now() - t0 > 25e3) { clearInterval(id); resolve('Não deu para recalcular a rota agora. Tente de novo em instantes.') }
     }, 300)
@@ -129,7 +130,11 @@ export function startRide(): string | null {
   const t = useTrip.getState()
   if (t.locStatus === 'denied') return 'Permita o acesso à localização no navegador para usar o modo pedal.'
   if (!navigator.geolocation) return 'Este navegador não fornece localização.'
-  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null, track: [] }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
+  // chuva evitada: a rota escolhida, saindo agora, está seca e outra rota (ou sair quando você olhou) pegaria chuva
+  const s = useSettings.getState(), sp = baseSpeed(s), now = Date.now()
+  const rainy = t.routes.map(r => r.wx ? isRainy(evaluate(r, 'ida', now, sp), s.probTh) : false)
+  const avoid = t.routes[t.sel]?.wx ? avoidedRain(rainy[t.sel], rainy.filter((_, i) => i !== t.sel), t.rainyAtOpen) : null
+  t.set({ ride: { pos: null, acc: 0, d: 0, off: 0, ema: 0, heading: null, follow: true, weakSignal: false, last: null, pred: null, offSince: null, startedAt: Date.now(), dist: 0, rain: 0, moving: 0, pace: 0, recalcAt: null, track: [], avoid }, arrived: false, feedbackPred: null, summary: null, sheet: 'peek' })
   startLocation()
   if (t.me) rideStep(t.me, null)
   keepAwake(); buzz(30); saveRide(true)
@@ -193,7 +198,8 @@ export function stopRide(arrived = false) {
     const mins = Math.max(1, Math.round((Date.now() - r.startedAt) / 60e3)), km = Math.max(r.dist, r.d)
     const s = useSettings.getState()
     const path = [...r.track, ...(r.pos ? [r.pos] : [])]
-    summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now(), ...(path.length >= 3 ? { track: simplify(path) } : {}) }
+    summary = { km, mins, avg: km / (mins / 60), rain: r.rain, wh: km ? (s.whkm || 10) * km : null, dest: t.dest?.kind === 'place' ? t.dest.name : 'destino', at: Date.now(), ...(path.length >= 3 ? { track: simplify(path) } : {}),
+      ...(r.avoid && r.rain < 0.1 ? { avoided: r.avoid } : {}) }
   }
   if (summary) useSettings.getState().addHistory(summary)
   // pedal encerrado antes de chegar: o caminho gravado é descartado junto
