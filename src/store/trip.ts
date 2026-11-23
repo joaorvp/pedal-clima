@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import type { InmetAlert } from '../domain/alerts'
 import { prepRoute } from '../domain/routes'
-import { matchSaved } from '../domain/savedRoutes'
+import { planFits, planSaved, type SavedPlan } from '../domain/savedRoutes'
 import type { SharedPlace } from '../domain/shareParse'
-import type { LatLon, PointWeather, Route, SunTimes } from '../domain/types'
+import type { LatLon, PointWeather, Profile, Route, SunTimes } from '../domain/types'
 import { readJson, removeKey, writeJson } from '../services/cache'
 import { fetchAlerts, fetchRadar, type RadarFrame } from '../services/external'
 import { radarRainAt } from '../services/radarProbe'
@@ -213,7 +213,10 @@ export const useTrip = create<TripState>()((set, get) => ({
     try {
       const { routes: found, fallback } = await fetchRoutes(o, vias, d, s.profile)
       // rotas salvas que servem para este trajeto vêm primeiro (sem pontos de passagem novos, que pedem um caminho diferente)
-      const mine = vias.length ? [] : matchSaved(s.savedRoutes, o, d).slice(0, 2).map(m => ({ line: m.line, roads: [], profile: s.profile, viaP: false, saved: { id: m.route.id, name: m.route.name } }))
+      // inclusive um trecho: o pedaço da rota salva que serve, ligado à saída e ao destino pelo roteador
+      const plans = vias.length ? [] : s.savedRoutes.map(r => ({ r, p: planSaved(r, o, d) })).filter((x): x is { r: typeof x.r; p: SavedPlan } => !!x.p && planFits(x.p, o, d))
+        .sort((a, b) => (a.p.head + a.p.tail) - (b.p.head + b.p.tail)).slice(0, 2)
+      const mine = await Promise.all(plans.map(async ({ r, p }) => ({ line: await stitchSaved(o, p, d, s.profile), roads: [], profile: s.profile, viaP: false, saved: { id: r.id, name: r.name } })))
       const cands = [...mine, ...found].slice(0, mine.length + 3)
       const routes = cands.map(c => prepRoute(c, vias[0] ?? null))
       // nomes únicos (a escolha da rota fica salva pelo nome)
@@ -243,3 +246,13 @@ export const useTrip = create<TripState>()((set, get) => ({
     return true
   },
 }))
+
+/** Liga o pedaço da rota salva à saída e ao destino (pelo roteador; sem resposta, em linha reta). */
+export async function stitchSaved(o: LatLon, p: SavedPlan, d: LatLon, profile: Profile): Promise<LatLon[]> {
+  const leg = async (a: LatLon, b: LatLon, gap: number) => {
+    if (gap < 0.15) return [a, b]
+    try { return (await fetchRoutes(a, [], b, profile)).routes[0]?.line ?? [a, b] } catch { return [a, b] }
+  }
+  const [head, tail] = await Promise.all([leg(o, p.line[0], p.head), leg(p.line[p.line.length - 1], d, p.tail)])
+  return [...head.slice(0, -1), ...p.line, ...tail.slice(1)]
+}

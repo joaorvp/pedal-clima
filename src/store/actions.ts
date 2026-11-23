@@ -59,3 +59,27 @@ export async function quickSave(name: string, addr: string, ll: LatLon) {
   const k = kindOf(useSettings.getState().places.find(p => p.id === id)?.kind)
   useUndo.getState().show(`Salvo em Meus lugares · ${k.label}`, () => useSettings.getState().removePlace(id))
 }
+
+/**
+ * Usar uma rota salva neste trajeto (também no meio do pedal): o pedaço dela que serve, ligado a onde você está
+ * e ao destino. Ela entra como a primeira opção, já escolhida. Devolve um aviso quando não dá.
+ */
+export async function applySavedRoute(id: string): Promise<string | null> {
+  const [{ useTrip, endpointLL, stitchSaved }, { planSaved }, { prepRoute }, { fetchWeather, fetchElevation }] =
+    await Promise.all([import('./trip'), import('../domain/savedRoutes'), import('../domain/routes'), import('../services/openMeteo')])
+  const t = useTrip.getState(), s = useSettings.getState(), r = s.savedRoutes.find(x => x.id === id)
+  const o = t.ride?.pos ?? endpointLL(t.origin, t.me), d = endpointLL(t.dest, t.me)
+  if (!r || !o || !d) return 'Não deu para usar essa rota agora.'
+  const p = planSaved(r, o, d)
+  if (!p) return `"${r.name}" não passa perto deste trajeto.`
+  try {
+    const line = await stitchSaved(o, p, d, s.profile)
+    const route = prepRoute({ line, roads: [], profile: s.profile, viaP: false, saved: { id: r.id, name: r.name } }, null)
+    const [{ perRoute }, elev] = await Promise.all([fetchWeather([route]), fetchElevation(route)])
+    route.wx = perRoute[0]; route.elev = elev
+    const st = useTrip.getState(); if (st.mode !== 'trip') return null
+    st.set({ routes: [route, ...st.routes.filter(x => x.saved?.id !== r.id)].slice(0, 5), sel: 0 })
+    useSettings.getState().patch({ routePick: route.name })
+    return null
+  } catch { return 'Sem conexão para montar essa rota agora. Tente de novo em instantes.' }
+}

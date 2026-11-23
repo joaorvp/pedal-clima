@@ -19,10 +19,11 @@ const mq = (q: string) => typeof window !== 'undefined' && !!window.matchMedia?.
 export function Hints({ blocked }: { blocked: boolean }) {
   const seen = useSettings(s => s.hintsSeen), onboarded = useSettings(s => s.onboarded)
   const mode = useTrip(s => s.mode), ride = useTrip(s => s.ride), landing = useTrip(s => s.landing), pick = useTrip(s => s.pickMode)
-  const places = useTrip(s => s.placesOpen), history = useTrip(s => s.historyOpen), routes = useTrip(s => s.routes.length)
+  const places = useTrip(s => s.placesOpen), history = useTrip(s => s.historyOpen), routes = useTrip(s => s.routes.length), sheet = useTrip(s => s.sheet)
   const mobile = mq('(max-width: 999px)'), touch = mq('(pointer: coarse)')
   const next = HINTS.find(h => h.mode === mode && !seen.includes(h.id) && (!h.mobileOnly || mobile) && (h.mode !== 'trip' || routes > 1))
-  const free = onboarded && !landing && !ride && !pick && !places && !history && !blocked
+  // no celular, só com a gaveta baixa (as dicas falam do mapa e ficam logo acima da gaveta)
+  const free = onboarded && !landing && !ride && !pick && !places && !history && !blocked && (!mobile || sheet === 'peek')
   // espera a tela assentar antes de mostrar (sem piscar enquanto carrega)
   const [ready, setReady] = useState<string | null>(null)
   const key = free && next ? next.id : null

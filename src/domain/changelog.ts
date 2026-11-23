@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.37.0'
+export const CURRENT_APP_VERSION = '2.38.0'
 export const CHANGELOG = [
+  {
+    version: '2.38.0',
+    title: 'Rotas salvas que cobrem só um trecho',
+    items: [
+      'Uma rota salva agora aparece mesmo quando cobre só parte do trajeto: o app usa o pedaço que serve e liga você até ele e dele até o destino.',
+      'Novo "Usar uma rota salva" no trajeto, também com o pedal em curso: escolha qualquer rota salva e ela vira a rota em uso, a partir de onde você está.',
+      'As dicas de uso só aparecem com a gaveta baixa (antes podiam sair do topo da tela).',
+    ],
+  },
   {
     version: '2.37.0',
     title: 'Chuvas evitadas',

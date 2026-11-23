@@ -466,6 +466,29 @@ assert.ok(!page.url().includes("ir="), "o endereço fica limpo depois do atalho"
 assert.ok(await page.evaluate(() => document.getElementById("alert").classList.contains("compact")), "alerta do INMET já visto aparece numa linha só na próxima abertura");
 await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
 
+// rotas salvas que só cobrem um trecho: saindo ~450 m do começo do "Caminho do pedal" até perto do fim dele,
+// o pedaço que serve aparece sozinho entre as opções (ligado pelo roteador); e dá para escolher uma rota salva à mão
+await ctx.setGeolocation({ latitude: -15.8722, longitude: -48.0925 }); await page.waitForTimeout(1200);
+{
+  const end = [-15.8492, -48.0575];
+  // o ponto fica na parte de cima do mapa, longe do aviso "Trajeto fechado" e da gaveta
+  await page.evaluate(e => { const m = globalThis.__pedaguaMap; m.setView(e, 14, { animate: false }); m.panBy([0, 180], { animate: false }); }, end); await page.waitForTimeout(400);
+  const pt = await page.evaluate(e => { const p = globalThis.__pedaguaMap.latLngToContainerPoint(e); return [p.x, p.y]; }, end);
+  const mb = await page.locator("#map").boundingBox();
+  await page.mouse.click(mb.x + pt[0], mb.y + pt[1], { button: "right" }); await page.waitForTimeout(500);
+  await page.evaluate(() => document.querySelector('.drop-pop [data-a="dest"]').click()); await page.waitForTimeout(2500);
+}
+assert.ok(await page.locator(".rt .badge.mine").count() >= 1, "um trecho salvo que serve para o trajeto aparece entre as opções");
+await page.evaluate(() => document.getElementById("saved-pick").click()); await page.waitForTimeout(300);
+assert.ok(await page.locator(".saved-item").count() === 2, "a lista mostra as rotas salvas");
+assert.match(await page.textContent(".saved-list"), /não passa perto deste trajeto/, "a rota que não serve aparece desabilitada");
+await page.evaluate(() => document.querySelector('.rt:not([aria-checked="true"])')?.click()); await page.waitForTimeout(300);
+await page.evaluate(() => document.getElementById("saved-pick").click()); await page.waitForTimeout(300);
+await page.evaluate(() => document.getElementById("saved-pick").click()); await page.waitForTimeout(300);
+await page.evaluate(() => [...document.querySelectorAll(".saved-item")].find(b => !b.disabled && b.textContent.includes("Caminho do pedal"))?.click()); await page.waitForTimeout(1500);
+assert.match(await page.textContent('.rt[aria-checked="true"]'), /Caminho do pedal/, "escolher uma rota salva a coloca em uso");
+await page.evaluate(() => document.querySelector('[aria-label="Fechar trajeto"]').click()); await page.waitForTimeout(500);
+
 // Compartilhar → Pedágua no Google Maps: abre Meus lugares com o lugar, o mapinha e o aviso de posição aproximada
 await page.goto(APP + "?title=" + encodeURIComponent("Academia Compartilhada") + "&text=" + encodeURIComponent("Academia Compartilhada\nRua 9, 12 - Bairro Z, Cidade - UF, 72000-000\nhttps://maps.app.goo.gl/xyz"));
 await page.waitForTimeout(2200);

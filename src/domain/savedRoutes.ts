@@ -1,4 +1,4 @@
-import { cumulative, hav } from './geo'
+import { cumulative, hav, pointAt, project } from './geo'
 import type { LatLon } from './types'
 
 /** Rota que você salvou com nome (desenhada no mapa ou gravada num pedal). */
@@ -54,4 +54,33 @@ export function appendTrack(track: LatLon[], pos: LatLon, plausible: boolean): L
   if (!last) return [[+pos[0].toFixed(5), +pos[1].toFixed(5)]]
   if (!plausible || hav(last, pos) < 0.02 || track.length >= 4000) return track
   return [...track, [+pos[0].toFixed(5), +pos[1].toFixed(5)]]
+}
+
+/** Pedaço do traçado entre as distâncias d0 e d1 (km desde o início), com as pontas cortadas no lugar exato. */
+export function subLine(line: LatLon[], cum: number[], d0: number, d1: number): LatLon[] {
+  const out: LatLon[] = [pointAt(line, cum, d0)]
+  for (let i = 0; i < line.length; i++) if (cum[i] > d0 && cum[i] < d1) out.push(line[i])
+  out.push(pointAt(line, cum, d1))
+  return out
+}
+
+/**
+ * Como aproveitar uma rota salva neste trajeto, mesmo que ela não comece e termine nos mesmos pontos:
+ * pega o pedaço entre o ponto da rota mais perto da saída e o mais perto do destino (no sentido certo).
+ * head/tail: quanto falta da saída até a rota e da rota até o destino (km); pieceKm: o pedaço aproveitado.
+ */
+export interface SavedPlan { line: LatLon[]; head: number; tail: number; pieceKm: number }
+export function planSaved(r: SavedRoute, o: LatLon, d: LatLon): SavedPlan | null {
+  if (r.line.length < 2) return null
+  const cum = cumulative(r.line), po = project(o, r.line, cum), pd = project(d, r.line, cum)
+  const pieceKm = Math.abs(pd.d - po.d)
+  if (pieceKm < 0.3) return null
+  const line = po.d < pd.d ? subLine(r.line, cum, po.d, pd.d) : subLine(r.line, cum, pd.d, po.d).reverse()
+  return { line, head: po.off, tail: pd.off, pieceKm }
+}
+
+/** Vale a pena sugerir sozinho: as ligações são curtas perto do trajeto e o pedaço aproveitado é uma boa parte dele. */
+export function planFits(p: SavedPlan, o: LatLon, d: LatLon): boolean {
+  const direct = hav(o, d)
+  return p.head + p.tail <= Math.max(1.5, direct * 0.35) && p.pieceKm >= Math.max(0.8, direct * 0.3)
 }

@@ -889,3 +889,12 @@ button.hist-row{cursor:pointer}
 /* chuva evitada no resumo da chegada */
 .avoided{display:flex;gap:10px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--ok) 13%,var(--surface));font-size:14px}
 .avoided .i{color:var(--ok);flex:none;margin-top:1px}
+
+/* usar uma rota salva no trajeto (também no pedal) */
+.saved-pick{margin:4px 0 12px}
+.saved-pick > .btn{width:100%;justify-content:center}
+.saved-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.saved-item{width:100%;display:grid;gap:2px;text-align:left;min-height:52px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);cursor:pointer;font:inherit}
+.saved-item small{color:var(--muted);font-size:12.5px}
+.saved-item:disabled{opacity:.6;cursor:default}
+.saved-item[aria-current="true"]{border-color:var(--link);opacity:1}

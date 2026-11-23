@@ -1,10 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Bookmark } from 'lucide-react'
+import { planSaved } from '../domain/savedRoutes'
+import { applySavedRoute } from '../store/actions'
 import { placeName, timelineGroups } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { CATS, cat, evaluate, hourlyAt, mayRain } from '../domain/weather'
 import { useLabels, useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings } from '../store/settings'
-import { useTrip } from '../store/trip'
+import { endpointLL, useTrip } from '../store/trip'
 import { OpenIn } from './TripHeader'
 import { SavedNote } from './SaveRoute'
 
@@ -21,6 +24,7 @@ export function TripCard() {
       <h2>Seu trajeto, minuto a minuto <span className="aside num" id="tl-dist">{view ? fmt1(view.route.total) + ' km' : ''}</span></h2>
       <Routes />
       <SavedNote />
+      <SavedPicker />
       {view && <>
         <div className="routebar" id="routebar" aria-hidden="true">
           {view.ev.segs.map((sg, i) => <i key={i} className={mayRain(sg, probTh) ? 'maybe' : undefined} style={{ width: (sg.to - sg.from) / view.route.total * 100 + '%', background: color(cat(sg.rate)) }} />)}
@@ -115,6 +119,36 @@ function Elevation() {
       </svg>
       <div className="batt"><div className="batt-bar"><i id="batt-fill" className={bt.pct >= 95 ? 'bad' : bt.pct >= 70 ? 'warn' : ''} style={{ width: pct + '%' }} /></div><span className="num" id="batt-txt">~{bt.pct}% da bateria · {Math.round(bt.wh)} Wh</span></div>
       <p className="note" style={{ marginTop: 6 }}>Estimativa a partir da distância, das subidas e do vento. Ajuste a bateria e o consumo em Ajustes.</p>
+    </div>
+  )
+}
+
+/** Escolher uma rota salva para este trajeto, inclusive no meio do pedal (o pedaço que serve, ligado a você e ao destino). */
+function SavedPicker() {
+  const saved = useSettings(s => s.savedRoutes), routes = useTrip(s => s.routes), sel = useTrip(s => s.sel)
+  const origin = useTrip(s => s.origin), dest = useTrip(s => s.dest), me = useTrip(s => s.me), pos = useTrip(s => s.ride?.pos)
+  const [open, setOpen] = useState(false), [busy, setBusy] = useState(''), [msg, setMsg] = useState('')
+  const o = pos ?? endpointLL(origin, me), d = endpointLL(dest, me)
+  const list = useMemo(() => (o && d ? saved.map(r => ({ r, p: planSaved(r, o, d) })) : [])
+    .sort((a, b) => (a.p ? a.p.head + a.p.tail : 99) - (b.p ? b.p.head + b.p.tail : 99)), [saved, o?.[0], o?.[1], d?.[0], d?.[1]]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!saved.length || !routes.length) return null
+  const active = routes[sel]?.saved?.id
+  return (
+    <div className="saved-pick">
+      <button className="btn" type="button" id="saved-pick" aria-expanded={open} onClick={() => { setOpen(!open); setMsg('') }}><Bookmark className="i" />Usar uma rota salva</button>
+      {open && <ul className="saved-list">
+        {list.map(({ r, p }) => (
+          <li key={r.id}>
+            <button type="button" className="saved-item" data-id={r.id} disabled={!!busy || r.id === active || !p} aria-current={r.id === active}
+              onClick={async () => { setBusy(r.id); setMsg(''); const m = await applySavedRoute(r.id); setBusy(''); if (m) setMsg(m); else setOpen(false) }}>
+              <b>{r.name}</b>
+              <small>{busy === r.id ? 'Montando…' : r.id === active ? 'em uso agora' : !p ? 'não passa perto deste trajeto'
+                : p.head + p.tail < 0.3 ? `${fmt1(p.pieceKm)} km da sua rota` : `${fmt1(p.pieceKm)} km da sua rota + ${fmt1(p.head + p.tail)} km de ligação`}</small>
+            </button>
+          </li>
+        ))}
+      </ul>}
+      {msg && <p className="note" id="saved-pick-msg" style={{ margin: '6px 0 0' }}>{msg}</p>}
     </div>
   )
 }
