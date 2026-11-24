@@ -25,6 +25,8 @@ const CSP = [
 
 export default defineConfig({
   base,
+  // data da publicação, mostrada no rodapé ("publicado em"), para conferir se o app atualizou
+  define: { __BUILD_DATE__: JSON.stringify(new Date().toISOString()) },
   plugins: [
     { name: 'pedagua-csp', apply: 'build', transformIndexHtml: html => html.replace('<meta charset="utf-8" />', `<meta charset="utf-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />`) },
     react(),

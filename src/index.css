@@ -898,3 +898,6 @@ button.hist-row{cursor:pointer}
 .saved-item small{color:var(--muted);font-size:12.5px}
 .saved-item:disabled{opacity:.6;cursor:default}
 .saved-item[aria-current="true"]{border-color:var(--link);opacity:1}
+/* rodapé: versão e data de publicação */
+.foot .app-ver{display:block;margin-top:8px;font:500 12px var(--font-data);color:var(--muted)}
+@media (max-width:419px){.upd-w{display:none}}

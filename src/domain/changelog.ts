@@ -1,6 +1,14 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.38.0'
+export const CURRENT_APP_VERSION = '2.38.1'
 export const CHANGELOG = [
+  {
+    version: '2.38.1',
+    title: 'Data da previsão e da versão',
+    items: [
+      'A barra do topo mostra a data e a hora da previsão (ex.: "previsão 24/11 17:14"). Assim dá para ver na hora se os dados são de hoje.',
+      'No fim da tela inicial aparecem a versão do app e a data em que ela foi publicada.',
+    ],
+  },
   {
     version: '2.38.0',
     title: 'Rotas salvas que cobrem só um trecho',

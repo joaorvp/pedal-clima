@@ -3,7 +3,8 @@ import { ChainringIcon, PlacePinIcon, SpeedoIcon, WheelIcon } from './bikeIcons'
 import { maintenance } from '../domain/maintenance'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { checklist } from '../domain/advice'
-import { fmt1, hhmm } from '../domain/format'
+import { ddmm, fmt1, hhmm } from '../domain/format'
+import { CURRENT_APP_VERSION } from '../domain/changelog'
 import { CATS, cat, clearTime, evaluate } from '../domain/weather'
 import { useTripView } from '../hooks/useTripView'
 import { baseSpeed, useSettings } from '../store/settings'
@@ -23,7 +24,9 @@ export function AppBar({ onSettings }: { onSettings: () => void }) {
   }, [busy, held])
   useEffect(() => { if (!done) return; const t = setTimeout(() => setDone(false), 3000); return () => clearTimeout(t) }, [done])
   const spinning = busy || held
-  const label = spinning ? (wxAt ? 'atualizando…' : 'carregando…') : offline ? `sem conexão · previsão ${hhmm(wxAt)}` : done && !offline ? 'atualizado agora' : wxAt ? `previsão ${hhmm(wxAt)}` : ''
+  // data e hora da previsão (dd/mm hh:mm): mostra na hora se o app está com dados de hoje; em tela estreita sai a palavra "previsão"
+  const when = wxAt ? <><span className="upd-w">previsão </span>{ddmm(wxAt)} {hhmm(wxAt)}</> : null
+  const label = spinning ? (wxAt ? 'atualizando…' : 'carregando…') : offline ? <>sem conexão · {when}</> : done && !offline ? 'atualizado agora' : when ?? ''
   return (
     <header className="appbar">
       <div className="in">
@@ -149,6 +152,7 @@ export function Footer() {
         <a href="#sobre" id="open-about" onClick={e => { e.preventDefault(); useTrip.getState().set({ landing: true }) }}>Sobre, termos e privacidade</a>
       </div>
       <span>A previsão vem de modelos com resolução de alguns km: boa para tendência, pode errar o bairro exato. Para os próximos 30–60 min, confie mais no radar.</span>
+      <span className="app-ver" id="app-version">Pedágua {CURRENT_APP_VERSION} · publicado em {new Date(__BUILD_DATE__).toLocaleDateString('pt-BR')}</span>
     </section>
   )
 }

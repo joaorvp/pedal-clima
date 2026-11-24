@@ -169,6 +169,9 @@ assert.match(await page.textContent("#updated"), /atualizando/);
 await page.waitForTimeout(1500);
 assert.ok(!(await page.evaluate(() => document.getElementById("refresh").classList.contains("spin"))), "para de girar ao terminar");
 assert.match(await page.textContent("#updated"), /atualizado agora/);
+await page.waitForTimeout(3300);
+assert.match(await page.textContent("#updated"), /\d{2}\/\d{2} \d{2}:\d{2}/, "a barra do topo mostra a data e a hora da previsão");
+assert.match(await page.textContent("#app-version"), /Pedágua \d+\.\d+\.\d+ · publicado em \d{2}\/\d{2}\/\d{4}/, "o rodapé mostra a versão e a data de publicação");
 
 // tela inicial: você no mapa e o clima onde você está
 assert.ok(await page.locator(".me-dot").count() === 1, "deve mostrar o ponto azul da sua posição");
