@@ -105,3 +105,13 @@ export function darkness(sun: SunTimes | null | undefined, ev: Evaluation): { ki
   }
   return null
 }
+
+/**
+ * Volta para casa (no resumo da chegada ao trabalho): a mesma rota no sentido contrário, saindo no horário da rotina.
+ * Se pegar chuva, procura a primeira saída seca a partir de 1 h antes desse horário (até ~6 h depois).
+ */
+export function returnPlan(route: Route, voltaMs: number, speed: number, probTh = 50): { ev: Evaluation; rainy: boolean; best: number | null } {
+  const ev = evaluate(route, 'volta', voltaMs, speed)
+  const rainy = isRainy(ev, probTh)
+  return { ev, rainy, best: rainy ? clearTime(route, 'volta', Math.max(Date.now(), voltaMs - 3600e3), speed) : null }
+}

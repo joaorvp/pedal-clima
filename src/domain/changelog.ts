@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.38.1'
+export const CURRENT_APP_VERSION = '2.39.0'
 export const CHANGELOG = [
+  {
+    version: '2.39.0',
+    title: 'Semana do pedal, backup e volta para casa',
+    items: [
+      'Semana do pedal: na tela inicial (puxe a gaveta), a ida e a volta nos horários da sua rotina nos próximos dias úteis, com seco, pode chover ou chuva. Bom para decidir com antecedência.',
+      'Lembrete de backup: seus dados ficam só no celular. Uma vez por mês, o app lembra de exportar um backup com um toque (ou adie por 7 dias).',
+      'Chegou ao trabalho? O resumo mostra a previsão da volta para casa no seu horário e, se for chover, o melhor horário seco, com um botão para deixar a volta pronta.',
+    ],
+  },
   {
     version: '2.38.1',
     title: 'Data da previsão e da versão',

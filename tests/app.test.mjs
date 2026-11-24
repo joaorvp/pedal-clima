@@ -145,6 +145,14 @@ assert.match(await page.textContent(".pl-picked"), /Rua 9/, "o endereço do pont
 await page.fill("#pl-name", "Mercado do bairro"); await page.click("#pl-save"); await page.waitForTimeout(300);
 assert.match(await page.textContent("#pl-msg"), /Mercado do bairro.*Mercado/);
 await page.evaluate(() => [...document.querySelectorAll("#places .dlg-foot .btn")][0].click()); await page.waitForTimeout(300);
+// com lugares salvos e sem backup: lembrete mensal; "Fazer backup" baixa o arquivo e o lembrete some
+assert.match(await page.textContent("#backup-banner"), /só neste celular.*ainda não fez um backup/s);
+{
+  const [bk] = await Promise.all([page.waitForEvent("download"), page.click("#backup-now")]);
+  assert.match(bk.suggestedFilename(), /^pedagua-backup-/);
+  await page.waitForTimeout(300);
+  assert.ok(await page.locator("#backup-banner").count() === 0, "depois do backup, o lembrete some por 30 dias");
+}
 
 // colar na busca o que o Google Maps compartilha (nome, endereço, link): abre o trajeto até o lugar
 await page.evaluate(() => { const i = document.getElementById("where"); i.focus(); const dt = new DataTransfer(); dt.setData("text/plain", "Mercado do Teste\nRua 9, 12 - Bairro Z, Cidade - UF, 72000-000\nhttps://maps.app.goo.gl/abc"); i.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })); });

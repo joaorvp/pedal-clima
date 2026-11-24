@@ -1,4 +1,6 @@
-import { BookmarkPlus, Navigation, Share2, Umbrella } from 'lucide-react'
+import { BookmarkPlus, House, Navigation, Share2, Umbrella } from 'lucide-react'
+import { returnPlan } from '../domain/weather'
+import { hav } from '../domain/geo'
 import { avoidedText } from '../domain/avoided'
 import { rideVerdict, verdict, type Verdict } from '../domain/advice'
 import { accuracyText } from '../domain/calibration'
@@ -13,7 +15,7 @@ import { Dialog } from './Dialog'
 import { RideTools } from './RideTools'
 import { NameForm } from './SaveRoute'
 import { saveAsRoute } from '../store/actions'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 export function Hero() {
   const view = useTripView()
@@ -154,6 +156,7 @@ function Summary({ s }: { s: RideSummary }) {
         <div><b>{s.avg > 0 && s.avg < 70 ? Math.round(s.avg) + ' km/h' : '–'}</b><span>média</span></div>
         <div><b>{s.rain >= 0.1 ? fmt1(s.rain) + ' mm' : 'seco'}</b><span>chuva no caminho</span></div>
       </div>
+      <ReturnHome />
       {s.avoided && <p className="avoided" id="sum-avoided"><Umbrella className="i" aria-hidden="true" /><span><b>Chuva evitada!</b> Você chegou seco, e {avoidedText(s.avoided)}.</span></p>}
       {s.wh != null && <p className="note" style={{ margin: '8px 0 0' }}>Bateria usada: ~{Math.round(s.wh)} Wh (estimativa).</p>}
       {/* o caminho feito de verdade (com desvios e recálculos) vira rota sua: aparece primeiro da próxima vez */}
@@ -174,4 +177,36 @@ function tomorrowAt(hm: string) {
   const [h, m] = hm.split(':').map(Number), d = new Date()
   d.setDate(d.getDate() + 1); d.setHours(h || 7, m || 0, 0, 0)
   return d.getTime()
+}
+
+/**
+ * Chegou ao trabalho: a previsão da volta para casa no horário da rotina (mesma rota, sentido contrário) e o melhor
+ * horário seco perto dele, com um toque para deixar o trajeto de volta pronto.
+ */
+function ReturnHome() {
+  const dest = useTrip(s => s.dest), routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), now = useTrip(s => s.now)
+  const home = useSettings(s => s.home), homeSet = useSettings(s => s.homeSet), work = useSettings(s => s.work), tVolta = useSettings(s => s.tVolta)
+  const speed = useSettings(baseSpeed), probTh = useSettings(s => s.probTh)
+  const route = routes[sel]
+  const voltaMs = (() => { if (!tVolta) return null; const [h, m] = tVolta.split(':').map(Number), d = new Date(now); d.setHours(h || 0, m || 0, 0, 0); return d.getTime() > now ? d.getTime() : null })()
+  const plan = useMemo(() => route?.wx && voltaMs ? returnPlan(route, voltaMs, speed, probTh) : null, [route, voltaMs, speed, probTh])
+  // só quando o trajeto foi de casa para o trabalho (a rota de volta termina em casa)
+  if (dest?.kind !== 'place' || dest.key !== 'work' || !homeSet || !route || !plan || hav(route.line[0], home) > 0.6) return null
+  const { ev, rainy, best } = plan
+  const state = !rainy ? 'seco' : ev.exposure >= 0.15 || ev.maxRate >= 0.5 ? `chuva (${fmt1(ev.exposure)} mm)` : `pode chover (${ev.maxProb}%)`
+  const go = () => {
+    const t = useTrip.getState()
+    t.startTrip({ kind: 'place', ll: home, name: 'Casa', key: 'home' }, { kind: 'place', ll: work, name: 'Trabalho', key: 'work' })
+    useTrip.getState().set({ dep: best ?? voltaMs })
+  }
+  return (
+    <div className={'return-home' + (rainy ? ' wet' : '')} id="sum-return">
+      <House className="i" aria-hidden="true" />
+      <div>
+        <b>Volta para casa às {tVolta}: {state}</b>
+        {rainy && <small>{best ? `Melhor sair às ${hhmm(best)}, com o caminho seco.` : 'Sem janela seca nas próximas horas: leve a capa.'}</small>}
+        <button className="btn" type="button" id="sum-return-go" onClick={go}>Deixar a volta pronta{best ? ` (${hhmm(best)})` : ''}</button>
+      </div>
+    </div>
+  )
 }

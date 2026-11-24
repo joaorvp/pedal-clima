@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { checklist, rideVerdict, timelineGroups, verdict, type TripCtx } from './advice'
-import { clearTime, darkness, evaluate, isRainy, mayRain } from './weather'
+import { clearTime, darkness, evaluate, isRainy, mayRain, returnPlan } from './weather'
 import { sampleRoute } from './testData'
 
 const now = Math.floor(Date.now() / 900e3) * 900e3
@@ -57,5 +57,17 @@ describe('pode chover (chance alta, pouca chuva)', () => {
     expect(mayRain({ rate: 0, prob: 59 }, 50)).toBe(true)
     expect(mayRain({ rate: 0, prob: 30 }, 50)).toBe(false)
     expect(mayRain({ rate: 0.5, prob: 80 }, 50)).toBe(false) // já tem cor de garoa
+  })
+})
+
+describe('volta para casa', () => {
+  it('sem chuva: só confirma o horário', () => {
+    const p = returnPlan(sampleRoute(now / 1000, false), now + 3600e3, 22)
+    expect(p.rainy).toBe(false); expect(p.best).toBeNull()
+  })
+  it('com chuva: procura a primeira saída seca', () => {
+    const p = returnPlan(sampleRoute(now / 1000, true), now + 600e3, 22)
+    expect(p.rainy).toBe(true)
+    expect(p.best === null || p.best >= Date.now()).toBe(true)
   })
 })

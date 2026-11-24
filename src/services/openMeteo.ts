@@ -1,7 +1,8 @@
 import { smooth } from '../domain/battery'
 import { pointAt } from '../domain/geo'
 import type { ElevPoint, PointWeather, Route, SunTimes } from '../domain/types'
-import { readCache, writeCache } from './cache'
+import { readCache, readJson, writeCache, writeJson } from './cache'
+import type { HourlyRain } from '../domain/week'
 
 const HOURLY = 'precipitation_probability,precipitation,temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,is_day'
 
@@ -64,4 +65,24 @@ export async function fetchAir(ll: [number, number]): Promise<{ aqi: number; pm2
     const c = (await r.json() as { current?: { us_aqi?: number; pm2_5?: number } }).current
     return c?.us_aqi != null ? { aqi: c.us_aqi, pm25: c.pm2_5 ?? 0 } : null
   } catch { return null }
+}
+
+/** Semana do pedal: chance e chuva por hora em casa e no trabalho, nos próximos 8 dias (uma chamada, guardada por 1 h). */
+const WEEK_KEY = 'pedalclima.week.v1'
+export async function fetchWeek(home: [number, number], work: [number, number]): Promise<[HourlyRain, HourlyRain]> {
+  const sig = [...home, ...work].map(v => v.toFixed(3)).join(',')
+  const c = readJson<{ at: number; sig: string; data: [HourlyRain, HourlyRain] }>(WEEK_KEY)
+  if (c && c.sig === sig && Date.now() - c.at < 3600e3) return c.data
+  const p = new URLSearchParams({
+    latitude: [home[0], work[0]].map(v => v.toFixed(3)).join(','), longitude: [home[1], work[1]].map(v => v.toFixed(3)).join(','),
+    hourly: 'precipitation_probability,precipitation', forecast_days: '8', timeformat: 'unixtime', timezone: 'America/Sao_Paulo',
+  })
+  const r = await fetch('https://api.open-meteo.com/v1/forecast?' + p)
+  if (!r.ok) throw new Error('HTTP ' + r.status)
+  const j = await r.json() as { hourly: HourlyRain } | { hourly: HourlyRain }[]
+  const a = Array.isArray(j) ? j : [j, j]
+  if (!a[0]?.hourly?.time || !a[1]?.hourly?.time) throw new Error('resposta sem previsão')
+  const data: [HourlyRain, HourlyRain] = [a[0].hourly, a[1].hourly]
+  writeJson(WEEK_KEY, { at: Date.now(), sig, data })
+  return data
 }

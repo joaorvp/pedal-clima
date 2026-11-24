@@ -901,3 +901,29 @@ button.hist-row{cursor:pointer}
 /* rodapé: versão e data de publicação */
 .foot .app-ver{display:block;margin-top:8px;font:500 12px var(--font-data);color:var(--muted)}
 @media (max-width:419px){.upd-w{display:none}}
+
+/* Semana do pedal */
+.week h2 .i{width:16px;height:16px}
+.week-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.week-list li{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:center}
+.wk-day{font:600 14px var(--font-data)}
+.wk-leg{display:flex;align-items:center;gap:6px;min-height:40px;padding:4px 8px;border-radius:10px;background:var(--surface-2);font-size:13px;min-width:0}
+.wk-leg > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wk-leg b{font-weight:600}
+.wk-leg svg{width:18px;height:18px;flex:none}
+.wk-leg.dry svg{color:var(--r0)} .wk-leg.maybe svg{color:var(--r2)} .wk-leg.rain{background:color-mix(in srgb,var(--r2) 14%,var(--surface-2))} .wk-leg.rain svg{color:var(--r2)}
+.wk-leg.heavy{background:color-mix(in srgb,var(--r3) 16%,var(--surface-2))} .wk-leg.heavy svg{color:var(--r3)}
+.wk-leg.past{opacity:.5} .wk-leg.none{color:var(--muted)}
+/* lembrete de backup */
+.backup-banner{flex-wrap:wrap;background:color-mix(in srgb,var(--link) 12%,var(--surface))}
+.backup-banner .i{flex:none;color:var(--link)}
+.backup-banner > span{flex:1;min-width:180px}
+.backup-banner .bb-act{display:flex;gap:8px;margin-left:auto}
+.backup-banner .btn{min-height:44px}
+/* volta para casa no resumo da chegada */
+.return-home{display:flex;gap:10px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface-2);font-size:14px}
+.return-home.wet{background:color-mix(in srgb,var(--r2) 12%,var(--surface-2))}
+.return-home .i{flex:none;color:var(--link);margin-top:2px}
+.return-home > div{display:grid;gap:6px;flex:1;min-width:0}
+.return-home small{color:var(--muted);font-size:13px}
+.return-home .btn{justify-self:start;min-height:44px}

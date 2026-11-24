@@ -156,6 +156,7 @@ function DataSection() {
       <div className="row data-row">
         <button className="btn" type="button" id="backup-export" onClick={() => {
           const { name, text } = makeBackup(useSettings.getState()); downloadText(name, text); setMsg('Backup salvo: ' + name)
+          useSettings.getState().patch({ lastBackup: Date.now() })
         }}><Download className="i" />Exportar backup</button>
         <button className="btn" type="button" id="backup-import" onClick={() => fileRef.current?.click()}><Upload className="i" />Importar backup</button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden id="backup-file" onChange={async e => {

@@ -76,6 +76,9 @@ export const settingsSchema = z.object({
   seenAlerts: z.array(z.string()).catch([]),
   /** dicas de uso já vistas (cada uma aparece uma vez; "Mostrar as dicas de novo" em Ajustes zera) */
   hintsSeen: z.array(z.string()).catch([]),
+  /** último backup exportado e até quando o lembrete de backup fica adiado ("Depois") */
+  lastBackup: z.number().optional().catch(undefined),
+  backupSnooze: z.number().optional().catch(undefined),
 })
 export type Settings = z.infer<typeof settingsSchema>
 export type Place = z.infer<typeof place>

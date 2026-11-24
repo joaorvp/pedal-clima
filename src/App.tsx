@@ -7,6 +7,7 @@ import { TripHeader } from './components/TripHeader'
 import { LocalCard, LocationAsk, ResumeRide, RoutineCard, WhereTo } from './components/Explore'
 import { UndoToast } from './components/UndoToast'
 import { Hints } from './components/Hints'
+import { WeekCard } from './components/WeekCard'
 import { Tooltips } from './components/Tooltips'
 import { HistoryDialog } from './components/HistoryDialog'
 import { PlacesDialog } from './components/PlacesDialog'
@@ -112,6 +113,7 @@ export default function App() {
           <RoutineCard />
           <WhereTo onAddPlace={() => { const s = useSettings.getState(); if (s.homeSet && s.workSet) useTrip.getState().set({ placesOpen: {} }); else setSettings({ open: true }) }} />
           <LocalCard />
+          <WeekCard />
         </> : <>
           <TripHeader />
           <Hero />

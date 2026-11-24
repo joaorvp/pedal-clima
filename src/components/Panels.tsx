@@ -1,4 +1,5 @@
-import { CloudLightning, CloudRain, MapPin, Wrench } from 'lucide-react'
+import { CloudLightning, CloudRain, HardDriveDownload, MapPin, Wrench } from 'lucide-react'
+import { downloadText, makeBackup } from '../services/backup'
 import { ChainringIcon, PlacePinIcon, SpeedoIcon, WheelIcon } from './bikeIcons'
 import { maintenance } from '../domain/maintenance'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -75,6 +76,7 @@ export function Banners() {
       </a>
     )}
     {mode === 'explore' && <MaintBanner />}
+    {mode === 'explore' && <BackupBanner />}
     {loc === 'denied' && mode === 'explore' && (
       <div id="setup-banner" className="banner">
         <MapPin className="i" /><span>A localização está bloqueada. Libere nas permissões do navegador para o app saber onde você está.</span>
@@ -154,6 +156,28 @@ export function Footer() {
       <span>A previsão vem de modelos com resolução de alguns km: boa para tendência, pode errar o bairro exato. Para os próximos 30–60 min, confie mais no radar.</span>
       <span className="app-ver" id="app-version">Pedágua {CURRENT_APP_VERSION} · publicado em {new Date(__BUILD_DATE__).toLocaleDateString('pt-BR')}</span>
     </section>
+  )
+}
+
+/**
+ * Lembrete de backup (uma vez por mês): os dados ficam só neste aparelho; perder o celular ou limpar o navegador apaga tudo.
+ * Aparece só para quem já tem o que perder; "Depois" adia por 7 dias.
+ */
+const backupDue = (s: { history: unknown[]; places: unknown[]; savedRoutes: unknown[]; lastBackup?: number; backupSnooze?: number }, now: number) =>
+  (s.history.length >= 3 || s.places.length >= 2 || s.savedRoutes.length >= 1) && (!s.lastBackup || now - s.lastBackup > 30 * 86400e3) && !(s.backupSnooze && now < s.backupSnooze)
+function BackupBanner() {
+  const s = useSettings(), now = useTrip(st => st.now)
+  if (!backupDue(s, now)) return null
+  const days = s.lastBackup ? Math.floor((now - s.lastBackup) / 86400e3) : null
+  return (
+    <div className="banner backup-banner" id="backup-banner" role="status">
+      <HardDriveDownload className="i" />
+      <span>Seus dados ficam só neste celular. {days == null ? 'Você ainda não fez um backup.' : `Último backup há ${days} dias.`}</span>
+      <div className="bb-act">
+        <button className="btn" type="button" id="backup-later" onClick={() => s.patch({ backupSnooze: Date.now() + 7 * 86400e3 })}>Depois</button>
+        <button className="btn primary" type="button" id="backup-now" onClick={() => { const { name, text } = makeBackup(useSettings.getState()); downloadText(name, text); s.patch({ lastBackup: Date.now() }) }}>Fazer backup</button>
+      </div>
+    </div>
   )
 }
 
