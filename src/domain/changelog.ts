@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.39.0'
+export const CURRENT_APP_VERSION = '2.39.1'
 export const CHANGELOG = [
+  {
+    version: '2.39.1',
+    title: 'Janela flutuante viva',
+    items: [
+      'A janela flutuante do pedal não fica mais parada quando você troca de app: o relógio e os números continuam andando.',
+      'Fora do app, o Android pausa o GPS de apps da web. A janela segue por estimativa, no seu ritmo e pela rota, e avisa "estimado · GPS em pausa"; quando o GPS volta, os números voltam a ser os reais.',
+      'Ao abrir a janela, o app avisa para ir à tela inicial ou a outro app: ela fica por cima.',
+    ],
+  },
   {
     version: '2.39.0',
     title: 'Semana do pedal, backup e volta para casa',

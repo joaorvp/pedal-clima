@@ -8,6 +8,21 @@ let canvas: HTMLCanvasElement | null = null
 let video: HTMLVideoElement | null = null
 let painter: Painter | null = null
 let timer: ReturnType<typeof setInterval> | null = null
+let ticker: Worker | null = null
+
+/**
+ * Redesenha a cada segundo. Com o app em segundo plano, o navegador segura os timers da página (até 1 por minuto),
+ * e a janela parecia parada; o tique vem de um worker, que não sofre esse freio. Sem worker, usa o timer comum.
+ */
+function startTicking() {
+  if (ticker || timer) return
+  try {
+    ticker = new Worker(new URL('./pipTick.ts', import.meta.url), { type: 'module' })
+    ticker.onmessage = () => paint()
+    ticker.onerror = () => { ticker?.terminate(); ticker = null; if (!timer) timer = setInterval(paint, 1000) }
+  } catch { timer = setInterval(paint, 1000) }
+}
+function stopTicking() { ticker?.terminate(); ticker = null; if (timer) clearInterval(timer); timer = null }
 
 type SafariVideo = HTMLVideoElement & { webkitSetPresentationMode?: (m: string) => void; webkitPresentationMode?: string; autoPictureInPicture?: boolean }
 
@@ -37,11 +52,12 @@ export async function armPip(p: Painter) {
     video.muted = true; video.playsInline = true; video.setAttribute('playsinline', '')
     video.setAttribute('aria-hidden', 'true')
     Object.assign(video.style, { position: 'fixed', left: '0', bottom: '0', width: '2px', height: '2px', opacity: '0.01', pointerEvents: 'none' })
-    ;(video as SafariVideo).autoPictureInPicture = true
+    // pedido de janela automática ao sair do app (Safari usa a propriedade; o Chrome, o atributo e a ação da Media Session)
+    ;(video as SafariVideo).autoPictureInPicture = true; video.setAttribute('autopictureinpicture', '')
     document.body.appendChild(video)
     video.srcObject = canvas.captureStream(2)
   }
-  if (!timer) timer = setInterval(paint, 1000) // mantém o vídeo vivo e o relógio andando
+  startTicking() // mantém o vídeo vivo e o relógio andando
   try { await video.play() } catch { /* só toca depois de um toque */ }
   try { navigator.mediaSession?.setActionHandler('enterpictureinpicture' as MediaSessionAction, () => { openPip() }) } catch { /* sem suporte */ }
 }
@@ -58,7 +74,7 @@ export async function openPip(): Promise<boolean> {
 }
 
 export function disarmPip() {
-  if (timer) clearInterval(timer); timer = null
+  stopTicking()
   try { if (document.pictureInPictureElement) document.exitPictureInPicture() } catch { /* nada */ }
   try { navigator.mediaSession?.setActionHandler('enterpictureinpicture' as MediaSessionAction, null) } catch { /* sem suporte */ }
   if (video) { video.pause(); video.srcObject = null; video.remove(); video = null }

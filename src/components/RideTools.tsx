@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { rideVerdict, wetInfo } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { cat } from '../domain/weather'
+import { pointAt } from '../domain/geo'
 import { armPip, disarmPip, openPip, pipSupported, setPipPainter } from '../hooks/pip'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
 import { canSpeak, say, spokenDistance } from '../hooks/voice'
@@ -37,8 +38,13 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
   // painel da janela flutuante, redesenhado a cada leitura do GPS
   useEffect(() => {
     if (!riding || !v) return
-    const route = view!.route, segs = view!.ev.segs, d = ride!.d
+    const route = view!.route, segs = view!.ev.segs, r = ride!
     const painter = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+      // Fora do app, o Android para de mandar o GPS para apps da web: sem leitura nova há mais de 10 s, a janela segue
+      // por estimativa (no seu ritmo, pela rota) e avisa; quando o GPS volta, os números voltam a ser os reais.
+      const now = Date.now(), gap = now - (r.last?.t ?? now), est = gap > 10e3 && r.ema > 4
+      const d = est ? Math.min(route.total, r.d + r.ema * gap / 3600e3) : r.d
+      const leftNow = Math.max(0, route.total - d), pos = est ? pointAt(route.line, route.cum, d) : r.pos
       ctx.fillStyle = '#16233f'; ctx.fillRect(0, 0, w, h)
       // mapa esquemático: a rota colorida pela chuva e a bike
       const box = { x: 18, y: 18, w: 230, h: h - 36 }
@@ -57,10 +63,10 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
       }
       const end = route.line[route.line.length - 1], [ex, ey] = P(end[0], end[1])
       ctx.fillStyle = '#e2662a'; ctx.beginPath(); ctx.arc(ex, ey, 9, 0, Math.PI * 2); ctx.fill()
-      if (ride!.pos) {
-        const [bx, by] = P(ride!.pos[0], ride!.pos[1])
-        if (ride!.heading != null) {
-          ctx.save(); ctx.translate(bx, by); ctx.rotate(ride!.heading * Math.PI / 180)
+      if (pos) {
+        const [bx, by] = P(pos[0], pos[1])
+        if (r.heading != null && !est) {
+          ctx.save(); ctx.translate(bx, by); ctx.rotate(r.heading * Math.PI / 180)
           ctx.fillStyle = '#82bcff'; ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(11, -12); ctx.lineTo(-11, -12); ctx.closePath(); ctx.fill(); ctx.restore()
         }
         ctx.fillStyle = '#ffc43d'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4
@@ -76,10 +82,13 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
       ctx.fillStyle = '#82bcff'; ctx.font = '600 22px Barlow, system-ui, sans-serif'
       ctx.fillText(`chuva à frente: ${aheadMm < 0.05 ? 'seco' : fmt1(aheadMm) + ' mm'} · ${aheadProb}%`, tx + 22, 196)
       ctx.fillStyle = '#fff'; ctx.font = '700 36px "Barlow Condensed", system-ui, sans-serif'
-      ctx.fillText(hhmm(eta), tx, h - 50); ctx.fillText(fmt1(left) + ' km', tx + 118, h - 50)
-      ctx.fillStyle = '#ffc43d'; ctx.fillText(String(ride!.ema > 2 ? Math.round(ride!.ema) : 0), tx + 246, h - 50)
+      ctx.fillText(hhmm(eta), tx, h - 50); ctx.fillText(fmt1(leftNow) + ' km', tx + 118, h - 50)
+      ctx.fillStyle = '#ffc43d'; ctx.fillText(est ? '~' + Math.round(r.ema) : String(r.ema > 2 ? Math.round(r.ema) : 0), tx + 246, h - 50)
       ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '500 18px Barlow, system-ui, sans-serif'
-      ctx.fillText('chegada', tx, h - 22); ctx.fillText('faltam', tx + 118, h - 22); ctx.fillText('km/h', tx + 246, h - 22)
+      ctx.fillText('chegada', tx, h - 22); ctx.fillText(est ? 'faltam ~' : 'faltam', tx + 118, h - 22); ctx.fillText('km/h', tx + 246, h - 22)
+      // relógio (mostra que a janela está viva) e o aviso de estimativa
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = '600 18px Barlow, system-ui, sans-serif'; ctx.textAlign = 'right'
+      ctx.fillText(est ? `estimado · GPS em pausa · ${hhmm(now)}` : hhmm(now), w - 16, 22); ctx.textAlign = 'left'
     }
     setPipPainter(painter)
     armPip(painter)
@@ -125,7 +134,7 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
           onClick={() => { const on = !voice; useSettings.getState().patch({ voice: on }); if (on) say('Avisos por voz ligados.') }}>
           {voice ? <Volume2 className="i" /> : <VolumeX className="i" />}<span>{voice ? 'Voz' : 'Mudo'}</span></button>}
         {pipSupported() && <button className="btn tool" type="button" id="pip" aria-label="Janela flutuante: o painel continua visível quando você sai do app"
-          onClick={async () => { setPipMsg(await openPip() ? '' : 'Não deu para abrir a janela neste navegador.') }}>
+          onClick={async () => { setPipMsg(await openPip() ? 'Janela aberta. Agora vá para a tela inicial ou para outro app: ela fica por cima, com o pedal ao vivo.' : 'Não deu para abrir a janela neste navegador.') }}>
           <PictureInPicture2 className="i" /><span>Janela</span></button>}
       </div>
       {pipMsg && <p className="note" style={{ margin: '6px 0 0' }}>{pipMsg}</p>}
