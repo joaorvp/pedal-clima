@@ -308,6 +308,9 @@ assert.ok(title && !/Carregando|Olhando/.test(title), "veredito do trajeto deve 
 assert.ok((await page.locator("#timeline li").count()) >= 2, "linha do tempo deve ter trechos");
 assert.ok((await page.locator(".rt").count()) >= 2, "deve listar rotas alternativas");
 assert.match(await page.textContent("#routes"), /70% em ciclovia/);
+// legenda e barra do "pode chover": a amostra tem os pontinhos e a regra da barra existe (já se perdeu uma vez)
+assert.equal(await page.locator(".legend .lg-maybe circle").count(), 3, "a amostra de pode chover mostra os pontinhos azuis");
+assert.ok(await page.evaluate(() => [...document.styleSheets].some(ss => { try { return [...ss.cssRules].some(r => r.cssText.includes("routebar i.maybe")); } catch { return false; } })), "a regra dos pontinhos da barra do trajeto está no CSS");
 assert.match(await page.textContent("#routes"), /mais ciclovia/);
 // escolher a rota tocando nela no mapa (faixa larga, fácil de acertar com o dedo)
 const before = await page.getAttribute('.rt[aria-checked="true"]', "data-i");

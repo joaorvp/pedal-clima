@@ -933,3 +933,8 @@ button.hist-row{cursor:pointer}
 .return-home > div{display:grid;gap:6px;flex:1;min-width:0}
 .return-home small{color:var(--muted);font-size:13px}
 .return-home .btn{justify-self:start;min-height:44px}
+
+/* "pode chover" na barra do trajeto: seco na quantidade, mas com chance alta. Pontinhos azuis sobre o amarelo, como no mapa.
+   !important porque o trecho tem background inline (a cor da chuva) */
+.routebar i.maybe{background-image:radial-gradient(circle,var(--r2) 0 2px,transparent 2.6px)!important;background-size:8px 100%!important;background-repeat:repeat-x!important;background-position:center!important}
+.legend .lg-maybe{display:inline-block;margin-right:5px;vertical-align:middle}

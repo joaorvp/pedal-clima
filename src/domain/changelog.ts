@@ -1,6 +1,13 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.39.2'
+export const CURRENT_APP_VERSION = '2.39.3'
 export const CHANGELOG = [
+  {
+    version: '2.39.3',
+    title: 'Legenda do "pode chover" corrigida',
+    items: [
+      'A legenda "pode chover" e a barra do trajeto voltaram a mostrar os pontinhos azuis sobre o amarelo, como no mapa. Antes apareciam iguais a "seco".',
+    ],
+  },
   {
     version: '2.39.2',
     title: 'Melhor hora para sair: 12 horas',

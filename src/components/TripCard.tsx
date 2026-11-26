@@ -33,7 +33,8 @@ export function TripCard() {
       </>}
       <div className="legend inline" aria-label="Legenda">
         {['seco', 'garoa', 'moderada', 'forte', 'muito forte'].map((l, i) => <span key={l}><i style={{ background: color(i) }} />{l}</span>)}
-        <span><i className="maybe" style={{ background: color(0) }} />pode chover</span>
+        {/* amostra igual à linha do mapa: amarelo (pouca chuva) com pontinhos azuis (chance alta) */}
+        <span><svg className="lg-maybe" viewBox="0 0 22 8" width="22" height="8" aria-hidden="true"><rect width="22" height="8" rx="4" fill={color(0)} /><circle cx="5" cy="4" r="2" fill={color(2)} /><circle cx="11" cy="4" r="2" fill={color(2)} /><circle cx="17" cy="4" r="2" fill={color(2)} /></svg>pode chover</span>
       </div>
       {view && <Timeline />}
       {view?.prof && <Elevation />}
