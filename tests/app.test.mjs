@@ -357,6 +357,13 @@ assert.match(await page.textContent(".triphead"), /Trabalho/);
 await page.evaluate(() => document.getElementById("dep-tomorrow").click()); await page.waitForTimeout(400);
 assert.equal(await page.getAttribute("#dep-tomorrow", "aria-pressed"), "true");
 await page.evaluate(() => document.getElementById("dep-now").click()); await page.waitForTimeout(300);
+// melhor hora para sair: 12 h de saídas, rolando para o lado; tocar numa barra lá na frente escolhe aquela saída
+assert.equal(await page.locator("#slots .slot").count(), 49, "12 h de saídas, de 15 em 15 min");
+await page.evaluate(() => document.getElementById("slots-next").click()); await page.waitForTimeout(700);
+assert.ok(await page.evaluate(() => document.getElementById("slots").scrollLeft > 0), "a seta leva para os horários seguintes");
+await page.evaluate(() => document.querySelectorAll("#slots .slot")[40].click()); await page.waitForTimeout(400);
+assert.equal(await page.getAttribute("#slots .slot:nth-child(41)", "aria-pressed"), "true", "a saída escolhida lá na frente fica marcada");
+await page.evaluate(() => document.getElementById("dep-now").click()); await page.waitForTimeout(300);
 
 // modo pedal: a bike aparece no mapa e o pedal termina ao chegar
 await page.evaluate(() => document.getElementById("ride").click());

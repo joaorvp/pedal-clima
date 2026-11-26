@@ -1,4 +1,4 @@
-import { CloudLightning, CloudRain, HardDriveDownload, MapPin, Wrench } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CloudLightning, CloudRain, HardDriveDownload, MapPin, Wrench } from 'lucide-react'
 import { downloadText, makeBackup } from '../services/backup'
 import { ChainringIcon, PlacePinIcon, SpeedoIcon, WheelIcon } from './bikeIcons'
 import { maintenance } from '../domain/maintenance'
@@ -85,6 +85,8 @@ export function Banners() {
   </>
 }
 
+const SLOT_COUNT = 49 // agora + 48 de 15 em 15 min = 12 h
+
 export function SlotsCard() {
   const view = useTripView()
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel), dep = useTrip(s => s.dep), now = useTrip(s => s.now)
@@ -93,9 +95,10 @@ export function SlotsCard() {
   const data = useMemo(() => {
     if (!route?.wx) return null
     const base = Math.ceil((now + 5 * 60e3) / 900e3) * 900e3
-    const items = Array.from({ length: 13 }, (_, k) => { const t = k === 0 ? now : base + (k - 1) * 900e3; return { t, ev: evaluate(route, 'ida', t, speed) } })
+    // 12 h à frente, de 15 em 15 min (a previsão cobre 36 h); a "melhor" saída é procurada nas próximas 3 h
+    const items = Array.from({ length: SLOT_COUNT }, (_, k) => { const t = k === 0 ? now : base + (k - 1) * 900e3; return { t, ev: evaluate(route, 'ida', t, speed) } })
     let best = items[0]
-    for (const x of items) if (!x.ev.storm && (best.ev.storm || x.ev.exposure < best.ev.exposure - 0.03)) best = x
+    for (const x of items.slice(0, 13)) if (!x.ev.storm && (best.ev.storm || x.ev.exposure < best.ev.exposure - 0.03)) best = x
     const showBest = best !== items[0] && items[0].ev.exposure - best.ev.exposure > 0.1
     const raining = items[0].ev.exposure >= 0.15 || items[0].ev.storm
     return { items, best, showBest, clear: raining && !showBest ? clearTime(route, 'ida', now, speed) : undefined, raining }
@@ -103,13 +106,18 @@ export function SlotsCard() {
   if (!view || !data || view.riding) return null
   const { items, best, showBest, clear, raining } = data
   const maxE = Math.max(0.6, ...items.map(x => x.ev.exposure))
+  const scroll = (dir: number) => { const el = document.getElementById('slots'); el?.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' }) }
   let hint = 'Altura da barra = chuva que você pegaria no trajeto. Toque para ver aquela saída.', strong = false
   if (showBest) { hint = `Saindo às ${hhmm(best.t)} você pega ~${fmt1(best.ev.exposure)} mm, contra ~${fmt1(items[0].ev.exposure)} mm saindo agora.`; strong = true }
   else if (raining) { hint = clear ? `A chuva no trajeto deve passar por volta de ${hhmm(clear)}.` : 'Sem janela seca nas próximas 6 h: vá preparado.'; strong = true }
-  else if (items.every(x => x.ev.exposure < 0.05 && !x.ev.storm)) hint = 'Seco em qualquer horário das próximas 3 h.'
+  else if (items.slice(0, 13).every(x => x.ev.exposure < 0.05 && !x.ev.storm)) hint = 'Seco em qualquer horário das próximas 3 h. Arraste para ver até 12 h.'
   return (
     <section className="card" id="slots-card">
-      <h2>Melhor hora para sair <span className="aside">próximas 3 h</span></h2>
+      <h2>Melhor hora para sair <span className="aside slots-nav">
+        <button className="ibtn sm" type="button" id="slots-prev" aria-label="Horários anteriores" onClick={() => scroll(-1)}><ChevronLeft className="i" /></button>
+        <span>próximas 12 h</span>
+        <button className="ibtn sm" type="button" id="slots-next" aria-label="Horários seguintes" onClick={() => scroll(1)}><ChevronRight className="i" /></button>
+      </span></h2>
       <div className="slots" id="slots">
         {items.map((x, k) => {
           const selected = k === 0 ? dep == null : dep != null && Math.abs(dep - x.t) < 450e3
@@ -119,7 +127,7 @@ export function SlotsCard() {
               onClick={() => useTrip.getState().set({ dep: k === 0 ? null : x.t })}>
               {showBest && x === best && <span className="best">melhor</span>}
               <span className="bar" style={{ height: 10 + 76 * Math.min(1, x.ev.exposure / maxE), background: col }} />
-              <span className="lbl">{k === 0 ? 'agora' : hhmm(x.t)}</span>
+              <span className={'lbl' + (k === 0 || new Date(x.t).getMinutes() % 30 === 0 ? '' : ' minor')}>{k === 0 ? 'agora' : new Date(x.t).getHours() === 0 && new Date(x.t).getMinutes() === 0 ? 'amanhã' : hhmm(x.t)}</span>
             </button>
           )
         })}

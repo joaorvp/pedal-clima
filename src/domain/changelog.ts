@@ -1,6 +1,13 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.39.1'
+export const CURRENT_APP_VERSION = '2.39.2'
 export const CHANGELOG = [
+  {
+    version: '2.39.2',
+    title: 'Melhor hora para sair: 12 horas',
+    items: [
+      'O cartão "Melhor hora para sair" agora mostra as próximas 12 horas, de 15 em 15 minutos. Arraste para o lado ou use as setas para ver os horários seguintes e toque numa barra para escolher a saída.',
+    ],
+  },
   {
     version: '2.39.1',
     title: 'Janela flutuante viva',

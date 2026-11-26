@@ -134,14 +134,20 @@ svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .tip b{font-family:var(--font-data)}
 
 /* Janela de saída */
-.slots{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;align-items:end;height:110px}
+/* 12 h de saídas: rola para o lado (dedo, roda do mouse com Shift ou as setas); cada barra com largura fixa */
+.slots{display:grid;grid-auto-flow:column;grid-auto-columns:28px;gap:4px;align-items:end;height:118px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;padding:4px 4px 4px}
+.slots .slot{scroll-snap-align:start}
+.slot .lbl.minor{visibility:hidden}
+.slots-nav{display:inline-flex;align-items:center;gap:2px;margin-left:auto}
+.slots-nav .ibtn{width:36px;height:36px}
+@media (max-width:999px){.slots-nav .ibtn{width:44px;height:44px}}
 .slot{border:0;background:transparent;padding:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;cursor:pointer;color:var(--muted);position:relative}
 .slot .bar{width:100%;border-radius:6px 6px 3px 3px;min-height:6px;transition:height .3s}
 .slot .lbl{font:500 11.5px var(--font-data);writing-mode:horizontal-tb;white-space:nowrap}
 .slot[aria-pressed="true"] .bar{outline:2.5px solid var(--ink);outline-offset:1px}
 .slot[aria-pressed="true"] .lbl{color:var(--ink);font-weight:600}
 .slot .best{position:absolute;top:0;font:700 9px var(--font-body);color:var(--ok);text-transform:uppercase;letter-spacing:.05em}
-@media (max-width:520px){.slot:nth-child(even) .lbl{visibility:hidden}}
+
 .note{font-size:13px;color:var(--muted);margin:10px 0 0}
 .note.strong{color:var(--ink);font-weight:500}
 
