@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Bookmark } from 'lucide-react'
-import { planSaved } from '../domain/savedRoutes'
+import { planSaved, realTime } from '../domain/savedRoutes'
 import { applySavedRoute } from '../store/actions'
 import { placeName, timelineGroups } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
@@ -48,6 +48,9 @@ function Routes() {
   const routes = useTrip(s => s.routes), sel = useTrip(s => s.sel)
   const dep = useTrip(s => s.dep), now = useTrip(s => s.now), ride = useTrip(s => s.ride)
   const speed = useSettings(baseSpeed), lastT = ride?.last?.t, probTh = useSettings(s => s.probTh)
+  // quanto você leva de verdade em cada rota (pelos pedais gravados que passaram por ela)
+  const history = useSettings(s => s.history)
+  const real = useMemo(() => routes.map(r => realTime(r.line, history)), [routes, history])
   const evs = useMemo(() => routes.map(r => r.wx ? evaluate(r, 'ida', lastT ?? dep ?? now, speed, { wind: lastT == null }) : null), [routes, dep, now, lastT, speed])
   if (routes.length < 2 || evs.some(e => !e)) return null
   const ex = evs.map(e => e!.exposure), du = evs.map(e => e!.dur)
@@ -63,7 +66,7 @@ function Routes() {
           <span className="rd" />
           <span className="nm">{r.name}{(i === dry || i === fast || i === most || r.saved) && <span className="badges">{r.saved && <span className="badge mine">sua rota</span>}{i === dry && <span className="badge">mais seca</span>}{i === fast && <span className="badge fast">mais rápida</span>}{i === most && <span className="badge cyc">mais ciclovia</span>}</span>}</span>
           <span className="rain">{e.exposure >= 0.05 ? fmt1(e.exposure) + ' mm' : e.maxProb >= probTh ? e.maxProb + '%' : '0 mm'}<small>{e.exposure < 0.05 && e.maxProb >= probTh ? 'chance' : 'chuva'}</small></span>
-          <span className="dt">{Math.round(e.dur / 60000)} min · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
+          <span className="dt">{real[i] ? <b className="real" title={`Mediana de ${real[i]!.n} pedais seus por esta rota`}>~{real[i]!.mins} min no seu ritmo</b> : `${Math.round(e.dur / 60000)} min`} · {fmt1(r.total)} km{r.cycle != null ? ` · ${Math.round(r.cycle * 100)}% em ciclovia` : r.profile === 'main' ? ' · vias principais' : ''}</span>
         </button>
       ) })}
       {!ride && <p className="routes-hint">No mapa: toque numa rota para escolher. Para ir por outro caminho, toque na rota escolhida e arraste o ponto.</p>}

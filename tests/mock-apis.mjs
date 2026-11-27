@@ -64,3 +64,13 @@ export function routeShot() {
 }
 export const nominatimJson = [{ lat: "-15.95", lon: "-48.20", name: "Lugar Nominatim", address: { road: "Rua 7", suburb: "Bairro W", city: "Cidade" } }];
 export const viacepJson = { cep: "72000-000", logradouro: "Rua 9", bairro: "Bairro Z", localidade: "Cidade", uf: "UF" };
+
+/** Imagem de radar com chuva em toda parte (azul, opaca): para testar o aviso do radar no pedal. */
+export function rainTile() {
+  const zlib = globalThis.__zlib, w = 256, h = 256, row = Buffer.alloc(1 + w * 4), rows = [];
+  for (let y = 0; y < h; y++) { row[0] = 0; for (let x = 0; x < w; x++) row.set([46, 132, 212, 220], 1 + x * 4); rows.push(Buffer.from(row)); }
+  const crc = b => { let c; const t = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } c = 0xffffffff; for (const x of b) c = t[(c ^ x) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type), data]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([len, td, c]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr.set([8, 6, 0, 0, 0], 8);
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(Buffer.concat(rows))), chunk("IEND", Buffer.alloc(0))]);
+}

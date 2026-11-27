@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { appendTrack, lineKm, matchSaved, planFits, planSaved, simplify, type SavedRoute } from './savedRoutes'
+import { appendTrack, lineKm, matchSaved, planFits, planSaved, realTime, simplify, type SavedRoute } from './savedRoutes'
 import type { LatLon } from './types'
 
 const straight = (n: number): LatLon[] => Array.from({ length: n }, (_, i) => [-15.8 + i * 0.0001, -48.0])
@@ -51,5 +51,17 @@ describe('aproveitar um trecho salvo', () => {
     const far: [number, number] = [-15.9, -48.05], far2: [number, number] = [-15.95, -48.0]
     const p = planSaved(r, far, far2)
     expect(p == null || !planFits(p, far, far2)).toBe(true)
+  })
+})
+
+describe('tempo real de cada rota', () => {
+  const line: LatLon[] = [[-15.8, -48.1], [-15.8, -48.05], [-15.8, -48.0]]
+  const along: LatLon[] = [[-15.8002, -48.0995], [-15.8001, -48.07], [-15.7999, -48.03], [-15.8, -48.0005]]
+  it('usa a mediana dos pedais que andaram por ela', () => {
+    expect(realTime(line, [{ track: along, mins: 30 }, { track: along, mins: 26 }, { track: along, mins: 40 }])).toEqual({ n: 3, mins: 30 })
+  })
+  it('ignora pedais por outro caminho, no outro sentido ou sem caminho, e pede pelo menos 2', () => {
+    const other: LatLon[] = [[-15.8, -48.1], [-15.82, -48.07], [-15.82, -48.03], [-15.8, -48.0]]
+    expect(realTime(line, [{ track: along, mins: 30 }, { track: other, mins: 20 }, { track: along.slice().reverse(), mins: 22 }, { mins: 25 }])).toBeNull()
   })
 })

@@ -61,3 +61,46 @@ export async function radarRainAt(host: string, path: string, ll: [number, numbe
     return false
   } catch { return null }
 }
+
+/** Imagem do radar já lida (pixels), por endereço: as consultas ao longo da rota caem quase sempre na mesma imagem. */
+const pixels = new Map<string, Promise<ImageData | null>>()
+function tilePixels(url: string): Promise<ImageData | null> {
+  let p = pixels.get(url)
+  if (!p) {
+    p = (async () => {
+      try {
+        const res = await fetch(url, { mode: 'cors' }); if (!res.ok) return null
+        const img = await createImageBitmap(await res.blob())
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height
+        const ctx = c.getContext('2d', { willReadFrequently: true }); if (!ctx) return null
+        ctx.drawImage(img, 0, 0)
+        return ctx.getImageData(0, 0, c.width, c.height)
+      } catch { return null }
+    })()
+    pixels.set(url, p)
+    if (pixels.size > 40) pixels.delete(pixels.keys().next().value!)
+  }
+  return p
+}
+
+/**
+ * Radar ao longo do caminho que falta (pontos em ordem): índice do primeiro ponto com chuva na imagem mais recente,
+ * -1 se está tudo seco, null se não deu para ler a imagem. Resolução do radar gratuito: ~1 km por pixel (zoom 7).
+ */
+export async function radarRainAhead(host: string, path: string, pts: [number, number][]): Promise<number | null> {
+  const z = 7, n = 2 ** z
+  for (let i = 0; i < pts.length; i++) {
+    const [lat, lon] = pts[i], r = lat * Math.PI / 180
+    const fx = (lon + 180) / 360 * n, fy = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n
+    const tx = Math.floor(fx), ty = Math.floor(fy), px = Math.floor((fx - tx) * 256), py = Math.floor((fy - ty) * 256)
+    const data = await tilePixels(`${host}${path}/256/${z}/${tx}/${ty}/2/1_1.png`)
+    if (!data) return null
+    let wet = false
+    for (let dy = -1; dy <= 1 && !wet; dy++) for (let dx = -1; dx <= 1 && !wet; dx++) {
+      const x = px + dx, y = py + dy; if (x < 0 || y < 0 || x >= data.width || y >= data.height) continue
+      if (data.data[(y * data.width + x) * 4 + 3] > 60) wet = true
+    }
+    if (wet) return i
+  }
+  return -1
+}

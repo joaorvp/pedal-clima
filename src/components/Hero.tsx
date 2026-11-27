@@ -1,5 +1,6 @@
-import { BookmarkPlus, House, Navigation, Share2, Umbrella } from 'lucide-react'
+import { BookmarkPlus, House, Navigation, Radar, Share2, Umbrella } from 'lucide-react'
 import { returnPlan } from '../domain/weather'
+import { realTime } from '../domain/savedRoutes'
 import { hav } from '../domain/geo'
 import { avoidedText } from '../domain/avoided'
 import { rideVerdict, verdict, type Verdict } from '../domain/advice'
@@ -32,6 +33,7 @@ export function Hero() {
   const [thanks, setThanks] = useState('')
   const [confirmEnd, setConfirmEnd] = useState(false)
   const set = useTrip(s => s.set)
+  const radarAhead = useTrip(s => s.radarAhead)
   // gaveta baixa (no pedal ou montando o trajeto): faixa compacta (título, números e botões) para o mapa ficar com a tela
   const sheet = useTrip(s => s.sheet)
 
@@ -43,6 +45,9 @@ export function Hero() {
   const ev = view?.ev
   const left = riding && view ? Math.max(0, view.route.total - ride!.d) : 0
   const sp = rideSpeed(ride, speed)
+  // tempo real desta rota pelos seus pedais (quando há pelo menos 2): mais certo que a média geral
+  const history = useSettings(st => st.history)
+  const real = useMemo(() => !riding && view ? realTime(view.route.line, history) : null, [riding, view, history])
 
   // vibração curta quando a chuva estiver a menos de 1 km à frente (uma vez por pedal)
   const rainAhead = riding && view ? view.ev.segs.find(sg => sg.to > ride!.d && sg.rate >= 0.2) : undefined
@@ -89,11 +94,15 @@ export function Hero() {
           <button className="btn" type="button" id="recalc" onClick={() => useTrip.getState().setEnd('origin', { kind: 'me' })}>Recalcular agora</button>
         </div>
       )}
+      {riding && radarAhead && now - radarAhead.at < 10 * 60e3 && (
+        <p className="radar-ahead" id="radar-ahead" role="status"><Radar className="i" aria-hidden="true" />
+          <span><b>Radar:</b> chuva {radarAhead.km < 0.5 ? 'onde você está agora' : `a ~${fmt1(radarAhead.km)} km no seu caminho`}</span></p>
+      )}
       {arrived && summary && !riding ? <Summary s={summary} /> : <>
       {!riding && rideButton}
       <div className="meta">
-        <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : 'de viagem'}</span></div>
-        <div><b id="s-arr">{!ev ? '–' : hhmm(riding ? (ride!.last?.t ?? ev.depMs) + left / sp * 3600e3 : ev.arr)}</b><span>chegada</span></div>
+        <div><b id="s-time">{!ev ? '–' : riding ? fmt1(left) + ' km' : real ? `~${real.mins} min` : Math.round(ev.dur / 60000) + ' min'}</b><span id="m-l1">{riding ? 'faltam' : real ? 'no seu ritmo' : 'de viagem'}</span></div>
+        <div><b id="s-arr">{!ev ? '–' : hhmm(riding ? (ride!.last?.t ?? ev.depMs) + left / sp * 3600e3 : real ? ev.depMs + real.mins * 60e3 : ev.arr)}</b><span>chegada</span></div>
         {!riding && <div><b id="s-rain">{!ev ? '–' : ev.exposure >= 0.05 ? fmt1(ev.exposure) + ' mm' : ev.maxProb >= probTh ? ev.maxProb + '%' : '0 mm'}</b><span id="m-l3">{ev && ev.exposure < 0.05 && ev.maxProb >= probTh ? (sheet === 'peek' ? 'chance' : 'chance de chuva') : sheet === 'peek' ? 'chuva' : 'chuva no trajeto'}</span></div>}
         {riding && rn && <div><b id="s-ahead">{rn.aheadMm < 0.05 ? 'seco' : fmt1(rn.aheadMm) + ' mm'}</b><span>à frente</span></div>}
         {riding && rn && <div><b id="s-prob">{rn.aheadProb}%</b><span>chance</span></div>}

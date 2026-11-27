@@ -92,6 +92,8 @@ interface TripState {
   placesOpen: null | { ll?: LatLon; name?: string; shared?: SharedPlace; notice?: string }
   /** página de apresentação (primeira visita pelo navegador ou link "Sobre") */
   landing: boolean
+  /** no pedal: o radar mostra chuva no caminho que falta, a ~km daqui (null: seco ou sem leitura) */
+  radarAhead: { km: number; at: number } | null
   /** ao abrir o trajeto (saindo agora), a rota escolhida pegaria chuva? (para a "chuva evitada" esperando) */
   rainyAtOpen: boolean | null
   /** qualidade do ar onde você está */
@@ -144,7 +146,7 @@ export const useTrip = create<TripState>()((set, get) => ({
   routes: [], sel: 0, wxAt: 0, sun: null, alerts: null,
   loading: false, localLoading: false, radarHere: null, offline: false, error: '', routeNote: '',
   radar: { host: '', frames: [], idx: 0, on: true, playing: false },
-  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null, rainyAtOpen: null,
+  ride: null, feedbackPred: null, arrived: false, summary: null, watchClear: false, viaName: '', historyOpen: false, placesOpen: null, landing: initialLanding(), air: null, pickMode: null, rainyAtOpen: null, radarAhead: null,
   sheet: 'peek', sheetVisible: 0, fitNonce: 0, centerNonce: 0, now: Date.now(),
   set: p => set(p),
 

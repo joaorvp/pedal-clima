@@ -4,6 +4,7 @@ import { rideVerdict, wetInfo } from '../domain/advice'
 import { fmt1, hhmm } from '../domain/format'
 import { cat } from '../domain/weather'
 import { pointAt } from '../domain/geo'
+import { radarRainAhead } from '../services/radarProbe'
 import { armPip, disarmPip, openPip, pipSupported, setPipPainter } from '../hooks/pip'
 import { rideSpeed, useTripView } from '../hooks/useTripView'
 import { canSpeak, say, spokenDistance } from '../hooks/voice'
@@ -94,7 +95,34 @@ export function RideTools({ endButton }: { endButton: ReactNode }) {
     armPip(painter)
   }) // redesenha a cada render do modo pedal
 
-  useEffect(() => { if (!ride) { disarmPip(); spoken.current.clear() } }, [ride])
+  useEffect(() => { if (!ride) { disarmPip(); spoken.current.clear(); useTrip.getState().set({ radarAhead: null }) } }, [ride])
+
+  // radar ao vivo no caminho que falta: a cada 2,5 min (e a cada imagem nova), olha os próximos ~6 km da rota.
+  // Pega a pancada que a previsão não viu. Se o servidor não deixar ler a imagem, simplesmente não avisa.
+  const radarPath = useTrip(s => s.radar.frames.at(-1)?.path), radarHost = useTrip(s => s.radar.host)
+  useEffect(() => {
+    if (!riding || !radarPath || !radarHost) return
+    let alive = true
+    const check = async () => {
+      const t = useTrip.getState(), r = t.ride, route = t.routes[t.sel]
+      if (!r?.pos || !route) return
+      const pts: [number, number][] = []
+      for (let km = r.d; km <= Math.min(route.total, r.d + 6); km += 0.5) pts.push(pointAt(route.line, route.cum, km))
+      const i = await radarRainAhead(radarHost, radarPath, pts)
+      if (!alive || i == null) return
+      const ahead = i >= 0 ? { km: i * 0.5, at: Date.now() } : null
+      useTrip.getState().set({ radarAhead: ahead })
+      // aviso falado uma vez por pancada (quando ela aparece a menos de 3 km)
+      if (ahead && ahead.km <= 3 && !spoken.current.has('radar')) {
+        spoken.current.add('radar'); buzz([60, 80, 60])
+        if (useSettings.getState().voice) say(ahead.km < 0.5 ? 'O radar mostra chuva onde você está.' : `O radar mostra chuva a ${spokenDistance(ahead.km)} no seu caminho.`, true)
+      }
+      if (!ahead) spoken.current.delete('radar')
+    }
+    check()
+    const id = setInterval(check, 150e3)
+    return () => { alive = false; clearInterval(id) }
+  }, [riding, radarPath, radarHost])
   useEffect(() => () => disarmPip(), [])
 
   // avisos falados: uma vez cada, na hora certa

@@ -30,7 +30,7 @@ const errors = [];
 page.on("pageerror", e => errors.push(e.message));
 const cspErrors = [];
 page.on("console", m => { if (/Content Security Policy|Content-Security-Policy/i.test(m.text())) cspErrors.push(m.text()); });
-let offline = false;
+let offline = false, radarRain = false;
 await page.route("**/*", r => {
   const u = r.request().url();
   if (u.startsWith(APP)) return r.continue();
@@ -48,7 +48,7 @@ await page.route("**/*", r => {
   if (u.includes("photon.komoot.io/reverse")) return r.fulfill({ json: M.reverseJson });
   if (u.includes("inmet")) return r.fulfill({ json: M.inmetJson });
   if (u.includes("weather-maps.json")) return r.fulfill({ json: M.radarJson() });
-  if (u.includes("tilecache.rainviewer.com")) return r.fulfill({ status: 200, contentType: "image/png", headers: { "access-control-allow-origin": "*" }, body: M.emptyTile });
+  if (u.includes("tilecache.rainviewer.com")) return r.fulfill({ status: 200, contentType: "image/png", headers: { "access-control-allow-origin": "*" }, body: radarRain ? M.rainTile() : M.emptyTile });
   return r.fulfill({ status: 204, body: "" });
 });
 
@@ -369,8 +369,12 @@ assert.equal(await page.getAttribute("#slots .slot:nth-child(41)", "aria-pressed
 await page.evaluate(() => document.getElementById("dep-now").click()); await page.waitForTimeout(300);
 
 // modo pedal: a bike aparece no mapa e o pedal termina ao chegar
+radarRain = true; // o radar mostra chuva no caminho (a previsão não precisa concordar)
 await page.evaluate(() => document.getElementById("ride").click());
 await page.waitForTimeout(800);
+await page.waitForSelector("#radar-ahead", { timeout: 5000 }).catch(() => {});
+assert.match(await page.textContent("#radar-ahead"), /Radar:.*chuva/s, "no pedal, o radar ao vivo avisa da chuva no caminho");
+radarRain = false;
 assert.ok(await page.locator(".bike-disc").count() === 1, "deve mostrar a bike no mapa durante o pedal");
 assert.ok(await page.locator("#voice").count() === 1, "deve ter o botão de voz no pedal");
 assert.ok(await page.locator("#share-eta").count() === 1, "botão de avisar que está a caminho no pedal");
@@ -473,6 +477,15 @@ const imported = await page.evaluate(() => JSON.parse(localStorage.getItem("peda
 const hw = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("pedalclima.v1")); return [s.home, s.work]; });
 const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.005;
 assert.ok(near(imported.line[0], hw[0]) && near(imported.line[imported.line.length - 1], hw[1]), "a rota importada começa em Casa e termina no Trabalho");
+// importar GPX (Strava, Komoot, Google My Maps...): lê o caminho e o nome do arquivo e salva como rota
+await page.setInputFiles("#gpx-file", { name: "passeio.gpx", mimeType: "application/gpx+xml", buffer: Buffer.from('<?xml version="1.0"?><gpx version="1.1"><trk><name>Volta do lago</name><trkseg><trkpt lat="-10.10" lon="-50.10"/><trkpt lat="-10.11" lon="-50.09"/><trkpt lat="-10.12" lon="-50.08"/></trkseg></trk></gpx>') });
+await page.waitForTimeout(300);
+assert.equal(await page.inputValue("#route-name"), "Volta do lago", "o nome vem do arquivo");
+await page.evaluate(() => document.getElementById("route-save-ok").click()); await page.waitForTimeout(400);
+assert.match(await page.textContent("#import-msg"), /Volta do lago.*GPX/);
+assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem("pedalclima.v1")).savedRoutes.some(r => r.name === "Volta do lago" && r.line.length >= 2)), "a rota do GPX fica salva");
+await page.setInputFiles("#gpx-file", { name: "nada.gpx", mimeType: "text/plain", buffer: Buffer.from("isto não é gpx") }); await page.waitForTimeout(300);
+assert.match(await page.textContent("#import-msg"), /não parece um GPX/);
 await page.click("#settings-done"); await page.waitForTimeout(300);
 
 // fechar o trajeto volta para a tela inicial
@@ -501,7 +514,7 @@ await ctx.setGeolocation({ latitude: -15.8722, longitude: -48.0925 }); await pag
 }
 assert.ok(await page.locator(".rt .badge.mine").count() >= 1, "um trecho salvo que serve para o trajeto aparece entre as opções");
 await page.evaluate(() => document.getElementById("saved-pick").click()); await page.waitForTimeout(300);
-assert.ok(await page.locator(".saved-item").count() === 2, "a lista mostra as rotas salvas");
+assert.ok(await page.locator(".saved-item").count() === 3, "a lista mostra as rotas salvas");
 assert.match(await page.textContent(".saved-list"), /não passa perto deste trajeto/, "a rota que não serve aparece desabilitada");
 await page.evaluate(() => document.querySelector('.rt:not([aria-checked="true"])')?.click()); await page.waitForTimeout(300);
 await page.evaluate(() => document.getElementById("saved-pick").click()); await page.waitForTimeout(300);

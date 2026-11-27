@@ -1,6 +1,15 @@
 /** Novidades mostradas uma vez para quem já usava o app. */
-export const CURRENT_APP_VERSION = '2.39.3'
+export const CURRENT_APP_VERSION = '2.40.0'
 export const CHANGELOG = [
+  {
+    version: '2.40.0',
+    title: 'GPX, tempo real das rotas e radar no pedal',
+    items: [
+      'Importar GPX: em Ajustes → Rotas salvas, traga uma rota do Strava, Komoot, Google My Maps ou de um amigo. Ela passa a aparecer nos trajetos, inteira ou como trecho.',
+      'Tempo real: com 2 pedais ou mais por uma rota, o app mostra quanto você leva nela de verdade ("~27 min no seu ritmo"), já com sinais e paradas, e usa esse tempo na chegada.',
+      'Radar ao vivo no pedal: a cada poucos minutos, o app confere a imagem do radar nos próximos ~6 km da rota e avisa ("Radar: chuva a ~2 km no seu caminho"), também por voz.',
+    ],
+  },
   {
     version: '2.39.3',
     title: 'Legenda do "pode chover" corrigida',

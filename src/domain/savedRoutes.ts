@@ -84,3 +84,23 @@ export function planFits(p: SavedPlan, o: LatLon, d: LatLon): boolean {
   const direct = hav(o, d)
   return p.head + p.tail <= Math.max(1.5, direct * 0.35) && p.pieceKm >= Math.max(0.8, direct * 0.3)
 }
+
+/**
+ * Quanto você leva de verdade numa rota: pedais do histórico cujo caminho gravado começa e termina perto das pontas
+ * dela (no mesmo sentido) e anda quase todo em cima dela (80% dos pontos a até 100 m). Usa a mediana dos minutos
+ * (já com sinais, subidas e paradas). Só responde com 2 pedais ou mais.
+ */
+export function realTime(line: LatLon[], rides: { track?: LatLon[]; mins: number }[]): { n: number; mins: number } | null {
+  if (line.length < 2) return null
+  const cum = cumulative(line), a = line[0], b = line[line.length - 1], mins: number[] = []
+  for (const r of rides) {
+    const t = r.track
+    if (!t || t.length < 3 || hav(t[0], a) > 0.6 || hav(t[t.length - 1], b) > 0.6) continue
+    const on = t.filter(p => project(p, line, cum).off < 0.1).length
+    if (on / t.length >= 0.8) mins.push(r.mins)
+  }
+  if (mins.length < 2) return null
+  mins.sort((x, y) => x - y)
+  const m = mins.length % 2 ? mins[(mins.length - 1) / 2] : (mins[mins.length / 2 - 1] + mins[mins.length / 2]) / 2
+  return { n: mins.length, mins: Math.round(m) }
+}

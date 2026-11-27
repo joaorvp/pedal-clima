@@ -938,3 +938,14 @@ button.hist-row{cursor:pointer}
    !important porque o trecho tem background inline (a cor da chuva) */
 .routebar i.maybe{background-image:radial-gradient(circle,var(--r2) 0 2px,transparent 2.6px)!important;background-size:8px 100%!important;background-repeat:repeat-x!important;background-position:center!important}
 .legend .lg-maybe{display:inline-block;margin-right:5px;vertical-align:middle}
+/* importar rota: print ou GPX lado a lado */
+.imp-row{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:420px){.imp-row{grid-template-columns:1fr 1fr}}
+/* tempo real da rota (dos seus pedais) */
+.rt .dt .real{font-weight:600;color:var(--ink)}
+/* radar ao vivo no pedal: chuva no caminho que falta */
+.radar-ahead{display:flex;align-items:center;gap:8px;margin:10px 0 0;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--r2) 16%,var(--surface));font-size:14px}
+.radar-ahead .i{flex:none;color:var(--r2)}
+.hero.compact .radar-ahead{margin-top:8px;padding:6px 10px;font-size:13px}
+/* lista de rotas salvas (sem o pontilhado que liga Casa e Trabalho) */
+.saved-routes{display:grid;gap:10px}

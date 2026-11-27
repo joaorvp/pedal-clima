@@ -1,4 +1,6 @@
-import { ChevronDown, Crosshair, Download, ImagePlus, Trash2, Upload, X } from 'lucide-react'
+import { ChevronDown, Crosshair, Download, FileUp, ImagePlus, Trash2, Upload, X } from 'lucide-react'
+import { parseGpx } from '../domain/gpxImport'
+import { NameForm } from './SaveRoute'
 import { PlacePinIcon } from './bikeIcons'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { accuracyText } from '../domain/calibration'
@@ -32,6 +34,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
   const s = useSettings()
   const [gpsMsg, setGpsMsg] = useState('')
   const [importing, setImporting] = useState(false), [importMsg, setImportMsg] = useState('')
+  const gpxRef = useRef<HTMLInputElement>(null), [gpx, setGpx] = useState<{ name: string; line: [number, number][] } | null>(null), [importErr, setImportErr] = useState(false)
   const learned = learnedSpeed(s.history)
   const pick = (k: PointKey) => { onClose(); useTrip.getState().set({ pickMode: k, sheet: 'peek' }) }
   // abre já aberto só o que falta preencher (ou o bloco pedido); o resto fica fechado como um menu
@@ -74,7 +77,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
 
         <Sec id="sec-routes" title="Rotas salvas" hint={s.savedRoutes.length ? plural(s.savedRoutes.length, 'rota', 'rotas') : 'Nenhuma ainda'} open={first === 'routes'}>
           {s.savedRoutes.length ? (
-            <div className="places">
+            <div className="saved-routes">
               {s.savedRoutes.map(r => (
                 <div className="prow" key={r.id}>
                   <div className="pname"><input aria-label={'Nome da rota ' + r.name} defaultValue={r.name} maxLength={40} onBlur={e => s.renameRoute(r.id, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
@@ -90,9 +93,20 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
               ))}
             </div>
           ) : null}
-          <button className="btn imp-open" type="button" id="import-open" onClick={() => setImporting(true)}><ImagePlus className="i" />Importar de um print</button>
-          {importMsg && <p className="note ok-text" id="import-msg" style={{ margin: '6px 0 0' }}>{importMsg}</p>}
-          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece primeiro sempre que você for de perto do início até perto do fim dela (ou o contrário). Toque no nome para renomear.' : 'Nenhuma ainda. Em Seus pedais (velocímetro no topo), toque num pedal concluído e em "Usar como minha rota", ou importe de um print de outro app.'}</p>
+          <div className="imp-row">
+            <button className="btn imp-open" type="button" id="import-open" onClick={() => setImporting(true)}><ImagePlus className="i" />Importar de um print</button>
+            <button className="btn imp-open" type="button" id="gpx-open" onClick={() => gpxRef.current?.click()}><FileUp className="i" />Importar GPX</button>
+            <input ref={gpxRef} type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden id="gpx-file" onChange={async e => {
+              const f = e.target.files?.[0]; e.target.value = ''; if (!f) return
+              const g = parseGpx(await f.text())
+              if (!g) { setImportErr(true); setImportMsg('Esse arquivo não parece um GPX com caminho. Exporte de novo como GPX (trilha ou rota).'); return }
+              setImportErr(false); setImportMsg(''); setGpx({ name: g.name || f.name.replace(/\.gpx$/i, '').slice(0, 40) || 'Rota importada', line: g.line })
+            }} />
+          </div>
+          {gpx && <NameForm initial={gpx.name} label="Nome da rota" onCancel={() => setGpx(null)}
+            onSave={name => { s.saveRoute(name, gpx.line); setGpx(null); setImportMsg(`"${name.trim() || 'Minha rota'}" importada do GPX. Ela aparece nos trajetos que passam por ela.`); refreshTrip() }} />}
+          {importMsg && <p className={'note ' + (importErr ? 'warn-text' : 'ok-text')} id="import-msg" role={importErr ? 'alert' : undefined} style={{ margin: '6px 0 0' }}>{importMsg}</p>}
+          <p className="note">{s.savedRoutes.length ? 'Cada rota aparece nos trajetos que passam por ela, inteira ou só um trecho (nos dois sentidos). Toque no nome para renomear.' : 'Nenhuma ainda. Em Seus pedais (velocímetro no topo), toque num pedal concluído e em "Usar como minha rota", ou importe de um print ou de um arquivo GPX (Strava, Komoot, Google My Maps).'}</p>
         </Sec>
 
         <Sec id="sec-routine" title="Rotina e rota" hint={routine} open={first === 'routine'}>
@@ -139,7 +153,7 @@ export function SettingsDialog({ open, onClose, focus }: { open: boolean; onClos
 
       </div>
       <div className="dlg-foot"><button className="btn primary" type="button" id="settings-done" onClick={onClose}>Pronto</button></div>
-      <ImportRoute open={importing} onClose={m => { setImporting(false); if (m) setImportMsg(m) }} />
+      <ImportRoute open={importing} onClose={m => { setImporting(false); if (m) { setImportErr(false); setImportMsg(m) } }} />
     </Dialog>
   )
 }
